@@ -13,8 +13,7 @@ const clickhouseHost = process.env.CLICKHOUSE_HOST;
 
 const args = process.argv.slice(2);
 const mainDir = args[0];
-// const pixelDefPath = args[1];
-const prefix = args[2];
+const csvFile = args[1];
 
 const productDef = JSON5.parse(fs.readFileSync(`${mainDir}/product.json`).toString());
 // Whether to force all schemas and pixels to lowercase
@@ -25,6 +24,9 @@ const ignoreParams = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/i
 const commonSuffixes = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/common_suffixes.json`).toString()));
 const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
 
+// TODO: move to global somewhere and detect in pixel defs
+const ROOT_PREFIX = 'ROOT_PREFIX';
+
 function main() {
     console.log(`Processing pixels defined in ${mainDir}`);
     const pixelDefs = readPixelDefs(`${mainDir}/pixels`);
@@ -33,6 +35,7 @@ function main() {
 
     // TODO: might be bugs in new tab page pixels. Restore deleted pixels
 
+    console.log('\nValidating live pixels')
     readLivePixels(pixelDefs);
 
     // if (prefix) {
@@ -61,11 +64,11 @@ function readPixelDefs(folder) {
             return;
         }
 
-        console.log(`Reading pixel def file: ${fullPath}`);
+        console.log(`...Reading pixel def file: ${fullPath}`);
         const filePixes = JSON5.parse(getNormalizedCase(fs.readFileSync(fullPath).toString()));
         for (const prefix of Object.keys(filePixes)) {
             const prefixParts = prefix.split('.');
-            console.log(prefixParts);
+            // console.log(prefixParts);
 
             var pixelParent = pixelDefs;
             for (var i = 0; i < prefixParts.length-1; i++) {
@@ -78,9 +81,9 @@ function readPixelDefs(folder) {
             
             const lastPart = prefixParts[prefixParts.length-1];
             if (pixelParent[lastPart]) {
-                pixelParent[lastPart][''] = filePixes[prefix];
+                pixelParent[lastPart][ROOT_PREFIX] = filePixes[prefix];
             } else {
-                pixelParent[lastPart] = {'': filePixes[prefix]};
+                pixelParent[lastPart] = {ROOT_PREFIX: filePixes[prefix]};
             }
         }
         //process.exit(1);
@@ -90,9 +93,12 @@ function readPixelDefs(folder) {
 }
 
 function readLivePixels(pixelDefs) {
-    fs.createReadStream('test.csv')
+    const undocumentedPixels = new Set();
+    const pixelErrors = {};
+    fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {
+            // Match longest prefix:
             const pixelParts = row.pixel.split('.');
             var pixelMatch = pixelDefs;
             var matchedParts = "";
@@ -106,13 +112,40 @@ function readLivePixels(pixelDefs) {
                 }
             }
 
-            // TODO: at this point match pixel against '' value
-            console.log(row.pixel);
-            console.log(matchedParts);
-            console.log(pixelMatch);
+            // console.log("--------------------");
+            // console.log(row.pixel);
+            // console.log(matchedParts);
+            //console.log(pixelMatch);
+
+            if (!pixelMatch[ROOT_PREFIX]) {
+                undocumentedPixels.add(row.pixel);
+                return;
+            }
+
+            const prefix = matchedParts.slice(0, -1);
+
+            console.log(`...Validating ${row.pixel}`);
+            const errors = paramsValidator.validateLivePixels(pixelMatch[ROOT_PREFIX], prefix, getNormalizedCase(row.request), ignoreParams, productDef.target);
+            if (errors.length) {
+                if (!pixelErrors[row.pixel]) {
+                    pixelErrors[row.pixel] = {
+                        errors: new Set(),
+                        requests: new Set()
+                    }
+                }
+
+                pixelErrors[row.pixel].requests.add(row.request);
+                for (const error of errors) {
+                    pixelErrors[row.pixel].errors.add(error);
+                }
+            }
         })
         .on('end', async () => {
-            console.log('CSV file successfully processed');
+            console.log(`\nDone validating pixels. Undocumented pixels (${undocumentedPixels.size}):`);
+            // console.log(undocumentedPixels);
+
+            console.log('-----------------');
+            console.log(pixelErrors);
         });
 }
 
