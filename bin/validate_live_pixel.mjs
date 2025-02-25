@@ -22,21 +22,41 @@ const forceLowerCase = productDef.forceLowerCase;
 const commonParams = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/common_params.json`).toString()));
 const ignoreParams = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/ignore_params.json`).toString()));
 const commonSuffixes = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/common_suffixes.json`).toString()));
+const tokenizedPixels = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/tokenized_pixels.json`).toString()));
 const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
 
-// TODO: move to global somewhere and detect in pixel defs
-const ROOT_PREFIX = 'ROOT_PREFIX';
+function compileDefs(tokenizedPixels) {
+    Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
+        if (prefix !== 'ROOT_PREFIX') {
+            compileDefs(pixelDef);
+            return;
+        }
+
+        const combinedParams = pixelDef.parameters
+            ? [...pixelDef.parameters, ...Object.values(ignoreParams)]
+            : [...Object.values(ignoreParams)];
+        const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
+
+        // Pre-compile each schema
+        const paramsSchema = paramsValidator.compileParamsSchema(combinedParams);
+        const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
+        tokenizedPixels[prefix] = {
+            paramsSchema,
+            suffixesSchema
+        };
+    });
+}
 
 function main() {
     console.log(`Processing pixels defined in ${mainDir}`);
-    const pixelDefs = readPixelDefs(`${mainDir}/pixels`);
-    // console.log(pixelDefs);
-    // console.log(JSON.stringify(pixelDefs, null, 4));
+    
+    compileDefs(tokenizedPixels);
+    // console.log(tokenizedPixels);
+    // console.log(JSON.stringify(tokenizedPixels, null, 4));
 
-    // TODO: might be bugs in new tab page pixels. Restore deleted pixels
 
-    console.log('\nValidating live pixels')
-    readLivePixels(pixelDefs);
+    // console.log('\nValidating live pixels')
+    readLivePixels(tokenizedPixels);
 
     // if (prefix) {
     //     const url = args[3];
@@ -56,45 +76,17 @@ function main() {
     // }
 }
 
-function readPixelDefs(folder) {
-    const pixelDefs = {};
-    fs.readdirSync(folder, { recursive: true }).forEach((file) => {
-        const fullPath = path.join(folder, file);
-        if (fs.statSync(fullPath).isDirectory()) {
-            return;
-        }
-
-        console.log(`...Reading pixel def file: ${fullPath}`);
-        const filePixes = JSON5.parse(getNormalizedCase(fs.readFileSync(fullPath).toString()));
-        for (const prefix of Object.keys(filePixes)) {
-            const prefixParts = prefix.split('.');
-            // console.log(prefixParts);
-
-            var pixelParent = pixelDefs;
-            for (var i = 0; i < prefixParts.length-1; i++) {
-                const part = prefixParts[i];
-                if (!pixelParent[part]) {
-                    pixelParent[part] = {};
-                }
-                pixelParent = pixelParent[part];
-            }
-            
-            const lastPart = prefixParts[prefixParts.length-1];
-            if (pixelParent[lastPart]) {
-                pixelParent[lastPart][ROOT_PREFIX] = filePixes[prefix];
-            } else {
-                pixelParent[lastPart] = {ROOT_PREFIX: filePixes[prefix]};
-            }
-        }
-        //process.exit(1);
-    });
-
-    return pixelDefs;
-}
-
 function readLivePixels(pixelDefs) {
+    // COnsider the below to estimate:
+    // var exec = require('child_process').exec;
+
+    // exec('wc -l /path/to/file', function (error, results) {
+    //     console.log(results);
+    // });
+
     const undocumentedPixels = new Set();
     const pixelErrors = {};
+    var processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {
@@ -117,15 +109,20 @@ function readLivePixels(pixelDefs) {
             // console.log(matchedParts);
             //console.log(pixelMatch);
 
-            if (!pixelMatch[ROOT_PREFIX]) {
+            if (!pixelMatch['ROOT_PREFIX']) {
                 undocumentedPixels.add(row.pixel);
                 return;
             }
 
             const prefix = matchedParts.slice(0, -1);
+            processedPixels++;
 
-            console.log(`...Validating ${row.pixel}`);
-            const errors = paramsValidator.validateLivePixels(pixelMatch[ROOT_PREFIX], prefix, getNormalizedCase(row.request), ignoreParams, productDef.target);
+            if (processedPixels % 1000 === 0) {
+                console.log(`...Processed ${processedPixels} pixels`);
+            }
+
+            //console.log(`...Validating ${row.pixel}`);
+            const errors = paramsValidator.validateLivePixels(pixelMatch['ROOT_PREFIX'], prefix, row.pixel, getNormalizedCase(row.request), ignoreParams, productDef.target);
             if (errors.length) {
                 if (!pixelErrors[row.pixel]) {
                     pixelErrors[row.pixel] = {
@@ -149,43 +146,6 @@ function readLivePixels(pixelDefs) {
         });
 }
 
-function queryClickhouse(pixelDefs) {
-    const agents = "'" + productDef.agents.join("','") + "'";
-    const agentString = productDef.agents.length ? `AND agent IN (${agents})` : '';
-
-    const pixelQueryResults = {};
-    for (const pixel of Object.keys(pixelDefs)) {
-        console.log('Querying for', pixel);
-        const pixelID = pixel.split(/[-.]/)[0];
-        const queryString = `SELECT DISTINCT request FROM metrics.pixels WHERE pixel_id = '${pixelID}' AND date > now() - INTERVAL 30 DAY AND pixel ILIKE '${pixel}%' AND request NOT ILIKE '%test=1%' ${agentString} LIMIT 1000`;
-        const clickhouseQuery = spawnSync('clickhouse-client', ['--host', clickhouseHost, '--query', queryString]);
-        const resultString = clickhouseQuery.stdout.toString();
-        const resultErr = clickhouseQuery.stderr.toString();
-        if (resultErr) {
-            console.log('clickhouse query error:', resultErr);
-        } else {
-            if (resultString) pixelQueryResults[pixel] = resultString;
-        }
-    }
-
-    return pixelQueryResults;
-}
-
-function validateQueryForPixels(prefix, pixelQuery, paramsValidator) {
-    const minVersion = productDef.target;
-
-    const lines = pixelQuery.split('\n');
-    console.log(`Received ${lines.length} results`);
-    for (let line of lines) {
-        if (line === '') continue;
-        line = getNormalizedCase(line);
-        const pixelRequest = line.split('/')[2];
-        const pixelDef = pixelDefs[prefix];
-
-        logErrors(`ERROR for '${pixelRequest}\n`, paramsValidator.validateLivePixels(pixelDef, prefix, line, ignoreParams, minVersion));
-    }
-}
-
 function validateSinglePixel(pixelDefs, prefix, url) {
     logErrors('ERROR:', paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, getNormalizedCase(url)));
 }
@@ -197,4 +157,5 @@ function getNormalizedCase(value) {
 
     return value;
 }
+
 main();

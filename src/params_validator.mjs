@@ -133,19 +133,17 @@ export class ParamsValidator {
         return this.#ajv.compile(pixelParams);
     }
 
-    validateLivePixels(pixelDef, prefix, url, ignoreParams = {}, minVersion = {}) {
+    // TODO: live pixel validator as a separate class
+    validateLivePixels(pixelDef, prefix, livePixelName, liveRequest, minVersion = {}) {
         const errors = [];
 
-        const urlSplit = url.split('/')[2].split('?');
-        const livePixelName = urlSplit[0].replaceAll('_', '.');
+        // TODO: disallow _ in prefix name
+        // TODO: can detect base64 in combinedParams and then match against URL params to unwrap
+        const urlSplit = liveRequest.split('/')[2].split('?');
         // grab pixel parameters with any preceding cache buster removed
         const livePixelRequestParams = /^([0-9]+&)?(.*)$/.exec(urlSplit[1] || '')[2];
 
         // 1) Validate pixel params
-        const combinedParams = pixelDef.parameters
-            ? [...pixelDef.parameters, ...Object.values(ignoreParams)]
-            : [...Object.values(ignoreParams)];
-        const validateParams = this.compileParamsSchema(combinedParams);
         const paramsStruct = Object.fromEntries(new URLSearchParams(livePixelRequestParams));
         const versionKey = minVersion.key;
         if (versionKey && paramsStruct[versionKey]) {
@@ -153,8 +151,8 @@ export class ParamsValidator {
                 return [];
             }
         }
-        validateParams(paramsStruct);
-        errors.push(...formatAjvErrors(validateParams.errors));
+        pixelDef.paramsSchema(paramsStruct);
+        errors.push(...formatAjvErrors(pixelDef.paramsSchema.errors));
 
         // 2) Validate pixel name if it's parameterized
         if (livePixelName.length > prefix.length) {
@@ -163,9 +161,9 @@ export class ParamsValidator {
             pixelSuffix.split('.').forEach((suffix, idx) => {
                 pixelNameStruct[idx] = suffix;
             });
-            const validatePixelName = this.compileSuffixesSchema(pixelDef.suffixes);
-            validatePixelName(pixelNameStruct);
-            errors.push(...formatAjvErrors(validatePixelName.errors, pixelNameStruct));
+            
+            pixelDef.suffixesSchema(pixelNameStruct);
+            errors.push(...formatAjvErrors(pixelDef.suffixesSchema.errors, pixelNameStruct));
         }
 
         return errors;

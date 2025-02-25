@@ -7,8 +7,8 @@ import yargs from 'yargs';
 
 import { hideBin } from 'yargs/helpers';
 
-// TODO: move to global somewhere and detect in pixel defs
-const ROOT_PREFIX = 'ROOT_PREFIX';
+// TODO: move to global somewhere and detect in pixel defs (e.g. constants.mjs)
+export const ROOT_PREFIX = 'ROOT_PREFIX';
 const combinedPixelDefs = {};
 
 const argv = yargs(hideBin(process.argv))
@@ -23,16 +23,13 @@ const argv = yargs(hideBin(process.argv))
                     }
                     return dirPath;
                 },
-            }).positional('outFile', {
-                describe: 'output file for tokenized pixels',
-                type: 'string',
-                default: 'tokenized_pixels.json'
-            });
+            })
     })
     .demandOption('dirPath')
     .parse();
 
 function processPixelFile(pixelDefs) {
+    // TODO: we only care about suffixes and params
     for (const prefix of Object.keys(pixelDefs)) {
         const prefixParts = prefix.split('.');
 
@@ -73,8 +70,9 @@ function processPixelDefs(folder) {
     });
 
     // Write out tokenized pixel defs to a file
-    console.log(`Writing out tokenized pixel defs to ${argv.outFile}`);
-    fs.writeFileSync(argv.outFile, JSON.stringify(combinedPixelDefs, null, 4));
+    const outFile = path.join(argv.dirPath, 'tokenized_pixels.json');
+    console.log(`Writing out tokenized pixel defs to ${outFile}`);
+    fs.writeFileSync(outFile, JSON.stringify(combinedPixelDefs, null, 4));
 }
 
 processPixelDefs(path.join(argv.dirPath, 'pixels'));
