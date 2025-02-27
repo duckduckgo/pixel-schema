@@ -7,9 +7,6 @@ import path from 'path';
 
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
-import { spawnSync } from 'child_process';
-
-const clickhouseHost = process.env.CLICKHOUSE_HOST;
 
 const args = process.argv.slice(2);
 const mainDir = args[0];
@@ -49,13 +46,7 @@ function compileDefs(tokenizedPixels) {
 
 function main() {
     console.log(`Processing pixels defined in ${mainDir}`);
-    
     compileDefs(tokenizedPixels);
-    // console.log(tokenizedPixels);
-    // console.log(JSON.stringify(tokenizedPixels, null, 4));
-
-
-    // console.log('\nValidating live pixels')
     readLivePixels(tokenizedPixels);
 
     // if (prefix) {
@@ -90,6 +81,11 @@ function readLivePixels(pixelDefs) {
     fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {
+            processedPixels++;
+            if (processedPixels % 100000 === 0) {
+                console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
+            }
+
             // Match longest prefix:
             const pixelParts = row.pixel.split('.');
             var pixelMatch = pixelDefs;
@@ -104,25 +100,13 @@ function readLivePixels(pixelDefs) {
                 }
             }
 
-            // console.log("--------------------");
-            // console.log(row.pixel);
-            // console.log(matchedParts);
-            //console.log(pixelMatch);
-
             if (!pixelMatch['ROOT_PREFIX']) {
                 undocumentedPixels.add(row.pixel);
                 return;
             }
 
             const prefix = matchedParts.slice(0, -1);
-            processedPixels++;
-
-            if (processedPixels % 1000 === 0) {
-                console.log(`...Processed ${processedPixels} pixels`);
-            }
-
-            //console.log(`...Validating ${row.pixel}`);
-            const errors = paramsValidator.validateLivePixels(pixelMatch['ROOT_PREFIX'], prefix, row.pixel, getNormalizedCase(row.request), ignoreParams, productDef.target);
+            const errors = paramsValidator.validateLivePixels(pixelMatch['ROOT_PREFIX'], prefix, row.pixel, getNormalizedCase(row.request), productDef.target);
             if (errors.length) {
                 if (!pixelErrors[row.pixel]) {
                     pixelErrors[row.pixel] = {
@@ -138,7 +122,8 @@ function readLivePixels(pixelDefs) {
             }
         })
         .on('end', async () => {
-            console.log(`\nDone validating pixels. Undocumented pixels (${undocumentedPixels.size}):`);
+            console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
+            console.log(`...Undocumented pixels (${undocumentedPixels.size.toLocaleString('en-US')}):`);
             // console.log(undocumentedPixels);
 
             console.log('-----------------');
