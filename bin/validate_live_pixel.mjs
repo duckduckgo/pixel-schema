@@ -125,10 +125,19 @@ function readLivePixels(pixelDefs) {
             console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
             console.log(`...Undocumented pixels (${undocumentedPixels.size.toLocaleString('en-US')}):`);
             // console.log(undocumentedPixels);
+            fs.writeFileSync("results/undocumentedPixels.json", JSON.stringify(Array.from(undocumentedPixels), null, 4));
 
             console.log('-----------------');
-            console.log(pixelErrors);
+            // console.log(pixelErrors);
+            fs.writeFileSync("results/pixelErrors.json", JSON.stringify(pixelErrors, setReplacer, 4));
         });
+}
+
+function setReplacer(key, value) {
+    if (value instanceof Set) {
+        return Array.from(value);
+    }
+    return value;
 }
 
 function validateSinglePixel(pixelDefs, prefix, url) {
