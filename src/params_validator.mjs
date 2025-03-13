@@ -2,7 +2,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { formatAjvErrors } from './error_utils.mjs';
 
-import { compareVersions } from 'compare-versions';
+import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 /**
  * Validator for pixel parameters and suffixes:
@@ -146,7 +146,7 @@ export class ParamsValidator {
         // 1) Validate pixel params
         const paramsStruct = Object.fromEntries(new URLSearchParams(livePixelRequestParams));
         const versionKey = minVersion.key;
-        if (versionKey && paramsStruct[versionKey]) {
+        if (versionKey && paramsStruct[versionKey] && validateVersion(paramsStruct[versionKey])) {
             if (compareVersions(paramsStruct[versionKey], minVersion.version) === -1) {
                 return [];
             }

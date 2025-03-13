@@ -18,7 +18,7 @@ export class DefsTokenizer {
             
             const lastPart = prefixParts[prefixParts.length-1];
             if (!pixelParent[lastPart]) {
-                pixelParent[lastPart] = {ROOT_PREFIX: {}};
+                pixelParent[lastPart] = {[ROOT_PREFIX]: {}};
             } else if (pixelParent[lastPart][ROOT_PREFIX]) {
                 // Should not happen (we assume valid defs at this point):
                 throw new Error(`Duplicate pixel definition found for ${prefix}`);

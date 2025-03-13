@@ -1,9 +1,14 @@
 import { exec } from 'child_process';
 import { expect } from 'chai';
+import fs from 'fs';
+import JSON5 from 'json5';
 import path from 'path';
+
+import * as fileUtils from '../src/file_utils.mjs';
 
 const timeout = 5000;
 const validDefsPath = path.join('tests', 'test_data', 'valid');
+const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_results');
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');
 const invalidDefsPath = path.join('tests', 'test_data', 'invalid');
 describe('Invalid defs', () => {
@@ -36,60 +41,46 @@ describe('Valid defs', () => {
     }).timeout(timeout);
 });
 
-describe('Invalid live pixel', () => {
-    it('should output extra property error', (done) => {
+describe('Validate live pixels', () => {
+    it('case sensitive - should produce expected errors', (done) => {
         exec(
-            `npm run validate-ddg-live-pixel ${validDefsPath} pixel_subfolder/test_pixels.json m.netp.tunnel.stop.failure /t/m_netp_tunnel_stop_failure_d_ios_phone?x=1`,
+            `npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`,
             (error, _, stderr) => {
-                const expectedErrors = ["ERROR: must NOT have additional properties. Found extra property 'x'"];
+                expect(error).to.equal(null);
 
-                const errors = stderr.trim().split('\n');
-                expect(errors).to.include.members(expectedErrors);
-                expect(error.code).to.equal(1);
+                // Check output files
+                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)));
+                const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')));
+                expect(pixelErrors).to.deep.equal(expectedErrors);
+
+                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
+                const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
+                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
                 done();
             },
         );
     }).timeout(timeout);
-});
 
-describe('Valid live pixel', () => {
-    it('should exit normally', (done) => {
+    it('case insensitive - should produce expected errors', (done) => {
         exec(
-            `npm run validate-ddg-live-pixel ${validDefsPath} pixel_subfolder/test_pixels.json m.netp.tunnel.stop.failure /t/m_netp_tunnel_stop_failure_d_ios_phone?ud5=1`,
+            `npm run preprocess-defs ${validCaseInsensitiveDefsPath}`,
             (error, _, stderr) => {
-                expect(stderr.length).to.equal(0);
                 expect(error).to.equal(null);
-
-                done();
             },
         );
-    }).timeout(timeout);
-});
 
-describe('Valid live pixel, case-insensitive suffix', () => {
-    it('should exit normally', (done) => {
         exec(
-            `npm run validate-ddg-live-pixel ${validCaseInsensitiveDefsPath} test_pixels.json m.windows.crash.stable /t/m_windows_crash_stable_Daily?channel=stable`,
+            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/test_live_pixels.csv`,
             (error, _, stderr) => {
-                console.warn('stderr', stderr);
-                expect(stderr.length).to.equal(0);
                 expect(error).to.equal(null);
 
-                done();
-            },
-        );
-    }).timeout(timeout);
-});
+                // Check output files
+                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validCaseInsensitiveDefsPath)));
+                expect(pixelErrors).to.be.empty;
 
-describe('Valid live pixel, case-insensitive param', () => {
-    it('should exit normally', (done) => {
-        exec(
-            `npm run validate-ddg-live-pixel ${validCaseInsensitiveDefsPath} test_pixels.json m.windows.crash.stable /t/m_windows_crash_stable_daily?channel=Stable`,
-            (error, _, stderr) => {
-                console.warn('stderr', stderr);
-                expect(stderr.length).to.equal(0);
-                expect(error).to.equal(null);
+                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)));
+                expect(undocumentedPixels).to.be.empty;
 
                 done();
             },

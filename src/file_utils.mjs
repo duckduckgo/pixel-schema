@@ -9,28 +9,6 @@ import JSON5 from 'json5';
 const RESULTS_DIR = 'pixel_processing_results';
 
 /**
- * Get results directory path and create it if it doesn't exist
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {string} results directory path
- */
-export function getResultsDir(mainPixelDir) {
-    const resultsDir = path.join(mainPixelDir, RESULTS_DIR);
-    if (!fs.existsSync(resultsDir)) {
-        fs.mkdirSync(resultsDir);
-    }
-    return resultsDir;
-}
-
-/**
- * Get tokenized pixels path and creates the path if it doesn't exist
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {string} tokenized pixels path
- */
-export function getTokenizedPixelsPath(mainPixelDir) {
-    return path.join(getResultsDir(mainPixelDir), 'tokenized_pixels.json');
-}
-
-/**
  * Get common parameters
  * @param {string} mainPixelDir - path to the main pixels directory
  * @param {boolean} forceLowerCase - whether to force to lowercase
@@ -60,16 +38,6 @@ export function getIgnoreParams(mainPixelDir, forceLowerCase) {
     return parseFile(path.join(mainPixelDir, 'ignore_params.json'), forceLowerCase);
 }
 
-/** 
- * Get tokenized pixel definitions
- * @param {string} mainPixelDir - path to the main pixels directory
- * @param {boolean} forceLowerCase - whether to force to lowercase
- * @returns {object} tokenized pixel definitions
- */
-export function getTokenizedPixels(mainPixelDir, forceLowerCase) {
-    return parseFile(getTokenizedPixelsPath(mainPixelDir), forceLowerCase);
-}
-
 /**
  * Get product definition path
  * @param {string} mainPixelDir - path to the main pixels directory
@@ -88,8 +56,58 @@ export function getProductDef(mainPixelDir) {
     return parseFile(getProductDefPath(mainPixelDir));
 }
 
+/**
+ * Get results directory path and create it if it doesn't exist
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} results directory path
+ */
+export function getResultsDir(mainPixelDir) {
+    const resultsDir = path.join(mainPixelDir, RESULTS_DIR);
+    if (!fs.existsSync(resultsDir)) {
+        fs.mkdirSync(resultsDir);
+    }
+    return resultsDir;
+}
+
+/** 
+ * Get path to pixel errors encountered during live validation
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} pixel errors path
+ */
+export function getPixelErrorsPath(mainPixelDir) {
+    return path.join(getResultsDir(mainPixelDir), 'pixel_errors.json');
+}
+
+/**
+ * Get path to undocumented pixels encountered during live validation
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} undocumented pixels path
+ */
+export function getUndocumentedPixelsPath(mainPixelDir) {
+    return path.join(getResultsDir(mainPixelDir), 'undocumented_pixels.json');
+}
+
+/**
+ * Get tokenized pixels path and creates the path if it doesn't exist
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} tokenized pixels path
+ */
+export function getTokenizedPixelsPath(mainPixelDir) {
+    return path.join(getResultsDir(mainPixelDir), 'tokenized_pixels.json');
+}
+
+/** 
+ * Get tokenized pixel definitions
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @param {boolean} forceLowerCase - whether to force to lowercase
+ * @returns {object} tokenized pixel definitions
+ */
+export function getTokenizedPixels(mainPixelDir, forceLowerCase) {
+    return parseFile(getTokenizedPixelsPath(mainPixelDir), forceLowerCase);
+}
+
 function parseFile(filePath, forceLowerCase) {
-    let fileContent = fs.readFileSync(filePath);
+    let fileContent = fs.readFileSync(filePath).toString();
     if (forceLowerCase) {
         fileContent = fileContent.toLowerCase();
     }

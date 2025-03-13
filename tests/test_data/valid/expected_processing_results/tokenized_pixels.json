@@ -1,0 +1,70 @@
+{
+    "m": {
+        "my": {
+            "first": {
+                "pixel": {
+                    "ROOT_PREFIX": {
+                        "parameters": [
+                            "appVersion",
+                            {
+                                "key": "count",
+                                "description": "Number of times an event occured.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                            },
+                            {
+                                "key": "date",
+                                "description": "Date the event occured",
+                                "format": "date"
+                            },
+                            {
+                                "key": "is_default",
+                                "description": "Whether the browser is set as default",
+                                "type": "boolean"
+                            },
+                            {
+                                "key": "blocked_trackers",
+                                "description": "List of blocked trackers",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "examples": [
+                                    [
+                                        "tracker1",
+                                        "tracker2"
+                                    ],
+                                    [
+                                        "tracker3"
+                                    ]
+                                ]
+                            }
+                        ],
+                        "suffixes": [
+                            {
+                                "description": "suffixes that indicates type of user",
+                                "enum": [
+                                    "new",
+                                    "returning"
+                                ]
+                            },
+                            {
+                                "key": "exceptiontype",
+                                "description": "exception that occured",
+                                "examples": [
+                                    "filenotfoundexception",
+                                    "anotherexception"
+                                ]
+                            },
+                            "device_type"
+                        ]
+                    },
+                    "test": {
+                        "ROOT_PREFIX": {}
+                    }
+                }
+            }
+        }
+    }
+}

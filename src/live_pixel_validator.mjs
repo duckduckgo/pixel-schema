@@ -70,15 +70,14 @@ export class LivePixelsValidator {
         const errors = this.#paramsValidator.validateLivePixels(pixelMatch[ROOT_PREFIX], prefix, pixel, url, this.#productDef.target);
         if (errors.length) {
             if (!this.pixelErrors[prefix]) {
-                this.pixelErrors[prefix] = {
-                    errors: new Set(),
-                    requests: new Set()
-                }
+                this.pixelErrors[prefix] = {};
             }
-
-            this.pixelErrors[prefix].requests.add(request);
+            
             for (const error of errors) {
-                this.pixelErrors[prefix].errors.add(error);
+                if(!this.pixelErrors[prefix][error]) {
+                    this.pixelErrors[prefix][error] = new Set();
+                }
+                this.pixelErrors[prefix][error].add(request);
             }
         }
     }

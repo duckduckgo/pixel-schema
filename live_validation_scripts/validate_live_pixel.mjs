@@ -2,7 +2,6 @@
 
 import csv from 'csv-parser';
 import fs from 'fs';
-import path from 'path';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -41,15 +40,11 @@ function main(mainDir, csvFile) {
         .on('end', async () => {
             console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
             console.log(`...Undocumented pixels (${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}):`);
-            // console.log(undocumentedPixels);
 
-            const undocumentedPixelsPath = path.join(fileUtils.getResultsDir(mainDir), "undocumentedPixels.json");
-            fs.writeFileSync(undocumentedPixelsPath, JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4));
-
-            console.log('-----------------');
-            // console.log(pixelErrors);
-            const pixelErrorsPath = path.join(fileUtils.getResultsDir(mainDir), "pixelErrors.json");
-            fs.writeFileSync(pixelErrorsPath, JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+            fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), 
+                JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4));
+            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), 
+                JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
         });
     
 }

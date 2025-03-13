@@ -1,0 +1,4 @@
+pixel,request
+m.my.first.pixel,/t/m_my_first_pixel?color=blue
+m.my.first.pixel,/t/m_my_first_pixel?color=Blue
+m.my.first.pixel,/t/m_my_first_pixel?color=yeLLow

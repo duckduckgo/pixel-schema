@@ -1,5 +1,6 @@
 pixel,request
 m.my.first.unknown-pixel,/t/m_my_first_unknown-pixel
+second-unknown-pixel,/t/second-unknown-pixel
 m.my.first.pixel.test,/t/m_my_first_pixel_test
 m.my.first.pixel.test,/t/m_my_first_pixel_test?extraParam=10
 m.my.first.pixel.test.extra-suffix,/t/m_my_first_pixel_test_extra-suffix
@@ -9,5 +10,5 @@ m.my.first.pixel.new.exceptiontype.some-exception.unexpected-suffix3,/t/m_my_fir
 m.my.first.pixel.new.exceptiontype.x.android.unexpected-4,/t/m_my_first_pixel_new_exceptiontype_x_android_unexpected-4
 m.my.first.pixel.new.exceptiontype.x.android.phone,/t/m_my_first_pixel_new_exceptiontype_x_android_phone?appVersion=wrongFormat
 m.my.first.pixel.skip-due-to-version,/t/m_my_first_pixel_skip-due-to-version?appVersion=0.0&count=unexpectedButSkip
-m.my.first.pixel,/t/m_my_first_pixel?appVersion=2.0&count=wrongFormat
-m.my.first.pixel,"/t/m_my_first_pixel?appVersion=2.0&count=42&date=2025-03-12
+m.my.first.pixel,/t/m_my_first_pixel?appVersion=2.0.0&count=wrongFormat
+m.my.first.pixel,/t/m_my_first_pixel?appVersion=2.0.3&count=42&date=2025-03-12
