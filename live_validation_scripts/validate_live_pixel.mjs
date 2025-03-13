@@ -2,14 +2,10 @@
 
 import csv from 'csv-parser';
 import fs from 'fs';
-import JSON5 from 'json5';
 import path from 'path';
 
-import { ParamsValidator } from '../src/params_validator.mjs';
-import { logErrors } from '../src/error_utils.mjs';
-
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
-import { PIXELS_TMP_CSV } from '../src/constants.mjs';
+import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
@@ -32,7 +28,7 @@ function main(mainDir, csvFile) {
     
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
-    var processedPixels = 0;
+    let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {

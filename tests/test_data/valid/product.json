@@ -2,7 +2,7 @@
     "agents": [],
     "target": {
         "key": "appVersion",
-        "version": "0.98.4"
+        "version": "1.00.0"
     },
     "forceLowerCase": false
 }

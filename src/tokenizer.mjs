@@ -7,8 +7,8 @@ export class DefsTokenizer {
         for (const prefix of Object.keys(pixelDefs)) {
             const prefixParts = prefix.split('.');
 
-            var pixelParent = this.#tokenizedDefs;
-            for (var i = 0; i < prefixParts.length-1; i++) {
+            let pixelParent = this.#tokenizedDefs;
+            for (let i = 0; i < prefixParts.length-1; i++) {
                 const part = prefixParts[i];
                 if (!pixelParent[part]) {
                     pixelParent[part] = {};

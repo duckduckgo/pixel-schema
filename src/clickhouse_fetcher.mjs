@@ -39,7 +39,7 @@ function populateTempTable(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map(agent => `agent = '${agent}'`).join(' OR ');
 
     const currentDate = new Date();
-    let pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
+    const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
     while (pastDate <= currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, request)
             SELECT any(pixel), request
