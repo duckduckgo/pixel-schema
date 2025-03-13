@@ -1,8 +1,5 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { formatAjvErrors } from './error_utils.mjs';
-
-import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 /**
  * Validator for pixel parameters and suffixes:
@@ -131,41 +128,5 @@ export class ParamsValidator {
         };
 
         return this.#ajv.compile(pixelParams);
-    }
-
-    // TODO: live pixel validator as a separate class
-    validateLivePixels(pixelDef, prefix, livePixelName, liveRequest, minVersion = {}) {
-        const errors = [];
-
-        // TODO: disallow _ in prefix name
-        // TODO: can detect base64 in combinedParams and then match against URL params to unwrap
-        const urlSplit = liveRequest.split('/')[2].split('?');
-        // grab pixel parameters with any preceding cache buster removed
-        const livePixelRequestParams = /^([0-9]+&)?(.*)$/.exec(urlSplit[1] || '')[2];
-
-        // 1) Validate pixel params
-        const paramsStruct = Object.fromEntries(new URLSearchParams(livePixelRequestParams));
-        const versionKey = minVersion.key;
-        if (versionKey && paramsStruct[versionKey] && validateVersion(paramsStruct[versionKey])) {
-            if (compareVersions(paramsStruct[versionKey], minVersion.version) === -1) {
-                return [];
-            }
-        }
-        pixelDef.paramsSchema(paramsStruct);
-        errors.push(...formatAjvErrors(pixelDef.paramsSchema.errors));
-
-        // 2) Validate pixel name if it's parameterized
-        if (livePixelName.length > prefix.length) {
-            const pixelSuffix = livePixelName.split(`${prefix}.`)[1];
-            const pixelNameStruct = {};
-            pixelSuffix.split('.').forEach((suffix, idx) => {
-                pixelNameStruct[idx] = suffix;
-            });
-
-            pixelDef.suffixesSchema(pixelNameStruct);
-            errors.push(...formatAjvErrors(pixelDef.suffixesSchema.errors, pixelNameStruct));
-        }
-
-        return errors;
     }
 }

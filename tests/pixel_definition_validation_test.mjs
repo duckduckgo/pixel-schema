@@ -83,7 +83,6 @@ describe('Pixel with params', () => {
             description: 'A common parameter',
         },
     };
-    const validator = new DefinitionsValidator(commonParams, '{}');
 
     function validateErrors(params, expectedErrors, strict = true) {
         const pixel = {
@@ -93,6 +92,7 @@ describe('Pixel with params', () => {
             parameters: params,
         };
 
+        const validator = new DefinitionsValidator(commonParams, '{}');
         const errors = validator.validatePixelsDefinition({ pixel });
         if (strict) {
             expect(errors).to.have.members(expectedErrors);

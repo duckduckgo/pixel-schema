@@ -43,6 +43,10 @@ describe('Valid defs', () => {
 
 describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
+        exec(`npm run preprocess-defs ${validDefsPath}`, (error, _, stderr) => {
+            expect(error).to.equal(null);
+        });
+
         exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`, (error, _, stderr) => {
             expect(error).to.equal(null);
 
