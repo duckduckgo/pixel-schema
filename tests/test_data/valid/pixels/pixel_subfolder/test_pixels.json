@@ -1,64 +1,7 @@
 {
-    // Collection of pixels from various platforms for testing
-    // Note: definitions may not be fully accurate
-    "m.windows.crash.stable": {
-        "description": "Fires when the browser crashes.",
-        "owners": ["bszanto"],
-        "triggers": ["exception", "scheduled"],
-        "suffixes": [
-            "first_daily_count",
-            {
-                "key": "exceptiontype",
-                "type": "string",
-                "description": "Type of exception.",
-                "examples": [
-                    "system-io-filenotfoundexception",
-                    "system-runtime-interopservices-comexception",
-                    "microsoft-entityframeworkcore-dbupdateexception"
-                ]
-            },
-            {
-                "key": "sessionlength",
-                "type": "string",
-                "description": "Length of session.",
-                "enum": ["under-a-minute", "under-an-hour", "under-a-day", "more-than-a-day"]
-            }
-        ],
-        "parameters": ["appVersion", "channel"],
-        "privacyReview": ["https://app.asana.com/0/69071770703008/1206598634657325/f"]
-    },
-    "m.webview.received.http.error": {
-        "description": "Fires daily when WebView displays an HTTP error.",
-        "owners": ["acapatina"],
-        "triggers": ["exception", "scheduled"],
-        "suffixes": [
-            {
-                "type": "string",
-                "description": "HTTP Error bucket",
-                "enum": ["400", "4xx", "5xx"]
-            },
-            {
-                "type": "string",
-                "description": "Customized daily pixel",
-                "enum": ["daily"]
-            },
-            "device_type"
-        ],
-        "parameters": [
-            "appVersion",
-            {
-                "key": "count",
-                "type": "integer",
-                "description": "Number of times error was encountered."
-            }
-        ],
-        "privacyReview": ["https://app.asana.com/0/69071770703008/1208002065120480/f"]
-    },
-    "m.netp.tunnel.stop.failure": {
-        "description": "signals a failed operation during VPN turn off either by the user directly, or by some other condition like a VPN restart",
-        "owners": ["dreymendez"],
-        "triggers": ["other", "scheduled"],
-        "parameters": ["ud"],
-        "privacyReview": ["https://app.asana.com/0/69071770703008/1207158981941433/f"]
+    "m.my.first.pixel.test": {
+        "description": "Test pixel without params, sharing prefix with pixel from another file.",
+        "owners": ["tester"],
+        "triggers": ["other"]
     }
 }

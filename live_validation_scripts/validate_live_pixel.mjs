@@ -8,75 +8,30 @@ import path from 'path';
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
 
-const args = process.argv.slice(2);
-const mainDir = args[0];
-const csvFile = args[1];
+import { getArgParserWithCsv } from '../src/args_utils.mjs';
+import { PIXELS_TMP_CSV } from '../src/constants.mjs';
+import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
-const productDef = JSON5.parse(fs.readFileSync(`${mainDir}/product.json`).toString());
-// Whether to force all schemas and pixels to lowercase
-const forceLowerCase = productDef.forceLowerCase;
+import * as fileUtils from '../src/file_utils.mjs';
 
-const commonParams = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/common_params.json`).toString()));
-const ignoreParams = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/ignore_params.json`).toString()));
-const commonSuffixes = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/common_suffixes.json`).toString()));
-const tokenizedPixels = JSON5.parse(getNormalizedCase(fs.readFileSync(`${mainDir}/tokenized_pixels.json`).toString()));
-const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
+const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate')
+    .parse();
 
-function compileDefs(tokenizedPixels) {
-    Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
-        if (prefix !== 'ROOT_PREFIX') {
-            compileDefs(pixelDef);
-            return;
-        }
+function main(mainDir, csvFile) {
+    console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-        const combinedParams = pixelDef.parameters
-            ? [...pixelDef.parameters, ...Object.values(ignoreParams)]
-            : [...Object.values(ignoreParams)];
-        const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
+    const productDef = fileUtils.getProductDef(mainDir);
+    const forceLowerCase = productDef.forceLowerCase;
 
-        // Pre-compile each schema
-        const paramsSchema = paramsValidator.compileParamsSchema(combinedParams);
-        const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
-        tokenizedPixels[prefix] = {
-            paramsSchema,
-            suffixesSchema
-        };
-    });
-}
+    const commonParams = fileUtils.getCommonParams(mainDir, forceLowerCase);
+    const commonSuffixes = fileUtils.getCommonSuffixes(mainDir, forceLowerCase);
+    
+    const tokenizedPixels = fileUtils.getTokenizedPixels(mainDir, forceLowerCase);
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
+    const ignoreParams = fileUtils.getIgnoreParams(mainDir, forceLowerCase);
+    
 
-function main() {
-    console.log(`Processing pixels defined in ${mainDir}`);
-    compileDefs(tokenizedPixels);
-    readLivePixels(tokenizedPixels);
-
-    // if (prefix) {
-    //     const url = args[3];
-
-    //     console.log('Validating', prefix);
-    //     validateSinglePixel(pixelDefs, prefix, url);
-    // } else {
-    //     if (!clickhouseHost) {
-    //         console.error('Please set CLICKHOUSE_HOST in your ENV');
-    //         process.exit(1);
-    //     }
-    //     const pixelQueryResults = queryClickhouse(pixelDefs);
-    //     for (const prefix of Object.keys(pixelQueryResults)) {
-    //         console.log('Validating', prefix);
-    //         validateQueryForPixels(prefix, pixelQueryResults[prefix], paramsValidator);
-    //     }
-    // }
-}
-
-function readLivePixels(pixelDefs) {
-    // COnsider the below to estimate:
-    // var exec = require('child_process').exec;
-
-    // exec('wc -l /path/to/file', function (error, results) {
-    //     console.log(results);
-    // });
-
-    const undocumentedPixels = new Set();
-    const pixelErrors = {};
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
     var processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -85,71 +40,29 @@ function readLivePixels(pixelDefs) {
             if (processedPixels % 100000 === 0) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
-
-            // Match longest prefix:
-            const pixelParts = row.pixel.split('.');
-            var pixelMatch = pixelDefs;
-            var matchedParts = "";
-            for (var i = 0; i < pixelParts.length; i++) {
-                const part = pixelParts[i];
-                if (pixelMatch[part]) {
-                    pixelMatch = pixelMatch[part];
-                    matchedParts += part + ".";
-                } else {
-                    break;
-                }
-            }
-
-            if (!pixelMatch['ROOT_PREFIX']) {
-                undocumentedPixels.add(row.pixel);
-                return;
-            }
-
-            const prefix = matchedParts.slice(0, -1);
-            const errors = paramsValidator.validateLivePixels(pixelMatch['ROOT_PREFIX'], prefix, row.pixel, getNormalizedCase(row.request), productDef.target);
-            if (errors.length) {
-                if (!pixelErrors[row.pixel]) {
-                    pixelErrors[row.pixel] = {
-                        errors: new Set(),
-                        requests: new Set()
-                    }
-                }
-
-                pixelErrors[row.pixel].requests.add(row.request);
-                for (const error of errors) {
-                    pixelErrors[row.pixel].errors.add(error);
-                }
-            }
+            liveValidator.validatePixel(row.pixel, row.request);
         })
         .on('end', async () => {
             console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
-            console.log(`...Undocumented pixels (${undocumentedPixels.size.toLocaleString('en-US')}):`);
+            console.log(`...Undocumented pixels (${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}):`);
             // console.log(undocumentedPixels);
-            fs.writeFileSync("results/undocumentedPixels.json", JSON.stringify(Array.from(undocumentedPixels), null, 4));
+
+            const undocumentedPixelsPath = path.join(fileUtils.getResultsDir(mainDir), "undocumentedPixels.json");
+            fs.writeFileSync(undocumentedPixelsPath, JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4));
 
             console.log('-----------------');
             // console.log(pixelErrors);
-            fs.writeFileSync("results/pixelErrors.json", JSON.stringify(pixelErrors, setReplacer, 4));
+            const pixelErrorsPath = path.join(fileUtils.getResultsDir(mainDir), "pixelErrors.json");
+            fs.writeFileSync(pixelErrorsPath, JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
         });
+    
 }
 
-function setReplacer(key, value) {
+function setReplacer(_, value) {
     if (value instanceof Set) {
         return Array.from(value);
     }
     return value;
 }
 
-function validateSinglePixel(pixelDefs, prefix, url) {
-    logErrors('ERROR:', paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, getNormalizedCase(url)));
-}
-
-function getNormalizedCase(value) {
-    if (forceLowerCase) {
-        return value.toLowerCase();
-    }
-
-    return value;
-}
-
-main();
+main(argv.dirPath, argv.csvFile);

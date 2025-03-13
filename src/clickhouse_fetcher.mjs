@@ -79,7 +79,6 @@ async function outputTableToCSV() {
             reject(data.toString());
         });
         
-        // TODO: swithc to promise... seel https://dub.duckduckgo.com/dave/app-tracking/blob/master/app-selection/categorizeApps.js
         clickhouseProcess.on('close', function(code) {
             outputStream.end();
             if (code !== 0) {

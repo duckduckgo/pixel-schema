@@ -16,9 +16,9 @@
         "lint": "eslint . && prettier . --check",
         "lint.fix": "eslint . --fix && prettier . --write",
         "validate-ddg-pixel-defs": "node ./bin/validate_schema.mjs",
-        "validate-ddg-live-pixel": "node ./bin/validate_live_pixel.mjs",
         "preprocess-defs": "node ./live_validation_scripts/preprocess_defs.mjs",
-        "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs"
+        "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs",
+        "validate-live-pixel": "node ./live_validation_scripts/validate_live_pixel.mjs"
     },
     "license": "Apache-2.0",
     "devDependencies": {

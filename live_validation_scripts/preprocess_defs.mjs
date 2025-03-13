@@ -5,15 +5,17 @@ import JSON5 from 'json5';
 import path from 'path';
 
 import { getArgParser } from '../src/args_utils.mjs';
+import { getTokenizedPixelsPath } from '../src/file_utils.mjs';
 import { DefsTokenizer } from '../src/tokenizer.mjs';
 
 const argv = getArgParser('preprocess (tokenize) pixel definitions')
     .parse();
 
-function processPixelDefs(folder) {
+function processPixelDefs(mainDir) {
+    const pixelDir = path.join(mainDir, 'pixels');
     const tokenizer = new DefsTokenizer();
-    fs.readdirSync(folder, { recursive: true }).forEach((file) => {
-        const fullPath = path.join(folder, file);
+    fs.readdirSync(pixelDir, { recursive: true }).forEach((file) => {
+        const fullPath = path.join(pixelDir, file);
         if (fs.statSync(fullPath).isDirectory() || file.startsWith('TEMPLATE')) {
             return;
         }
@@ -24,9 +26,9 @@ function processPixelDefs(folder) {
     });
 
     // Write out tokenized pixel defs to a file
-    const outFile = path.join(argv.dirPath, 'tokenized_pixels.json');
+    const outFile = getTokenizedPixelsPath(mainDir);
     console.log(`Writing out tokenized pixel defs to ${outFile}`);
     fs.writeFileSync(outFile, JSON.stringify(tokenizer.getTokenizedDefs(), null, 4));
 }
 
-processPixelDefs(path.join(argv.dirPath, 'pixels'));
+processPixelDefs(argv.dirPath);

@@ -1,0 +1,10 @@
+pixel,request
+m.my.first.unknown-pixel,/t/m_my_first_unknown-pixel
+m.my.first.pixel.test,/t/m_my_first_pixel_test
+m.my.first.pixel.test,/t/m_my_first_pixel_test?extraParam=10
+m.my.first.pixel.test.extra-suffix,/t/m_my_first_pixel_test_extra-suffix
+m.my.first.pixel.unexpected-suffix,/t/m_my_first_pixel_unexpected-suffix
+m.my.first.pixel.new.unexpected-suffix2,/t/m_my_first_pixel_new_unexpected-suffix2
+m.my.first.pixel.new.exceptiontype.some-exception.unexpected-suffix3,/t/m_my_first_pixel_new_exceptiontype_some-exception_unexpected-suffix3
+m.my.first.pixel.new.exceptiontype.x.android.unexpected-4,/t/m_my_first_pixel_new_exceptiontype_x_android_unexpected-4
+m.my.first.pixel.new.exceptiontype.x.android.phone,/t/m_my_first_pixel_new_exceptiontype_x_android_phone?appVersion=wrongFormat
