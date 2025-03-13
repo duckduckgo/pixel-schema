@@ -161,7 +161,7 @@ export class ParamsValidator {
             pixelSuffix.split('.').forEach((suffix, idx) => {
                 pixelNameStruct[idx] = suffix;
             });
-            
+
             pixelDef.suffixesSchema(pixelNameStruct);
             errors.push(...formatAjvErrors(pixelDef.suffixesSchema.errors, pixelNameStruct));
         }

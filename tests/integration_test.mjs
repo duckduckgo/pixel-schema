@@ -43,32 +43,26 @@ describe('Valid defs', () => {
 
 describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
-        exec(
-            `npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`,
-            (error, _, stderr) => {
-                expect(error).to.equal(null);
+        exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`, (error, _, stderr) => {
+            expect(error).to.equal(null);
 
-                // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)));
-                const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')));
-                expect(pixelErrors).to.deep.equal(expectedErrors);
+            // Check output files
+            const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)));
+            const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')));
+            expect(pixelErrors).to.deep.equal(expectedErrors);
 
-                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
-                const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
-                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
+            const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
+            const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
+            expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
-                done();
-            },
-        );
+            done();
+        });
     }).timeout(timeout);
 
     it('case insensitive - should produce expected errors', (done) => {
-        exec(
-            `npm run preprocess-defs ${validCaseInsensitiveDefsPath}`,
-            (error, _, stderr) => {
-                expect(error).to.equal(null);
-            },
-        );
+        exec(`npm run preprocess-defs ${validCaseInsensitiveDefsPath}`, (error, _, stderr) => {
+            expect(error).to.equal(null);
+        });
 
         exec(
             `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/test_live_pixels.csv`,

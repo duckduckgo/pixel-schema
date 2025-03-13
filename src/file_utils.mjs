@@ -69,7 +69,7 @@ export function getResultsDir(mainPixelDir) {
     return resultsDir;
 }
 
-/** 
+/**
  * Get path to pixel errors encountered during live validation
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} pixel errors path
@@ -96,7 +96,7 @@ export function getTokenizedPixelsPath(mainPixelDir) {
     return path.join(getResultsDir(mainPixelDir), 'tokenized_pixels.json');
 }
 
-/** 
+/**
  * Get tokenized pixel definitions
  * @param {string} mainPixelDir - path to the main pixels directory
  * @param {boolean} forceLowerCase - whether to force to lowercase

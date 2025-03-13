@@ -6,12 +6,7 @@ import { getTokenizedPixels, getProductDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
-const CH_ARGS = [
-    `--max_memory_usage=${MAX_MEMORY}`,
-    '-h', 
-    'clickhouse',
-    '--query'
-]
+const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 
 function createTempTable() {
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
@@ -35,11 +30,12 @@ function populateTempTable(tokenizedPixels, productDef) {
     console.log('Populating table');
 
     const pixelIDs = Object.keys(tokenizedPixels);
-    const pixelIDsWhereClause = pixelIDs.map(id => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
-    const agentWhereClause = productDef.agents.map(agent => `agent = '${agent}'`).join(' OR ');
+    const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
+    const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     const currentDate = new Date();
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
+    /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, request)
             SELECT any(pixel), request
@@ -62,6 +58,7 @@ function populateTempTable(tokenizedPixels, productDef) {
 
         pastDate.setDate(pastDate.getDate() + 1);
     }
+    /* eslint-enable no-unmodified-loop-condition */
 }
 
 async function outputTableToCSV() {
@@ -71,18 +68,18 @@ async function outputTableToCSV() {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
         const queryString = `SELECT DISTINCT pixel, request FROM ${TMP_TABLE_NAME};`;
         const clickhouseProcess = spawn('clickhouse-client', CH_ARGS.concat([queryString, '--format=CSVWithNames']));
-        clickhouseProcess.stdout.on('data', function(data) {
+        clickhouseProcess.stdout.on('data', function (data) {
             outputStream.write(data);
         });
-        
-        clickhouseProcess.stderr.on('data', function(data) {
-            reject(data.toString());
+
+        clickhouseProcess.stderr.on('data', function (data) {
+            reject(new Error(data.toString()));
         });
-        
-        clickhouseProcess.on('close', function(code) {
+
+        clickhouseProcess.on('close', function (code) {
             outputStream.end();
             if (code !== 0) {
-                reject(`clickhouse-client process exited with code ${code}`);
+                reject(new Error(`clickhouse-client process exited with code ${code}`));
             }
             resolve();
         });

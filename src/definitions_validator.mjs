@@ -70,8 +70,8 @@ export class DefinitionsValidator {
             return formatAjvErrors(this.#ajvValidatePixels.errors);
         }
 
-        // 2) Validate that: 
-        // (a) there are no duplicate prefixes and 
+        // 2) Validate that:
+        // (a) there are no duplicate prefixes and
         // (b) shortcuts, params, and suffixes can be compiled into a separate schema
         const errors = [];
         Object.entries(pixelsDef).forEach(([pixelName, pixelDef]) => {

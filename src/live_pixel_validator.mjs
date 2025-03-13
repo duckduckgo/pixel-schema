@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import JSON5 from 'json5';
 
-import {ROOT_PREFIX} from './constants.mjs';
+import { ROOT_PREFIX } from './constants.mjs';
 
 export class LivePixelsValidator {
     #productDef;
@@ -40,7 +40,7 @@ export class LivePixelsValidator {
             const suffixesSchema = this.#paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             tokenizedPixels[prefix] = {
                 paramsSchema,
-                suffixesSchema
+                suffixesSchema,
             };
         });
     }
@@ -49,12 +49,12 @@ export class LivePixelsValidator {
         // Match longest prefix:
         const pixelParts = pixel.split('.');
         let pixelMatch = this.#compiledPixels;
-        let matchedParts = "";
+        let matchedParts = '';
         for (let i = 0; i < pixelParts.length; i++) {
             const part = pixelParts[i];
             if (pixelMatch[part]) {
                 pixelMatch = pixelMatch[part];
-                matchedParts += part + ".";
+                matchedParts += part + '.';
             } else {
                 break;
             }
@@ -72,9 +72,9 @@ export class LivePixelsValidator {
             if (!this.pixelErrors[prefix]) {
                 this.pixelErrors[prefix] = {};
             }
-            
+
             for (const error of errors) {
-                if(!this.pixelErrors[prefix][error]) {
+                if (!this.pixelErrors[prefix][error]) {
                     this.pixelErrors[prefix][error] = new Set();
                 }
                 this.pixelErrors[prefix][error].add(request);

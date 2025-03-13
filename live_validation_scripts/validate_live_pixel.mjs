@@ -9,8 +9,7 @@ import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
 
-const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate')
-    .parse();
+const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
 
 function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
@@ -20,11 +19,10 @@ function main(mainDir, csvFile) {
 
     const commonParams = fileUtils.getCommonParams(mainDir, forceLowerCase);
     const commonSuffixes = fileUtils.getCommonSuffixes(mainDir, forceLowerCase);
-    
+
     const tokenizedPixels = fileUtils.getTokenizedPixels(mainDir, forceLowerCase);
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
     const ignoreParams = fileUtils.getIgnoreParams(mainDir, forceLowerCase);
-    
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
     let processedPixels = 0;
@@ -41,12 +39,12 @@ function main(mainDir, csvFile) {
             console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
             console.log(`...Undocumented pixels (${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}):`);
 
-            fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), 
-                JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4));
-            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), 
-                JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+            fs.writeFileSync(
+                fileUtils.getUndocumentedPixelsPath(mainDir),
+                JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
+            );
+            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
         });
-    
 }
 
 function setReplacer(_, value) {

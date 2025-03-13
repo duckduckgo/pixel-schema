@@ -8,8 +8,7 @@ import { getArgParser } from '../src/args_utils.mjs';
 import { getTokenizedPixelsPath } from '../src/file_utils.mjs';
 import { DefsTokenizer } from '../src/tokenizer.mjs';
 
-const argv = getArgParser('preprocess (tokenize) pixel definitions')
-    .parse();
+const argv = getArgParser('preprocess (tokenize) pixel definitions').parse();
 
 function processPixelDefs(mainDir) {
     const pixelDir = path.join(mainDir, 'pixels');
