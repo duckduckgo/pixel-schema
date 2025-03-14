@@ -5,11 +5,11 @@ import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 
 const productDef = {
-    "target": {
-        "key": "appVersion",
-        "version": "1.0.0"
+    target: {
+        key: 'appVersion',
+        version: '1.0.0',
     },
-    "forceLowerCase": true
+    forceLowerCase: true,
 };
 
 describe('No common params nor suffixes', () => {
@@ -28,7 +28,7 @@ describe('No common params nor suffixes', () => {
     defsTokenizer.processPixelDefs(pixelDefs);
     const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
 
-    beforeEach(function() {
+    beforeEach(function () {
         liveValidator.pixelErrors = {};
         liveValidator.undocumentedPixels.clear();
     });
@@ -101,7 +101,7 @@ describe('Common params', () => {
     defsTokenizer.processPixelDefs(pixelDefs);
     const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
 
-    beforeEach(function() {
+    beforeEach(function () {
         liveValidator.pixelErrors = {};
         liveValidator.undocumentedPixels.clear();
     });
@@ -149,9 +149,9 @@ describe('Common suffixes', () => {
     const defsTokenizer = new DefsTokenizer();
     defsTokenizer.processPixelDefs(pixelDefs);
     const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
-    const request = "/t/pixel"; // request doesn't matter here as we won't have any params
+    const request = '/t/pixel'; // request doesn't matter here as we won't have any params
 
-    beforeEach(function() {
+    beforeEach(function () {
         liveValidator.pixelErrors = {};
         liveValidator.undocumentedPixels.clear();
     });
