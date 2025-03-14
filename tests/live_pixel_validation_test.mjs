@@ -1,6 +1,16 @@
 import { expect } from 'chai';
 
+import { DefsTokenizer } from '../src/tokenizer.mjs';
+import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
+
+const productDef = {
+    "target": {
+        "key": "appVersion",
+        "version": "1.0.0"
+    },
+    "forceLowerCase": true
+};
 
 describe('No common params nor suffixes', () => {
     const paramsValidator = new ParamsValidator('{}', '{}');
@@ -14,44 +24,54 @@ describe('No common params nor suffixes', () => {
             ],
         },
     };
+    const defsTokenizer = new DefsTokenizer();
+    defsTokenizer.processPixelDefs(pixelDefs);
+    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+
+    beforeEach(function() {
+        liveValidator.pixelErrors = {};
+        liveValidator.undocumentedPixels.clear();
+    });
 
     it('no params should pass', () => {
         const prefix = 'simplePixel';
         const url = `/t/${prefix}`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        liveValidator.validatePixel(prefix, url);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('conforming pixel should pass', () => {
         const prefix = 'simplePixel';
         const url = `/t/${prefix}?param1=true`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        liveValidator.validatePixel(prefix, url);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('wrong type should fail', () => {
         const prefix = 'simplePixel';
         const url = `/t/${prefix}?param1=not_a_bool`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        liveValidator.validatePixel(prefix, url);
 
         const expectedErrors = ['/param1 must be boolean'];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
 
     it('extra param should fail', () => {
         const prefix = 'simplePixel';
         const url = `/t/${prefix}?param1=true&param2=x`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        liveValidator.validatePixel(prefix, url);
 
         const expectedErrors = ["must NOT have additional properties. Found extra property 'param2'"];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
 
     it('ignores cache buster', () => {
         const prefix = 'simplePixel';
         const url = `/t/${prefix}?12345&param1=true`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        liveValidator.validatePixel(prefix, url);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 });
 
@@ -77,25 +97,34 @@ describe('Common params', () => {
             ],
         },
     };
+    const defsTokenizer = new DefsTokenizer();
+    defsTokenizer.processPixelDefs(pixelDefs);
+    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+
+    beforeEach(function() {
+        liveValidator.pixelErrors = {};
+        liveValidator.undocumentedPixels.clear();
+    });
 
     it('common param only should pass', () => {
         const url = `/t/${prefix}?common=42`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        liveValidator.validatePixel(prefix, url);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('both common and custom params should pass', () => {
         const url = `/t/${prefix}?param1=false&common=0`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        liveValidator.validatePixel(prefix, url);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('wrong common type should fail', () => {
         const url = `/t/${prefix}?common=200`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        liveValidator.validatePixel(prefix, url);
 
         const expectedErrors = ['/common must be <= 100'];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
 });
 
@@ -117,34 +146,44 @@ describe('Common suffixes', () => {
             ],
         },
     };
+    const defsTokenizer = new DefsTokenizer();
+    defsTokenizer.processPixelDefs(pixelDefs);
+    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+    const request = "/t/pixel"; // request doesn't matter here as we won't have any params
+
+    beforeEach(function() {
+        liveValidator.pixelErrors = {};
+        liveValidator.undocumentedPixels.clear();
+    });
 
     it('both common and custom suffix should pass', () => {
-        const url = `/t/${prefix}.exception.anystring.1`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
-        expect(errors).to.be.empty;
+        const pixel = `${prefix}.exception.anystring.1`;
+        liveValidator.validatePixel(pixel, request);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('unexpected value should fail', () => {
-        const url = `/t/${prefix}.wrongkey.anystring.1`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        const pixel = `${prefix}.wrongkey.anystring.1`;
+        liveValidator.validatePixel(pixel, request);
 
         const expectedErrors = ["Suffix 'wrongkey' at index 0 /0 must be equal to one of the allowed values"];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
 
     it('missing part of name should NOT fail', () => {
-        const url = `/t/${prefix}.exception.1`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        const pixel = `${prefix}.exception.1`;
+        liveValidator.validatePixel(pixel, request);
 
-        const expectedErrors = [];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('extra suffix should fail', () => {
-        const url = `/t/${prefix}.exception.anystring.1.extra`;
-        const errors = paramsValidator.validateLivePixels(pixelDefs[prefix], prefix, url);
+        const pixel = `${prefix}.exception.anystring.1.extra`;
+        liveValidator.validatePixel(pixel, request);
 
         const expectedErrors = ["must NOT have additional properties. Found extra suffix 'extra' at index 3"];
-        expect(errors).to.have.members(expectedErrors);
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
 });
