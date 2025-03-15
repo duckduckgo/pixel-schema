@@ -36,14 +36,15 @@ function main(mainDir, csvFile) {
             liveValidator.validatePixel(row.pixel, row.request);
         })
         .on('end', async () => {
-            console.log(`\nDone processing ${processedPixels.toLocaleString('en-US')} pixels.`);
-            console.log(`...Undocumented pixels (${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}):`);
+            console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
+            console.log(`Undocumented pixels: ${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}`);
 
             fs.writeFileSync(
                 fileUtils.getUndocumentedPixelsPath(mainDir),
                 JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
             );
             fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+            console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
         });
 }
 
