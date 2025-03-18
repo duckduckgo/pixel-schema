@@ -38,13 +38,14 @@ function populateTempTable(tokenizedPixels, productDef) {
     /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
-            SELECT any(pixel), extractURLParameters(request) AS params
+            WITH extractURLParameters(request) AS params
+            SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+$'), params) AS filtered_params
             FROM metrics.pixels
             WHERE (${pixelIDsWhereClause}) 
             AND (${agentWhereClause})
             AND request NOT ILIKE '%test=1%'
             AND date = '${pastDate.toISOString().split('T')[0]}'
-            GROUP BY params;
+            GROUP BY filtered_params;
             `;
 
         console.log('...Inserting data with query:');
