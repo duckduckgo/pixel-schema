@@ -12,10 +12,10 @@ function createTempTable() {
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
         (
             \`pixel\` String,
-            \`request\` String
+            \`params\` String
         )
         ENGINE = MergeTree
-        ORDER BY request;
+        ORDER BY params;
         `;
     const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat(queryString));
     const resultErr = clickhouseQuery.stderr.toString();
@@ -37,14 +37,14 @@ function populateTempTable(tokenizedPixels, productDef) {
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
     /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
-        const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, request)
-            SELECT any(pixel), request
+        const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
+            SELECT any(pixel), extractURLParameters(request) AS params
             FROM metrics.pixels
             WHERE (${pixelIDsWhereClause}) 
             AND (${agentWhereClause})
             AND request NOT ILIKE '%test=1%'
             AND date = '${pastDate.toISOString().split('T')[0]}'
-            GROUP BY request;
+            GROUP BY params;
             `;
 
         console.log('...Inserting data with query:');
@@ -66,7 +66,7 @@ async function outputTableToCSV() {
 
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
-        const queryString = `SELECT DISTINCT pixel, request FROM ${TMP_TABLE_NAME};`;
+        const queryString = `SELECT DISTINCT pixel, params FROM ${TMP_TABLE_NAME};`;
         const clickhouseProcess = spawn('clickhouse-client', CH_ARGS.concat([queryString, '--format=CSVWithNames']));
         clickhouseProcess.stdout.on('data', function (data) {
             outputStream.write(data);

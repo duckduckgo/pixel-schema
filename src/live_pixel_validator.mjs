@@ -45,7 +45,12 @@ export class LivePixelsValidator {
         });
     }
 
-    validatePixel(pixel, request) {
+    /**
+     * Validates pixel against saved schema and saves any errors
+     * @param {String} pixel full pixel name in "." notation
+     * @param {String} params query params as a String representation of an array
+     */
+    validatePixel(pixel, params) {
         // Match longest prefix:
         const pixelParts = pixel.split('.');
         let pixelMatch = this.#compiledPixels;
@@ -66,16 +71,14 @@ export class LivePixelsValidator {
         }
 
         const prefix = matchedParts.slice(0, -1);
-        const normalizedRequest = this.#forceLowerCase ? request.toLowerCase() : request;
-        const urlSplit = normalizedRequest.split('/')[2].split('?');
-        // grab pixel parameters with any preceding cache buster removed
-        const livePixelRequestParams = /^([0-9]+&)?(.*)$/.exec(urlSplit[1] || '')[2];
-        this.validatePixelParamsAndSuffixes(prefix, pixel, livePixelRequestParams, pixelMatch[ROOT_PREFIX]);
+        const normalizedParams = this.#forceLowerCase ? params.toLowerCase() : params;
+        this.validatePixelParamsAndSuffixes(prefix, pixel, normalizedParams, pixelMatch[ROOT_PREFIX]);
     }
 
     validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelDef) {
         // 1) Validate params - skip outdated pixels based on version
-        const paramsStruct = Object.fromEntries(new URLSearchParams(paramsString));
+        const paramsUrlFormat = JSON5.parse(paramsString).join('&');
+        const paramsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const versionKey = this.#defsVersion.key;
         if (versionKey && paramsStruct[versionKey] && validateVersion(paramsStruct[versionKey])) {
             if (compareVersions(paramsStruct[versionKey], this.#defsVersion.version) === -1) {
@@ -84,7 +87,7 @@ export class LivePixelsValidator {
         }
 
         pixelDef.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsString, formatAjvErrors(pixelDef.paramsSchema.errors));
+        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelDef.paramsSchema.errors));
 
         // 2) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;

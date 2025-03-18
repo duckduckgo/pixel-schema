@@ -33,7 +33,7 @@ function main(mainDir, csvFile) {
             if (processedPixels % 100000 === 0) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
-            liveValidator.validatePixel(row.pixel, row.request);
+            liveValidator.validatePixel(row.pixel, row.params);
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
