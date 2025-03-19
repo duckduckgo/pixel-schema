@@ -28,9 +28,7 @@ export class LivePixelsValidator {
                 return;
             }
 
-            const combinedParams = pixelDef.parameters
-                ? [...pixelDef.parameters, ...Object.values(ignoreParams)]
-                : [...Object.values(ignoreParams)];
+            const combinedParams = [...(pixelDef.parameters || []), ...Object.values(ignoreParams)];
 
             // Pixel name is always lower case:
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];

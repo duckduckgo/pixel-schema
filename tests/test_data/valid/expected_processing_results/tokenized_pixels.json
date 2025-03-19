@@ -3,7 +3,7 @@
         "my": {
             "first": {
                 "pixel": {
-                    "ROOT_PREFIX": {
+                    "__root_prefix__": {
                         "parameters": [
                             "appVersion",
                             {
@@ -61,7 +61,7 @@
                         ]
                     },
                     "test": {
-                        "ROOT_PREFIX": {}
+                        "__root_prefix__": {}
                     }
                 }
             }

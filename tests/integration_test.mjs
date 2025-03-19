@@ -45,6 +45,9 @@ describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
         exec(`npm run preprocess-defs ${validDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
+            const tokenizedPixels = JSON5.parse(fs.readFileSync(fileUtils.getTokenizedPixelsPath(validDefsPath)));
+            const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')));
+            expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
 
         exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`, (error, _, stderr) => {
