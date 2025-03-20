@@ -5,6 +5,10 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX } from './constants.mjs';
 
+/**
+ * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
+ */
+
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
@@ -13,6 +17,13 @@ export class LivePixelsValidator {
     undocumentedPixels = new Set();
     pixelErrors = {};
 
+    /**
+     * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
+     * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
+     * @param {ProductDefinition} productDef
+     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
+     * @param {ParamsValidator} paramsValidator
+     */
     constructor(tokenizedPixels, productDef, ignoreParams, paramsValidator) {
         this.#defsVersion = productDef.target;
         this.#forceLowerCase = productDef.forceLowerCase;
