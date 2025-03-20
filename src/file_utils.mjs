@@ -19,22 +19,22 @@ export function getCommonParams(mainPixelDir, forceLowerCase) {
 }
 
 /**
- * Get common suffixes
+ * Read common suffixes
  * @param {string} mainPixelDir - path to the main pixels directory
  * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} common suffixes
  */
-export function getCommonSuffixes(mainPixelDir, forceLowerCase) {
+export function readCommonSuffixes(mainPixelDir, forceLowerCase) {
     return parseFile(path.join(mainPixelDir, 'common_suffixes.json'), forceLowerCase);
 }
 
 /**
- * Get ignore parameters
+ * Read ignore parameters
  * @param {string} mainPixelDir - path to the main pixels directory
  * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} ignore parameters
  */
-export function getIgnoreParams(mainPixelDir, forceLowerCase) {
+export function readIgnoreParams(mainPixelDir, forceLowerCase) {
     return parseFile(path.join(mainPixelDir, 'ignore_params.json'), forceLowerCase);
 }
 
@@ -48,11 +48,11 @@ export function getProductDefPath(mainPixelDir) {
 }
 
 /**
- * Get product definition
+ * Read product definition
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {object} product definition
  */
-export function getProductDef(mainPixelDir) {
+export function readProductDef(mainPixelDir) {
     return parseFile(getProductDefPath(mainPixelDir));
 }
 
@@ -97,12 +97,12 @@ export function getTokenizedPixelsPath(mainPixelDir) {
 }
 
 /**
- * Get tokenized pixel definitions
+ * Read tokenized pixel definitions
  * @param {string} mainPixelDir - path to the main pixels directory
  * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} tokenized pixel definitions
  */
-export function getTokenizedPixels(mainPixelDir, forceLowerCase) {
+export function readTokenizedPixels(mainPixelDir, forceLowerCase) {
     return parseFile(getTokenizedPixelsPath(mainPixelDir), forceLowerCase);
 }
 

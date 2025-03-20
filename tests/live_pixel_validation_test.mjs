@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { DefsTokenizer } from '../src/tokenizer.mjs';
+import { tokenizePixelDefs } from '../src/tokenizer.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 
@@ -24,9 +24,9 @@ describe('No common params nor suffixes', () => {
             ],
         },
     };
-    const defsTokenizer = new DefsTokenizer();
-    defsTokenizer.processPixelDefs(pixelDefs);
-    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
@@ -89,9 +89,9 @@ describe('Common params', () => {
             ],
         },
     };
-    const defsTokenizer = new DefsTokenizer();
-    defsTokenizer.processPixelDefs(pixelDefs);
-    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
@@ -138,9 +138,9 @@ describe('Common suffixes', () => {
             ],
         },
     };
-    const defsTokenizer = new DefsTokenizer();
-    defsTokenizer.processPixelDefs(pixelDefs);
-    const liveValidator = new LivePixelsValidator(defsTokenizer.getTokenizedDefs(), productDef, {}, paramsValidator);
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
     const params = '[]';
 
     beforeEach(function () {

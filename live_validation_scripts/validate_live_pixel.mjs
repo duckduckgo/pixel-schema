@@ -14,15 +14,15 @@ const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 
 function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-    const productDef = fileUtils.getProductDef(mainDir);
+    const productDef = fileUtils.readProductDef(mainDir);
     const forceLowerCase = productDef.forceLowerCase;
 
     const commonParams = fileUtils.getCommonParams(mainDir, forceLowerCase);
-    const commonSuffixes = fileUtils.getCommonSuffixes(mainDir, forceLowerCase);
+    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir, forceLowerCase);
 
-    const tokenizedPixels = fileUtils.getTokenizedPixels(mainDir, forceLowerCase);
+    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir, forceLowerCase);
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
-    const ignoreParams = fileUtils.getIgnoreParams(mainDir, forceLowerCase);
+    const ignoreParams = fileUtils.readIgnoreParams(mainDir, forceLowerCase);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
     let processedPixels = 0;

@@ -2,7 +2,7 @@ import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { getTokenizedPixels, getProductDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
@@ -26,6 +26,12 @@ function createTempTable() {
     }
 }
 
+/**
+ * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
+ * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
+ * @param {object} productDef schema is a TODO.
+ * See tests/test_data/valid/product.json for an example.
+ */
 function populateTempTable(tokenizedPixels, productDef) {
     console.log('Populating table');
 
@@ -44,14 +50,14 @@ function populateTempTable(tokenizedPixels, productDef) {
             WHERE (${pixelIDsWhereClause}) 
             AND (${agentWhereClause})
             AND request NOT ILIKE '%test=1%'
-            AND date = '${pastDate.toISOString().split('T')[0]}'
-            GROUP BY filtered_params;
-            `;
+            AND date = {pDate:Date}
+            GROUP BY filtered_params;`;
+        const params = `--param_pDate=${pastDate.toISOString().split('T')[0]}`;
 
-        console.log('...Inserting data with query:');
-        console.log(queryString);
+        console.log(`...Executing query ${queryString}`);
+        console.log(`\t...With params ${params}`);
 
-        const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat(queryString));
+        const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString, params]));
         const resultErr = clickhouseQuery.stderr.toString();
         if (resultErr) {
             throw new Error(`Error creating table:\n ${resultErr}`);
@@ -98,7 +104,7 @@ async function outputTableToCSV() {
 
 function deleteTempTable() {
     console.log('Deleting table');
-    const queryString = `DROP TABLE ${TMP_TABLE_NAME};`;
+    const queryString = `DROP TABLE IF EXISTS ${TMP_TABLE_NAME};`;
     const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat(queryString));
     const resultErr = clickhouseQuery.stderr.toString();
     if (resultErr) {
@@ -107,8 +113,13 @@ function deleteTempTable() {
 }
 
 export async function preparePixelsCSV(mainPixelDir) {
-    createTempTable();
-    populateTempTable(getTokenizedPixels(mainPixelDir), getProductDef(mainPixelDir));
-    await outputTableToCSV();
-    deleteTempTable();
+    try {
+        createTempTable();
+        populateTempTable(readTokenizedPixels(mainPixelDir), readProductDef(mainPixelDir));
+        await outputTableToCSV();
+    } catch (err) {
+        console.error(err);
+    } finally {
+        deleteTempTable();
+    }
 }
