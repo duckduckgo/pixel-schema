@@ -61,6 +61,39 @@
                 },
                 // Examples - used when params are more open-ended
                 "examples": [["tracker1", "tracker2"], ["tracker3"]]
+            },
+            {
+                // Special case for base64-encoded JSON data:
+                "key": "customMetadata",
+                "description": "Base64-encoded JSON object containing custom metadata",
+                /*  Use "base64DataSchema" to define the structure of the JSON object using JSON Schema
+                    Note:
+                        * If there are no properties defined: types will default to 'string' 
+                        * If there are properties defined: 
+                            * type will be set to 'object'
+                            * 'additionalProperties' will default to 'false'
+                */
+                "base64DataSchema": {
+                    "properties": {
+                        "serviceState": {
+                            "description": "State of the service",
+                            "enum": ["Running", "Stopped"]
+                        },
+                        // Nested object are allowed, and can have their own properties:
+                        "serviceMetadata": {
+                            "properties": {
+                                "latency": {
+                                    "description": "Latency of the VPN",
+                                    "enum": ["excellent", "bad"]
+                                },
+                                "domainProxyRunning": {
+                                    "description": "Whether the domain proxy is running",
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         ],
         // [Optional] if temporary pixel - specify expiration date:

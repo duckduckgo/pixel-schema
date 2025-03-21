@@ -45,10 +45,10 @@ export class LivePixelsValidator {
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
 
             // Pre-compile each schema
-            const paramsSchema = paramsValidator.compileParamsSchema(combinedParams);
+            const paramsSchemas = paramsValidator.compileParamsSchema(combinedParams);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             tokenizedPixels[prefix] = {
-                paramsSchema,
+                paramsSchemas,
                 suffixesSchema,
             };
         });
@@ -95,8 +95,8 @@ export class LivePixelsValidator {
             }
         }
 
-        pixelDef.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelDef.paramsSchema.errors));
+        pixelDef.paramsSchemas.regularParamsSchema(paramsStruct);
+        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelDef.paramsSchemas.regularParamsSchema.errors));
 
         // 2) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;

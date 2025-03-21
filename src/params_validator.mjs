@@ -1,5 +1,6 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import traverse from 'json-schema-traverse';
 
 /**
  * Validator for pixel parameters and suffixes:
@@ -93,10 +94,31 @@ export class ParamsValidator {
         return this.#ajv.compile(pixelNameSchema);
     }
 
+    adjustBase64Schema(schema) {
+        // Non-object type should get the same treatment as basic params:
+        if (!schema.properties) {
+            schema = this.getUpdatedItem(schema, {});
+            return;
+        }
+
+        // Any sub-schema with properties must be of type object and not allow additionalProperties:
+        if (schema.type && schema.type !== 'object') {
+            throw new Error(`has children with properties whose type is not 'object'`);
+        }
+        if (schema.additionalProperties) {
+            throw new Error(`has children with properties that allow additionalProperties`);
+        }
+
+        schema.type = 'object';
+        schema.additionalProperties = false;
+    }
+
     /**
-     * Replaces shortcuts to common params and compiles the parameters schema
-     * @param {*} parameters
-     * @returns an ajv compiled schema
+     * Modifies provided parameters into proper JSON schemas: TODO
+     * @param {Object[]} parameters
+     * @returns {Object} schemas - resultant JSON schemas
+     * @returns {Object} schemas.regularParamsSchema - schema covering regular parameters
+     * @returns {Object} schemas.base64ParamsSchemas - schemas covering base64 params, keyed by param name
      * @throws if any errors are found
      */
     compileParamsSchema(parameters) {
@@ -104,21 +126,44 @@ export class ParamsValidator {
 
         const properties = {};
         const patternProperties = {};
-        parameters
-            .map((param) => this.getUpdatedItem(param, this.#commonParams))
-            .forEach((param) => {
-                if (param.keyPattern) {
-                    if (patternProperties[param.keyPattern]) {
-                        throw new Error(`duplicate keyPattern '${param.keyPattern}' found!`);
+        const base64ParamsSchemas = {};
+        parameters.forEach((origParam) => {
+            if (origParam.base64DataSchema) {
+                // TODO: will need to have combined Set to keep track of keys between base64 and non-base64
+                traverse(origParam.base64DataSchema, (schema) => {
+                    try {
+                        this.adjustBase64Schema(schema);
+                    } catch (error) {
+                        throw new Error(`${origParam.key}'s base64DataSchema ${error.message}`);
                     }
-                    patternProperties[param.keyPattern] = param;
-                } else {
-                    if (properties[param.key]) {
-                        throw new Error(`duplicate key '${param.key}' found!`);
-                    }
-                    properties[param.key] = param;
+                });
+
+                base64ParamsSchemas[origParam.key] = origParam.base64DataSchema;
+                return;
+            }
+
+            const param = this.getUpdatedItem(origParam, this.#commonParams);
+            if (param.keyPattern) {
+                if (patternProperties[param.keyPattern]) {
+                    throw new Error(`duplicate keyPattern '${param.keyPattern}' found!`);
                 }
-            });
+                patternProperties[param.keyPattern] = param;
+            } else {
+                if (properties[param.key]) {
+                    throw new Error(`duplicate key '${param.key}' found!`);
+                }
+                properties[param.key] = param;
+            }
+        });
+
+        // Compile schemas and return
+        Object.entries(base64ParamsSchemas).forEach(([key, base64Schema]) => {
+            try {
+                base64ParamsSchemas[key] = this.#ajv.compile(base64Schema);
+            } catch (error) {
+                throw new Error(`${key}'s base64DataSchema is invalid: ${error.message}`);
+            }
+        });
 
         const pixelParams = {
             type: 'object',
@@ -127,6 +172,9 @@ export class ParamsValidator {
             additionalProperties: false,
         };
 
-        return this.#ajv.compile(pixelParams);
+        return {
+            regularParamsSchema: this.#ajv.compile(pixelParams),
+            base64ParamsSchemas,
+        };
     }
 }

@@ -19,7 +19,18 @@
                             "type": "string",
                             "description": "Regex for describing dynamic params",
                             "examples": ["^ud[0-9]$"] // results in ud1, ud2,...ud9 param keys
+                        },
+                        "base64DataSchema": {
+                            "type": "object",
+                            "description": "TBD",
+                            "additionalProperties": {
+                                "$ref": "https://json-schema.org/draft/2020-12/schema"
+                            },
+                            "required": ["properties"]
                         }
+                    },
+                    "dependentRequired": {
+                        "base64DataSchema": ["key"]
                     },
                     "anyOf": [
                         {
