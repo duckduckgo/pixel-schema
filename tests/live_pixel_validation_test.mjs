@@ -9,7 +9,7 @@ const productDef = {
         key: 'appVersion',
         version: '1.0.0',
     },
-    forceLowerCase: true,
+    forceLowerCase: false,
 };
 
 describe('No common params nor suffixes', () => {
@@ -58,7 +58,7 @@ describe('No common params nor suffixes', () => {
 
     it('extra param should fail', () => {
         const prefix = 'simplePixel';
-        const params = "['param1=true&param2=x']";
+        const params = "['param1=true','param2=x']";
         liveValidator.validatePixel(prefix, params);
 
         const expectedErrors = ["must NOT have additional properties. Found extra property 'param2'"];
@@ -177,5 +177,80 @@ describe('Common suffixes', () => {
         const expectedErrors = ["must NOT have additional properties. Found extra suffix 'extra' at index 3"];
         expect(liveValidator.pixelErrors).to.have.property(prefix);
         expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
+    });
+});
+
+describe('Base64 params', () => {
+    const paramsValidator = new ParamsValidator({}, {});
+    const prefix = 'simplePixel';
+    const pixelDefs = {
+        simplePixel: {
+            parameters: [
+                {
+                    key: 'basicParam',
+                    type: 'boolean',
+                },
+                {
+                    key: 'base64ParamKey',
+                    base64DataSchema: {
+                        properties: {
+                            p1: {
+                                type: 'boolean',
+                            },
+                            p2: {
+                                properties: {
+                                    nestedParam1: {
+                                        type: 'string',
+                                    },
+                                    nestedParam2: {
+                                        type: 'integer',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+    beforeEach(function () {
+        liveValidator.pixelErrors = {};
+        liveValidator.undocumentedPixels.clear();
+    });
+
+    function getStrBase64Param(paramObj) {
+        return `'base64ParamKey=${Buffer.from(JSON.stringify(paramObj)).toString('base64')}'`;
+    }
+
+    it('wrong types within base64 schema', () => {
+        const paramObj = {
+            p1: 10,
+            p2: {
+                nestedParam1: 'valid str',
+                nestedParam2: 'invalid',
+            },
+        };
+
+        liveValidator.validatePixel(prefix, `[${getStrBase64Param(paramObj)}]`);
+        const expectedErrors = ['/p1 must be boolean', '/p2/nestedParam2 must be integer'];
+        expect(liveValidator.pixelErrors).to.have.property(prefix);
+        expect(Object.keys(liveValidator.pixelErrors[prefix])).to.have.members(expectedErrors);
+    });
+
+    it('valid param with valid base64 param', () => {
+        const paramObj = {
+            p1: false,
+            p2: {
+                nestedParam1: 'valid str',
+                nestedParam2: 42,
+            },
+        };
+
+        liveValidator.validatePixel(prefix, `[${getStrBase64Param(paramObj)},'basicParam=true']`);
+        expect(liveValidator.pixelErrors).to.be.empty;
     });
 });

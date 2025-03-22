@@ -84,8 +84,8 @@ export class LivePixelsValidator {
         this.validatePixelParamsAndSuffixes(prefix, pixel, normalizedParams, pixelMatch[ROOT_PREFIX]);
     }
 
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelDef) {
-        // 1) Validate params - skip outdated pixels based on version
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelSchemas) {
+        // 1) Skip outdated pixels based on version
         const paramsUrlFormat = JSON5.parse(paramsString).join('&');
         const paramsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const versionKey = this.#defsVersion.key;
@@ -95,10 +95,24 @@ export class LivePixelsValidator {
             }
         }
 
-        pixelDef.paramsSchemas.regularParamsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelDef.paramsSchemas.regularParamsSchema.errors));
+        // 2) If pixelSchemas contains base64 schemas, remove those params from struct and validate separately
+        const paramsSchemas = pixelSchemas.paramsSchemas;
+        Object.entries(paramsSchemas.base64ParamsSchemas).forEach(([paramName, base64Schema]) => {
+            if (!paramsStruct[paramName]) return;
 
-        // 2) Validate suffixes if they exist
+            const b64Val = decodeURIComponent(paramsStruct[paramName]);
+            const jsonVal = JSON.parse(Buffer.from(b64Val, 'base64').toString('utf8'));
+            base64Schema(jsonVal);
+            this.#saveErrors(prefix, jsonVal, formatAjvErrors(base64Schema.errors));
+
+            delete paramsStruct[paramName];
+        });
+
+        // 3) Validate regular params
+        paramsSchemas.regularParamsSchema(paramsStruct);
+        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(paramsSchemas.regularParamsSchema.errors));
+
+        // 4) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;
 
         const pixelSuffix = pixel.split(`${prefix}.`)[1];
@@ -106,8 +120,8 @@ export class LivePixelsValidator {
         pixelSuffix.split('.').forEach((suffix, idx) => {
             pixelNameStruct[idx] = suffix;
         });
-        pixelDef.suffixesSchema(pixelNameStruct);
-        this.#saveErrors(prefix, pixel, formatAjvErrors(pixelDef.suffixesSchema.errors, pixelNameStruct));
+        pixelSchemas.suffixesSchema(pixelNameStruct);
+        this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
     }
 
     #saveErrors(prefix, example, errors) {
