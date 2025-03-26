@@ -180,24 +180,26 @@ describe('Common suffixes', () => {
     });
 });
 
-describe('Base64 params', () => {
-    const paramsValidator = new ParamsValidator({}, {});
-    const prefix = 'simplePixel';
-    const pixelDefs = {
-        simplePixel: {
-            parameters: [
-                {
-                    key: 'basicParam',
-                    type: 'boolean',
-                },
-                {
-                    key: 'base64ParamKey',
-                    base64DataSchema: {
+[true, false].forEach((base64Encoded) => {
+    describe(`Object param with base64Encoded=${base64Encoded}`, () => {
+        const paramsValidator = new ParamsValidator({}, {});
+        const prefix = 'simplePixel';
+        const pixelDefs = {
+            simplePixel: {
+                parameters: [
+                    {
+                        key: 'basicParam',
+                        type: 'boolean',
+                    },
+                    {
+                        key: 'objParamKey',
+                        type: 'object',
                         properties: {
                             p1: {
                                 type: 'boolean',
                             },
                             p2: {
+                                type: 'object',
                                 properties: {
                                     nestedParam1: {
                                         type: 'string',
@@ -209,10 +211,77 @@ describe('Base64 params', () => {
                             },
                         },
                     },
+                ],
+            },
+        };
+
+        if (base64Encoded) {
+            pixelDefs.simplePixel.parameters[1].encoding = 'base64';
+        }
+
+        const tokenizedDefs = {};
+        tokenizePixelDefs(pixelDefs, tokenizedDefs);
+        const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+        beforeEach(function () {
+            liveValidator.pixelErrors = {};
+            liveValidator.undocumentedPixels.clear();
+        });
+
+        function getStrObjParam(paramObj) {
+            let paramStr = JSON.stringify(paramObj);
+            if (base64Encoded) {
+                paramStr = Buffer.from(paramStr).toString('base64');
+            }
+            return `'objParamKey=${paramStr}'`;
+        }
+
+        it('wrong types within obj schema', () => {
+            const paramObj = {
+                p1: 10,
+                p2: {
+                    nestedParam1: 'valid str',
+                    nestedParam2: 'invalid',
+                },
+            };
+
+            liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)}]`);
+            const expectedErrors = ['/objParamKey/p1 must be boolean', '/objParamKey/p2/nestedParam2 must be integer'];
+            expect(liveValidator.pixelErrors).to.have.property(prefix);
+            expect(Object.keys(liveValidator.pixelErrors[prefix])).to.have.members(expectedErrors);
+        });
+
+        it('valid params', () => {
+            const paramObj = {
+                p1: false,
+                p2: {
+                    nestedParam1: 'valid str',
+                    nestedParam2: 42,
+                },
+            };
+
+            liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)},'basicParam=true']`);
+            console.log(liveValidator.pixelErrors);
+            expect(liveValidator.pixelErrors).to.be.empty;
+        });
+    });
+});
+
+describe('Base64 simple param', () => {
+    const paramsValidator = new ParamsValidator({}, {});
+    const prefix = 'simplePixel';
+    const pixelDefs = {
+        simplePixel: {
+            parameters: [
+                {
+                    key: 'base64SimpleParam',
+                    type: 'boolean',
+                    encoding: 'base64',
                 },
             ],
         },
     };
+
     const tokenizedDefs = {};
     tokenizePixelDefs(pixelDefs, tokenizedDefs);
     const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
@@ -222,35 +291,15 @@ describe('Base64 params', () => {
         liveValidator.undocumentedPixels.clear();
     });
 
-    function getStrBase64Param(paramObj) {
-        return `'base64ParamKey=${Buffer.from(JSON.stringify(paramObj)).toString('base64')}'`;
-    }
-
-    it('wrong types within base64 schema', () => {
-        const paramObj = {
-            p1: 10,
-            p2: {
-                nestedParam1: 'valid str',
-                nestedParam2: 'invalid',
-            },
-        };
-
-        liveValidator.validatePixel(prefix, `[${getStrBase64Param(paramObj)}]`);
-        const expectedErrors = ['/p1 must be boolean', '/p2/nestedParam2 must be integer'];
+    it('invalid param', () => {
+        liveValidator.validatePixel(prefix, `['base64SimpleParam=${Buffer.from('123').toString('base64')}']`);
+        const expectedErrors = ['/base64SimpleParam must be boolean'];
         expect(liveValidator.pixelErrors).to.have.property(prefix);
         expect(Object.keys(liveValidator.pixelErrors[prefix])).to.have.members(expectedErrors);
     });
 
-    it('valid param with valid base64 param', () => {
-        const paramObj = {
-            p1: false,
-            p2: {
-                nestedParam1: 'valid str',
-                nestedParam2: 42,
-            },
-        };
-
-        liveValidator.validatePixel(prefix, `[${getStrBase64Param(paramObj)},'basicParam=true']`);
+    it('valid param', () => {
+        liveValidator.validatePixel(prefix, `['base64SimpleParam=${Buffer.from('false').toString('base64')}']`);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 });

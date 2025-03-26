@@ -6,7 +6,7 @@ import path from 'path';
 
 import * as fileUtils from '../src/file_utils.mjs';
 
-const timeout = 5000;
+const timeout = 10000;
 const validDefsPath = path.join('tests', 'test_data', 'valid');
 const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_results');
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');

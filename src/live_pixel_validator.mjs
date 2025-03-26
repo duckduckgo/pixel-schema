@@ -45,10 +45,10 @@ export class LivePixelsValidator {
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
 
             // Pre-compile each schema
-            const paramsSchemas = paramsValidator.compileParamsSchema(combinedParams);
+            const paramsSchema = paramsValidator.compileParamsSchema(combinedParams);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             tokenizedPixels[prefix] = {
-                paramsSchemas,
+                paramsSchema,
                 suffixesSchema,
             };
         });
@@ -80,8 +80,35 @@ export class LivePixelsValidator {
         }
 
         const prefix = matchedParts.slice(0, -1);
-        const normalizedParams = this.#forceLowerCase ? params.toLowerCase() : params;
-        this.validatePixelParamsAndSuffixes(prefix, pixel, normalizedParams, pixelMatch[ROOT_PREFIX]);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+    }
+
+    /**
+     * @param {String} paramValue
+     * @param {ValidateFunction} paramSchema - AJV compiled schema
+     * @returns {String} decoded and normalized param value
+     */
+    decodeAndNormalizeParam(paramValue, paramSchema) {
+        // Decode before lowercasing
+        let updatedVal = decodeURIComponent(paramValue);
+        if (paramSchema.encoding === 'base64') {
+            updatedVal = Buffer.from(updatedVal, 'base64').toString('utf8');
+        }
+
+        // Lowercase before parsing into an object
+        if (this.#forceLowerCase) {
+            updatedVal = updatedVal.toLowerCase();
+        }
+
+        console.log(updatedVal);
+
+        if (paramSchema.type === 'object') {
+            updatedVal = JSON.parse(updatedVal);
+        }
+
+        console.log(updatedVal);
+
+        return updatedVal;
     }
 
     validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelSchemas) {
@@ -95,24 +122,19 @@ export class LivePixelsValidator {
             }
         }
 
-        // 2) If pixelSchemas contains base64 schemas, remove those params from struct and validate separately
-        const paramsSchemas = pixelSchemas.paramsSchemas;
-        Object.entries(paramsSchemas.base64ParamsSchemas).forEach(([paramName, base64Schema]) => {
-            if (!paramsStruct[paramName]) return;
+        // Prepare param values for validation
+        Object.entries(paramsStruct).forEach(([key, val]) => {
+            const paramSchema = pixelSchemas.paramsSchema.schema.properties[key];
+            if (!paramSchema) return; // will fail validation later
 
-            const b64Val = decodeURIComponent(paramsStruct[paramName]);
-            const jsonVal = JSON.parse(Buffer.from(b64Val, 'base64').toString('utf8'));
-            base64Schema(jsonVal);
-            this.#saveErrors(prefix, jsonVal, formatAjvErrors(base64Schema.errors));
-
-            delete paramsStruct[paramName];
+            paramsStruct[key] = this.decodeAndNormalizeParam(val, paramSchema);
         });
 
-        // 3) Validate regular params
-        paramsSchemas.regularParamsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(paramsSchemas.regularParamsSchema.errors));
+        // 2) Validate regular params
+        pixelSchemas.paramsSchema(paramsStruct);
+        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
 
-        // 4) Validate suffixes if they exist
+        // 3) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;
 
         const pixelSuffix = pixel.split(`${prefix}.`)[1];

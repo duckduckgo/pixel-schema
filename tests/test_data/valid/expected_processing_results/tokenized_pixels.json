@@ -42,29 +42,31 @@
                             },
                             {
                                 "key": "customMetadata",
-                                "description": "Base64-encoded JSON object containing custom metadata",
-                                "base64DataSchema": {
-                                    "properties": {
-                                        "serviceState": {
-                                            "description": "State of the service",
-                                            "enum": [
-                                                "Running",
-                                                "Stopped"
-                                            ]
-                                        },
-                                        "serviceMetadata": {
-                                            "properties": {
-                                                "latency": {
-                                                    "description": "Latency of the VPN",
-                                                    "enum": [
-                                                        "excellent",
-                                                        "bad"
-                                                    ]
-                                                },
-                                                "domainProxyRunning": {
-                                                    "description": "Whether the domain proxy is running",
-                                                    "type": "boolean"
-                                                }
+                                "description": "Complex object type",
+                                "type": "object",
+                                "encoding": "base64",
+                                "properties": {
+                                    "serviceState": {
+                                        "description": "State of the service",
+                                        "enum": [
+                                            "Running",
+                                            "Stopped"
+                                        ]
+                                    },
+                                    "serviceMetadata": {
+                                        "description": "details about the VPN service",
+                                        "type": "object",
+                                        "properties": {
+                                            "latency": {
+                                                "description": "Latency of the VPN",
+                                                "enum": [
+                                                    "excellent",
+                                                    "bad"
+                                                ]
+                                            },
+                                            "domainProxyRunning": {
+                                                "description": "Whether the domain proxy is running",
+                                                "type": "boolean"
                                             }
                                         }
                                     }

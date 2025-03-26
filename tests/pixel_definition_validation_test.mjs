@@ -201,19 +201,6 @@ describe('Pixel with params', () => {
         );
     });
 
-    it('invalid base64 param - key expected', () => {
-        validateErrors(
-            [
-                {
-                    base64DataSchema: {},
-                    description: 'invalid',
-                },
-            ],
-            ['/pixel/parameters/0 must have property key when property base64DataSchema is present'],
-            false,
-        );
-    });
-
     it('valid pixel with both custom and common params', () => {
         validateErrors(
             [
@@ -260,70 +247,58 @@ describe('Pixel with suffixes', () => {
     });
 });
 
-describe('Base64 params', () => {
-    const paramsValidator = new ParamsValidator('{}', '{}');
+describe('Object-based params', () => {
+    const paramsValidator = new ParamsValidator({}, {});
     it('incorrect type for propertied object', () => {
         const param = {
-            key: 'base64key',
-            description: 'A base64 parameter',
-            base64DataSchema: {
-                type: 'string',
-                properties: {
-                    p1: { type: 'string' },
-                },
+            key: 'objKey',
+            description: 'An object param',
+            type: 'string',
+            properties: {
+                p1: { type: 'string' },
             },
         };
 
         expect(() => paramsValidator.compileParamsSchema([param])).to.throw(
-            "base64key's base64DataSchema has children with properties whose type is not 'object'",
+            'strict mode: missing type "object" for keyword "properties" at "#/properties/objKey"',
         );
     });
 
-    it('propertied object must not allow additionalProperties', () => {
+    it('additionalProperties not allowed', () => {
         const param = {
-            key: 'base64key',
-            description: 'A base64 parameter',
-            base64DataSchema: {
-                properties: {
-                    p1: { type: 'string' },
-                },
-                additionalProperties: true,
-            },
+            key: 'objKey',
+            description: 'An object param',
+            type: 'object',
+            additionalProperties: true,
         };
 
-        expect(() => paramsValidator.compileParamsSchema([param])).to.throw(
-            "base64key's base64DataSchema has children with properties that allow additionalProperties",
-        );
+        expect(() => paramsValidator.compileParamsSchema([param])).to.throw('additionalProperties are not allowed');
     });
 
-    it('compilation error', () => {
+    it('unknown keyword', () => {
         const param = {
-            key: 'base64key',
-            description: 'A base64 parameter',
-            base64DataSchema: {
-                properties: {
-                    p1: {
-                        type: 'string',
-                        unexpected: 'property',
-                    },
+            key: 'objKey',
+            description: 'An object param',
+            type: 'object',
+            properties: {
+                p1: {
+                    type: 'string',
+                    unexpected: 'property',
                 },
             },
         };
 
-        expect(() => paramsValidator.compileParamsSchema([param])).to.throw(
-            'base64key\'s base64DataSchema is invalid: strict mode: unknown keyword: "unexpected"',
-        );
+        expect(() => paramsValidator.compileParamsSchema([param])).to.throw('strict mode: unknown keyword: "unexpected"');
     });
 
     it('valid schema', () => {
         const param = {
-            key: 'base64key',
-            description: 'A base64 parameter',
-            base64DataSchema: {
-                properties: {
-                    p1: {
-                        type: 'string',
-                    },
+            key: 'objKey',
+            description: 'An object param',
+            type: 'object',
+            properties: {
+                p1: {
+                    type: 'string',
                 },
             },
         };
