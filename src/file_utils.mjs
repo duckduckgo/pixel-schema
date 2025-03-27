@@ -9,33 +9,31 @@ import JSON5 from 'json5';
 const RESULTS_DIR = 'pixel_processing_results';
 
 /**
- * Get common parameters
+ * Read common parameters
  * @param {string} mainPixelDir - path to the main pixels directory
- * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} common parameters
  */
-export function getCommonParams(mainPixelDir, forceLowerCase) {
-    return parseFile(path.join(mainPixelDir, 'common_params.json'), forceLowerCase);
+export function readCommonParams(mainPixelDir) {
+    console.log(mainPixelDir);
+    return parseFile(path.join(mainPixelDir, 'common_params.json'));
 }
 
 /**
  * Read common suffixes
  * @param {string} mainPixelDir - path to the main pixels directory
- * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} common suffixes
  */
-export function readCommonSuffixes(mainPixelDir, forceLowerCase) {
-    return parseFile(path.join(mainPixelDir, 'common_suffixes.json'), forceLowerCase);
+export function readCommonSuffixes(mainPixelDir) {
+    return parseFile(path.join(mainPixelDir, 'common_suffixes.json'));
 }
 
 /**
  * Read ignore parameters
  * @param {string} mainPixelDir - path to the main pixels directory
- * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} ignore parameters
  */
-export function readIgnoreParams(mainPixelDir, forceLowerCase) {
-    return parseFile(path.join(mainPixelDir, 'ignore_params.json'), forceLowerCase);
+export function readIgnoreParams(mainPixelDir) {
+    return parseFile(path.join(mainPixelDir, 'ignore_params.json'));
 }
 
 /**
@@ -99,17 +97,12 @@ export function getTokenizedPixelsPath(mainPixelDir) {
 /**
  * Read tokenized pixel definitions
  * @param {string} mainPixelDir - path to the main pixels directory
- * @param {boolean} forceLowerCase - whether to force to lowercase
  * @returns {object} tokenized pixel definitions
  */
-export function readTokenizedPixels(mainPixelDir, forceLowerCase) {
-    return parseFile(getTokenizedPixelsPath(mainPixelDir), forceLowerCase);
+export function readTokenizedPixels(mainPixelDir) {
+    return parseFile(getTokenizedPixelsPath(mainPixelDir));
 }
 
-function parseFile(filePath, forceLowerCase) {
-    let fileContent = fs.readFileSync(filePath).toString();
-    if (forceLowerCase) {
-        fileContent = fileContent.toLowerCase();
-    }
-    return JSON5.parse(fileContent);
+function parseFile(filePath) {
+    return JSON5.parse(fs.readFileSync(filePath).toString());
 }

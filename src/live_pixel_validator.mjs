@@ -12,6 +12,7 @@ import { ROOT_PREFIX } from './constants.mjs';
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
+    #defsVersionKey;
     #forceLowerCase;
 
     undocumentedPixels = new Set();
@@ -25,11 +26,46 @@ export class LivePixelsValidator {
      * @param {ParamsValidator} paramsValidator
      */
     constructor(tokenizedPixels, productDef, ignoreParams, paramsValidator) {
-        this.#defsVersion = productDef.target;
         this.#forceLowerCase = productDef.forceLowerCase;
+        this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
+        this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
 
         this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
+    }
+
+    /**
+     * @param {String} val
+     * @returns {String} value that's lowercased based on current product defs
+     */
+    #getNormalizedVal(val) {
+        return this.#forceLowerCase ? val.toLowerCase() : val;
+    }
+
+    /**
+     * @param {String} paramValue
+     * @param {ValidateFunction} paramSchema - AJV compiled schema
+     * @returns {String} decoded and normalized param value
+     */
+    #getDecodedAndNormalizedVal(paramValue, paramSchema) {
+        if (!paramSchema) return; // will fail validation later
+
+        // Decode before lowercasing
+        let updatedVal = decodeURIComponent(paramValue);
+        if (paramSchema.encoding === 'base64') {
+            updatedVal = Buffer.from(updatedVal, 'base64').toString('utf8');
+        }
+
+        // Lowercase before parsing into an object
+        if (this.#forceLowerCase) {
+            updatedVal = updatedVal.toLowerCase();
+        }
+
+        if (paramSchema.type === 'object') {
+            updatedVal = JSON.parse(updatedVal);
+        }
+
+        return updatedVal;
     }
 
     #compileDefs(tokenizedPixels, ignoreParams, paramsValidator) {
@@ -42,10 +78,11 @@ export class LivePixelsValidator {
             const combinedParams = [...(pixelDef.parameters || []), ...Object.values(ignoreParams)];
 
             // Pixel name is always lower case:
-            const lowerCasedSuffixes = pixelDef.suffixes ? JSON5.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
+            const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
+            const normalizedParams = JSON.parse(this.#getNormalizedVal(JSON.stringify(combinedParams)));
 
             // Pre-compile each schema
-            const paramsSchema = paramsValidator.compileParamsSchema(combinedParams);
+            const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             tokenizedPixels[prefix] = {
                 paramsSchema,
@@ -83,52 +120,22 @@ export class LivePixelsValidator {
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
-    /**
-     * @param {String} paramValue
-     * @param {ValidateFunction} paramSchema - AJV compiled schema
-     * @returns {String} decoded and normalized param value
-     */
-    decodeAndNormalizeParam(paramValue, paramSchema) {
-        // Decode before lowercasing
-        let updatedVal = decodeURIComponent(paramValue);
-        if (paramSchema.encoding === 'base64') {
-            updatedVal = Buffer.from(updatedVal, 'base64').toString('utf8');
-        }
-
-        // Lowercase before parsing into an object
-        if (this.#forceLowerCase) {
-            updatedVal = updatedVal.toLowerCase();
-        }
-
-        console.log(updatedVal);
-
-        if (paramSchema.type === 'object') {
-            updatedVal = JSON.parse(updatedVal);
-        }
-
-        console.log(updatedVal);
-
-        return updatedVal;
-    }
-
     validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelSchemas) {
         // 1) Skip outdated pixels based on version
         const paramsUrlFormat = JSON5.parse(paramsString).join('&');
-        const paramsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
-        const versionKey = this.#defsVersion.key;
-        if (versionKey && paramsStruct[versionKey] && validateVersion(paramsStruct[versionKey])) {
-            if (compareVersions(paramsStruct[versionKey], this.#defsVersion.version) === -1) {
+        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+        const paramsStruct = {};
+        Object.entries(rawParamsStruct).forEach(([key, val]) => {
+            const normalizedKey = this.#getNormalizedVal(key);
+            const paramSchema = pixelSchemas.paramsSchema.schema.properties[normalizedKey];
+            paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
+        });
+
+        if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
+            if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
                 return [];
             }
         }
-
-        // Prepare param values for validation
-        Object.entries(paramsStruct).forEach(([key, val]) => {
-            const paramSchema = pixelSchemas.paramsSchema.schema.properties[key];
-            if (!paramSchema) return; // will fail validation later
-
-            paramsStruct[key] = this.decodeAndNormalizeParam(val, paramSchema);
-        });
 
         // 2) Validate regular params
         pixelSchemas.paramsSchema(paramsStruct);

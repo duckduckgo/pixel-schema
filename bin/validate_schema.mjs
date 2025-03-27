@@ -9,6 +9,8 @@ import { DefinitionsValidator } from '../src/definitions_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
 
+import * as fileUtils from '../src/file_utils.mjs';
+
 const argv = yargs(hideBin(process.argv))
     .command('$0 [dirPath]', 'validate pixel definitions', (yargs) => {
         return yargs.positional('dirPath', {
@@ -33,8 +35,8 @@ const argv = yargs(hideBin(process.argv))
 // 1) Validate common params and suffixes
 const mainDir = argv.dirPath;
 const pixelsDir = path.join(mainDir, 'pixels');
-const commonParams = JSON5.parse(fs.readFileSync(`${mainDir}/common_params.json`));
-const commonSuffixes = JSON5.parse(fs.readFileSync(`${mainDir}/common_suffixes.json`));
+const commonParams = fileUtils.readCommonParams(mainDir);
+const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
 const validator = new DefinitionsValidator(commonParams, commonSuffixes);
 logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());

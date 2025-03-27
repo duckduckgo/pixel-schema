@@ -15,14 +15,12 @@ function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const productDef = fileUtils.readProductDef(mainDir);
-    const forceLowerCase = productDef.forceLowerCase;
+    const commonParams = fileUtils.readCommonParams(mainDir);
+    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
 
-    const commonParams = fileUtils.getCommonParams(mainDir, forceLowerCase);
-    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir, forceLowerCase);
-
-    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir, forceLowerCase);
+    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
-    const ignoreParams = fileUtils.readIgnoreParams(mainDir, forceLowerCase);
+    const ignoreParams = fileUtils.readIgnoreParams(mainDir);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
     let processedPixels = 0;

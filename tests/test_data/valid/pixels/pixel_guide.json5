@@ -67,7 +67,7 @@
                 "description": "Complex object type",
                 // See https://json-schema.org/understanding-json-schema/reference/object
                 "type": "object",
-                "encoding": "base64", // encoding can be ommitted if the JSON object is sent in the raw
+                "encoding": "base64", // encoding can be omitted if the JSON object is sent in the raw
                 "properties": {
                     "serviceState": {
                         "description": "State of the service",

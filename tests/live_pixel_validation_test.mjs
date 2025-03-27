@@ -180,8 +180,17 @@ describe('Common suffixes', () => {
     });
 });
 
-[true, false].forEach((base64Encoded) => {
-    describe(`Object param with base64Encoded=${base64Encoded}`, () => {
+// Case sensitivity is especially tricky when base64 is involved,
+// so the below tests test various scenarios
+const testCases = [
+    { base64Encoded: true, caseInsensitive: true },
+    { base64Encoded: true, caseInsensitive: false },
+    { base64Encoded: false, caseInsensitive: true },
+    { base64Encoded: false, caseInsensitive: false },
+];
+
+testCases.forEach((scenario) => {
+    describe(`Object param with scenario=${scenario}`, () => {
         const paramsValidator = new ParamsValidator({}, {});
         const prefix = 'simplePixel';
         const pixelDefs = {
@@ -215,8 +224,22 @@ describe('Common suffixes', () => {
             },
         };
 
-        if (base64Encoded) {
+        // Setup according to scenario
+        productDef.forceLowerCase = scenario.caseInsensitive;
+        if (scenario.base64Encoded) {
             pixelDefs.simplePixel.parameters[1].encoding = 'base64';
+        }
+
+        function getStrObjParam(paramObj) {
+            let paramStr = JSON.stringify(paramObj);
+            if (scenario.base64Encoded) {
+                paramStr = Buffer.from(paramStr).toString('base64');
+            }
+            return `'objParamKey=${paramStr}'`;
+        }
+
+        function getNoramlizedError(error) {
+            return scenario.caseInsensitive ? error.toLowerCase() : error;
         }
 
         const tokenizedDefs = {};
@@ -228,14 +251,6 @@ describe('Common suffixes', () => {
             liveValidator.undocumentedPixels.clear();
         });
 
-        function getStrObjParam(paramObj) {
-            let paramStr = JSON.stringify(paramObj);
-            if (base64Encoded) {
-                paramStr = Buffer.from(paramStr).toString('base64');
-            }
-            return `'objParamKey=${paramStr}'`;
-        }
-
         it('wrong types within obj schema', () => {
             const paramObj = {
                 p1: 10,
@@ -246,7 +261,10 @@ describe('Common suffixes', () => {
             };
 
             liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)}]`);
-            const expectedErrors = ['/objParamKey/p1 must be boolean', '/objParamKey/p2/nestedParam2 must be integer'];
+            const expectedErrors = [
+                getNoramlizedError('/objParamKey/p1 must be boolean'),
+                getNoramlizedError('/objParamKey/p2/nestedParam2 must be integer'),
+            ];
             expect(liveValidator.pixelErrors).to.have.property(prefix);
             expect(Object.keys(liveValidator.pixelErrors[prefix])).to.have.members(expectedErrors);
         });
@@ -261,7 +279,6 @@ describe('Common suffixes', () => {
             };
 
             liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)},'basicParam=true']`);
-            console.log(liveValidator.pixelErrors);
             expect(liveValidator.pixelErrors).to.be.empty;
         });
     });
