@@ -51,7 +51,13 @@ export class LivePixelsValidator {
         if (!paramSchema) return; // will fail validation later
 
         // Decode before lowercasing
-        let updatedVal = decodeURIComponent(paramValue);
+        let updatedVal = paramValue;
+        try {
+            updatedVal = decodeURIComponent(paramValue);
+        } catch (e) {
+            console.warn(`WARNING: Failed to decode param value '${paramValue}'`);
+        }
+
         if (paramSchema.encoding === 'base64') {
             updatedVal = Buffer.from(updatedVal, 'base64').toString('utf8');
         }

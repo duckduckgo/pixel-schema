@@ -9,7 +9,7 @@ import traverse from 'json-schema-traverse';
  * 3) validates live pixels
  */
 export class ParamsValidator {
-    #ajv = new Ajv2020({ allErrors: true, coerceTypes: true, strict: true });
+    #ajv = new Ajv2020({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
     #commonParams;
     #commonSuffixes;
 
