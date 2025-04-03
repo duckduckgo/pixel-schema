@@ -39,6 +39,8 @@ export function buildTokenizedPixels(allPixelDefs) {
 }
 
 /**
+ * Run validation against a single pixel URL using the provided LivePixelsValidator. Throws if
+ * the URL fails validation.
  *
  * @param {LivePixelsValidator} validator
  * @param {string} url
