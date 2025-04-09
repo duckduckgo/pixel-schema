@@ -15,6 +15,7 @@ export class LivePixelsValidator {
     #defsVersion;
     #defsVersionKey;
     #forceLowerCase;
+    #compiledExperiments;
 
     undocumentedPixels = new Set();
     pixelErrors = {};
@@ -33,6 +34,13 @@ export class LivePixelsValidator {
 
         this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
+
+        this.#compiledExperiments = productDef.activeNativeExperiments || {};
+        Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
+            Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
+                experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);
+            });
+        });
     }
 
     /**
@@ -98,12 +106,78 @@ export class LivePixelsValidator {
         });
     }
 
+    validateExperimentPixel(pixel, paramsString) {
+        if (pixel.startsWith('experiment.enroll.')) {
+            const pixelRemainder = pixel.split('experiment.enroll.')[1];
+            const pixelParts = pixelRemainder.split('.');
+            const experimentName = pixelParts[0];
+
+            if (!this.#compiledExperiments[experimentName]) {
+                this.undocumentedPixels.add(pixel);
+                return;
+            }
+
+            // Check cohort
+            const cohortName = pixelParts[1];
+            if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
+                this.undocumentedPixels.add(pixel);
+                return;
+            }
+
+            // TODO: suffixes...
+            // TODO: params - always the same
+        }
+        else if (pixel.startsWith('experiment.metrics.')) {
+            // TODO: duplicated with above - write func
+            const pixelRemainder = pixel.split('experiment.metrics.')[1];
+            const pixelParts = pixelRemainder.split('.');
+            const experimentName = pixelParts[0];
+
+            if (!this.#compiledExperiments[experimentName]) {
+                this.undocumentedPixels.add(pixel);
+                return;
+            }
+
+            // Check cohort
+            const cohortName = pixelParts[1];
+            if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
+                this.undocumentedPixels.add(pixel);
+                return;
+            }
+
+            // TODO: suffixes...
+            const paramsUrlFormat = JSON5.parse(paramsString).join('&');
+            const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+
+            // TODO: case sensitivity
+            const metric = rawParamsStruct['metric'];
+            const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
+            if (metricSchema) {
+                metricSchema(rawParamsStruct['value']);
+                this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+            }
+
+            // TODO enrollmentDate, enrollmentWindow
+
+        }
+        else {
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+    }
+
     /**
      * Validates pixel against saved schema and saves any errors
      * @param {String} pixel full pixel name in "." notation
      * @param {String} params query params as a String representation of an array
      */
     validatePixel(pixel, params) {
+        // TODO: ban other pixels to start with this?
+        if (pixel.startsWith('experiment.')) {
+            this.validateExperimentPixel(pixel, params);
+            return;
+        }
+
         // Match longest prefix:
         const pixelParts = pixel.split('.');
         let pixelMatch = this.#compiledPixels;

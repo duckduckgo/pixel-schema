@@ -142,4 +142,8 @@ export class ParamsValidator {
 
         return this.#ajv.compile(pixelParams);
     }
+
+    compileExperimentMetricSchema(metricDef) {
+        return this.#ajv.compile(metricDef);
+    }
 }

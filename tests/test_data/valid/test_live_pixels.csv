@@ -12,3 +12,7 @@ m.my.first.pixel.new.exceptiontype.x.android.phone,['appVersion=wrongFormat']
 m.my.first.pixel.skip-due-to-version,"['appVersion=0.0', 'count=unexpectedButSkip']"
 m.my.first.pixel,"['appVersion=2.0.0', 'count=wrongFormat']"
 m.my.first.pixel,"['appVersion=2.0.3', 'count=42', 'date=2025-03-12']"
+experiment.enroll.defaultBrowser.control,[]
+experiment.enroll.x,[]
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression', 'value=stage1']"
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression', 'value=x']"
