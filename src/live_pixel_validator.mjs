@@ -17,7 +17,7 @@ export class LivePixelsValidator {
     #defsVersion;
     #defsVersionKey;
     #forceLowerCase;
-    
+
     #commonExperimentParamsSchema;
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
@@ -42,7 +42,10 @@ export class LivePixelsValidator {
 
         // Experiments
         this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
-        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(productDef.nativeExperiments.defaultSuffixes || {}, EXP_PIXEL_PREFIX_LEN);
+        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(
+            productDef.nativeExperiments.defaultSuffixes || {},
+            EXP_PIXEL_PREFIX_LEN,
+        );
         this.#compiledExperiments = productDef.nativeExperiments.activeExperiments || {};
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
@@ -116,7 +119,7 @@ export class LivePixelsValidator {
 
     validateExperimentPixel(pixel, paramsString) {
         const pixelParts = pixel.split('experiment.')[1].split('.');
-        
+
         if (pixelParts.length < EXP_PIXEL_PREFIX_LEN) {
             // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
@@ -154,10 +157,10 @@ export class LivePixelsValidator {
             this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
         }
 
-        const paramsUrlFormat = JSON5.parse((paramsString)).join('&');
+        const paramsUrlFormat = JSON5.parse(paramsString).join('&');
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
-        const metric = rawParamsStruct['metric'];
-        const metricValue = rawParamsStruct['value'];
+        const metric = rawParamsStruct.metric;
+        const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
             if (!metric || !metricValue) {
                 this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
@@ -170,12 +173,12 @@ export class LivePixelsValidator {
                 return;
             }
 
-            metricSchema(metricValue); 
+            metricSchema(metricValue);
             this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
 
             // Remove metric and value from params for further validation
-            delete rawParamsStruct['metric'];
-            delete rawParamsStruct['value'];
+            delete rawParamsStruct.metric;
+            delete rawParamsStruct.value;
         }
 
         // Validate enrollmentDate and conversionWindow

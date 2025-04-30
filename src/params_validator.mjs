@@ -154,15 +154,15 @@ export class ParamsValidator {
             type: 'object',
             properties: {
                 enrollmentDate: {
-                    format: "date",
-                    type: "string",
+                    format: 'date',
+                    type: 'string',
                 },
                 conversionWindowDays: {
-                    pattern: "[0-9]+(-[0-9]+)?",
-                    type: "string",
-                }
+                    pattern: '[0-9]+(-[0-9]+)?',
+                    type: 'string',
+                },
             },
-            additionalProperties: false,      
+            additionalProperties: false,
         });
     }
 }
