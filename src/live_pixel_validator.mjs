@@ -15,6 +15,8 @@ export class LivePixelsValidator {
     #defsVersion;
     #defsVersionKey;
     #forceLowerCase;
+    
+    #commonExperimentParamsSchema;
     #compiledExperiments;
 
     undocumentedPixels = new Set();
@@ -35,7 +37,9 @@ export class LivePixelsValidator {
         this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
 
-        this.#compiledExperiments = productDef.activeNativeExperiments || {};
+        // Experiments
+        this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
+        this.#compiledExperiments = productDef.nativeExperiments.activeExperiments || {};
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
                 experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);
@@ -107,63 +111,62 @@ export class LivePixelsValidator {
     }
 
     validateExperimentPixel(pixel, paramsString) {
-        if (pixel.startsWith('experiment.enroll.')) {
-            const pixelRemainder = pixel.split('experiment.enroll.')[1];
-            const pixelParts = pixelRemainder.split('.');
-            const experimentName = pixelParts[0];
-
-            if (!this.#compiledExperiments[experimentName]) {
-                this.undocumentedPixels.add(pixel);
-                return;
-            }
-
-            // Check cohort
-            const cohortName = pixelParts[1];
-            if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-                this.undocumentedPixels.add(pixel);
-                return;
-            }
-
-            // TODO: suffixes...
-            // TODO: params - always the same
-        }
-        else if (pixel.startsWith('experiment.metrics.')) {
-            // TODO: duplicated with above - write func
-            const pixelRemainder = pixel.split('experiment.metrics.')[1];
-            const pixelParts = pixelRemainder.split('.');
-            const experimentName = pixelParts[0];
-
-            if (!this.#compiledExperiments[experimentName]) {
-                this.undocumentedPixels.add(pixel);
-                return;
-            }
-
-            // Check cohort
-            const cohortName = pixelParts[1];
-            if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-                this.undocumentedPixels.add(pixel);
-                return;
-            }
-
-            // TODO: suffixes...
-            const paramsUrlFormat = JSON5.parse(paramsString).join('&');
-            const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
-
-            // TODO: case sensitivity
-            const metric = rawParamsStruct['metric'];
-            const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
-            if (metricSchema) {
-                metricSchema(rawParamsStruct['value']);
-                this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
-            }
-
-            // TODO enrollmentDate, enrollmentWindow
-
-        }
-        else {
+        const pixelParts = pixel.split('experiment.')[1].split('.');
+        if (pixelParts.length < 2) {
+            // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
             return;
         }
+
+        const pixelType = pixelParts[0];
+        if (pixelType !== 'enroll' && pixelType !== 'metrics') {
+            // Invalid experiment pixel type
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+
+        const experimentName = pixelParts[1];
+        if (!this.#compiledExperiments[experimentName]) {
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+
+        // Check cohort
+        const cohortName = pixelParts[2];
+        if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+
+        // TODO: suffixes...
+
+        const paramsUrlFormat = JSON5.parse((paramsString)).join('&');
+        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+        const metric = rawParamsStruct['metric'];
+        const metricValue = rawParamsStruct['value'];
+        if (pixelType === 'metrics') {
+            if (!metric || !metricValue) {
+                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
+                return;
+            }
+
+            const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
+            if (!metricSchema) {
+                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
+                return;
+            }
+
+            metricSchema(metricValue); 
+            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+
+            // Remove metric and value from params for further validation
+            delete rawParamsStruct['metric'];
+            delete rawParamsStruct['value'];
+        }
+
+        // Validate enrollmentDate and conversionWindow
+        this.#commonExperimentParamsSchema(rawParamsStruct);
+        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors));
     }
 
     /**

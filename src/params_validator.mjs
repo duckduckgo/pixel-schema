@@ -143,7 +143,29 @@ export class ParamsValidator {
         return this.#ajv.compile(pixelParams);
     }
 
+    /** EXPERIMENTS */
     compileExperimentMetricSchema(metricDef) {
         return this.#ajv.compile(metricDef);
+    }
+
+    compileCommonExperimentParamsSchema() {
+        return this.#ajv.compile({
+            type: 'object',
+            properties: {
+                enrollmentDate: {
+                    format: "date",
+                    type: "string",
+                },
+                conversionWindowDays: {
+                    pattern: "[0-9]+(-[0-9]+)?",
+                    type: "string",
+                }
+            },
+            additionalProperties: false,      
+        });
+    }
+
+    compileCommonExperimentSuffixesSchema() {
+        // TODO
     }
 }
