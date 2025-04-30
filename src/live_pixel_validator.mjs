@@ -10,6 +10,8 @@ import { ROOT_PREFIX } from './constants.mjs';
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
  */
 
+const EXP_PIXEL_PREFIX_LEN = 3;
+
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
@@ -17,6 +19,7 @@ export class LivePixelsValidator {
     #forceLowerCase;
     
     #commonExperimentParamsSchema;
+    #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
     undocumentedPixels = new Set();
@@ -39,6 +42,7 @@ export class LivePixelsValidator {
 
         // Experiments
         this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
+        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(productDef.nativeExperiments.defaultSuffixes || {}, EXP_PIXEL_PREFIX_LEN);
         this.#compiledExperiments = productDef.nativeExperiments.activeExperiments || {};
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
@@ -112,7 +116,8 @@ export class LivePixelsValidator {
 
     validateExperimentPixel(pixel, paramsString) {
         const pixelParts = pixel.split('experiment.')[1].split('.');
-        if (pixelParts.length < 2) {
+        
+        if (pixelParts.length < EXP_PIXEL_PREFIX_LEN) {
             // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
             return;
@@ -126,19 +131,28 @@ export class LivePixelsValidator {
         }
 
         const experimentName = pixelParts[1];
+        const pixelPrefix = `experiment.${pixelType}.${experimentName}`;
         if (!this.#compiledExperiments[experimentName]) {
-            this.undocumentedPixels.add(pixel);
+            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
             return;
         }
 
         // Check cohort
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-            this.undocumentedPixels.add(pixel);
+            this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
             return;
         }
 
-        // TODO: suffixes...
+        // Check suffixes if they exist
+        if (pixelParts.length > EXP_PIXEL_PREFIX_LEN) {
+            const pixelNameStruct = {};
+            for (let i = EXP_PIXEL_PREFIX_LEN; i < pixelParts.length; i++) {
+                pixelNameStruct[i] = pixelParts[i];
+            }
+            this.#commonExperimentSuffixesSchema(pixelNameStruct);
+            this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
+        }
 
         const paramsUrlFormat = JSON5.parse((paramsString)).join('&');
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
