@@ -16,6 +16,9 @@ describe('Invalid defs', () => {
         exec(`npm run validate-ddg-pixel-defs ${invalidDefsPath}`, (error, _, stderr) => {
             const pixelPath = path.join(invalidDefsPath, 'pixels', 'pixels.json');
             const expectedErrors = [
+                'ERROR in native_experiments.json: /defaultSuffixes must be array',
+                "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'cohorts'",
+                "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'metrics'",
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'description'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'triggers'`,
