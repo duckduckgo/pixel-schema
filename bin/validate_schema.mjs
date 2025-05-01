@@ -41,7 +41,11 @@ const validator = new DefinitionsValidator(commonParams, commonSuffixes);
 logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());
 
-// 2) Validate pixels and params
+// 2) Validate experiments
+const experiments = fileUtils.readExperimentsDef(mainDir);
+logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
+
+// 3) Validate pixels and params
 function validateFile(file) {
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file));

@@ -12,6 +12,7 @@ const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')));
 const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')));
 const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')));
+const experimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')));
 
 /**
  * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
@@ -55,6 +56,18 @@ export class DefinitionsValidator {
     validateCommonSuffixesDefinition() {
         this.#ajvValidateSuffixes(this.#commonSuffixes);
         return formatAjvErrors(this.#ajvValidateSuffixes.errors);
+    }
+
+    /**
+     * Validates experiments definition
+     *
+     * @param {object} experimentsDef should follow the schema defined in native_experiments_schema.json5
+     * @returns any validation errors
+     */
+    validateExperimentsDefinition(experimentsDef) {
+        const ajvExpSchema = this.#ajv.compile(experimentsSchema);
+        ajvExpSchema(experimentsDef);
+        return formatAjvErrors(ajvExpSchema.errors);
     }
 
     /**

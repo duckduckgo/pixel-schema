@@ -44,19 +44,19 @@ export class LivePixelsValidator {
         // Experiments params and suffixes
         this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
         this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(
-            experimentsDef.defaultSuffixes || {},
+            experimentsDef.defaultSuffixes || [],
             EXP_PIXEL_PREFIX_LEN,
         );
 
         // Experiment metrics
         this.#compiledExperiments = experimentsDef.activeExperiments || {};
-        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1,2,3,4,5,6,10,11,21,30] });
+        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1, 2, 3, 4, 5, 6, 10, 11, 21, 30] });
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
                 experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);
             });
-            experimentDef.metrics['app_use'] = defaultsSchema;
-            experimentDef.metrics['search'] = defaultsSchema;
+            experimentDef.metrics.app_use = defaultsSchema;
+            experimentDef.metrics.search = defaultsSchema;
         });
     }
 
