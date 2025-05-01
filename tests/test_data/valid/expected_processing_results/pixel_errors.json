@@ -64,5 +64,10 @@
         "Suffix 'xxx' at index 4 /4 must be equal to one of the allowed values": [
             "experiment.metrics.defaultBrowser.control.android.xxx"
         ]
+    },
+    "experiment.metrics.defaultBrowser.control.android.tablet": {
+        "must be equal to one of the allowed values": [
+            "metric=search&value=invalid"
+        ]
     }
 }

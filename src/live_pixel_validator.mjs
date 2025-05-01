@@ -30,9 +30,10 @@ export class LivePixelsValidator {
      * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
      * @param {ProductDefinition} productDef
      * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
+     * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
      * @param {ParamsValidator} paramsValidator
      */
-    constructor(tokenizedPixels, productDef, ignoreParams, paramsValidator) {
+    constructor(tokenizedPixels, productDef, ignoreParams, experimentsDef, paramsValidator) {
         this.#forceLowerCase = productDef.forceLowerCase;
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
@@ -40,17 +41,22 @@ export class LivePixelsValidator {
         this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
 
-        // Experiments
+        // Experiments params and suffixes
         this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
         this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(
-            productDef.nativeExperiments.defaultSuffixes || {},
+            experimentsDef.defaultSuffixes || {},
             EXP_PIXEL_PREFIX_LEN,
         );
-        this.#compiledExperiments = productDef.nativeExperiments.activeExperiments || {};
+
+        // Experiment metrics
+        this.#compiledExperiments = experimentsDef.activeExperiments || {};
+        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1,2,3,4,5,6,10,11,21,30] });
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
                 experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);
             });
+            experimentDef.metrics['app_use'] = defaultsSchema;
+            experimentDef.metrics['search'] = defaultsSchema;
         });
     }
 
@@ -192,7 +198,6 @@ export class LivePixelsValidator {
      * @param {String} params query params as a String representation of an array
      */
     validatePixel(pixel, params) {
-        // TODO: ban other pixels to start with this?
         if (pixel.startsWith('experiment.')) {
             this.validateExperimentPixel(pixel, params);
             return;

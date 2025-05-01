@@ -146,7 +146,7 @@ export class ParamsValidator {
 
     /** EXPERIMENTS */
     compileExperimentMetricSchema(metricDef) {
-        return this.#ajv.compile(metricDef);
+        return this.#ajv.compile(this.getUpdatedItem(metricDef, {}));
     }
 
     compileCommonExperimentParamsSchema() {

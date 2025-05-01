@@ -15,6 +15,7 @@ function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const productDef = fileUtils.readProductDef(mainDir);
+    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
     const commonParams = fileUtils.readCommonParams(mainDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
@@ -25,7 +26,7 @@ function main(mainDir, csvFile) {
 
     const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
 
-    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, experimentsDef, paramsValidator);
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
