@@ -38,7 +38,7 @@ export class LivePixelsValidator {
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
 
-        this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
+        this.#compileDefs(tokenizedPixels, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
 
         // Experiments params and suffixes
@@ -100,18 +100,16 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
-    #compileDefs(tokenizedPixels, ignoreParams, paramsValidator) {
+    #compileDefs(tokenizedPixels, paramsValidator) {
         Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
             if (prefix !== ROOT_PREFIX) {
-                this.#compileDefs(pixelDef, ignoreParams, paramsValidator);
+                this.#compileDefs(pixelDef, paramsValidator);
                 return;
             }
 
-            const combinedParams = [...(pixelDef.parameters || []), ...Object.values(ignoreParams)];
-
             // Pixel name is always lower case:
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
-            const normalizedParams = JSON.parse(this.#getNormalizedVal(JSON.stringify(combinedParams)));
+            const normalizedParams = JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters)));
 
             // Pre-compile each schema
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
