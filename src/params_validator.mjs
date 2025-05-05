@@ -168,7 +168,11 @@ export class ParamsValidator {
                         type: 'string',
                     },
                     {
-                        pattern: "^([0-9]{2}|[0-9]{4})\/[0-9]{1,2}\/[0-9]{1,2}$",
+                        pattern: "^[0-9]{4}\/[0-9]{1,2}\/[0-9]{1,2}$",
+                        type: 'string',
+                    },
+                    {
+                        pattern: "^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$",
                         type: 'string',
                     }
                 ]
