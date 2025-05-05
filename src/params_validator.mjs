@@ -15,10 +15,10 @@ export class ParamsValidator {
     #ignoreParams;
 
     /**
-     * 
+     *
      * @param {object} commonParams contains params that follow the schemas/param_schema.json5 type.
-     * @param {object} commonSuffixes contains suffixes that follow the schemas/suffix_schema.json5 type. 
-     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type. 
+     * @param {object} commonSuffixes contains suffixes that follow the schemas/suffix_schema.json5 type.
+     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
      */
     constructor(commonParams, commonSuffixes, ignoreParams) {
         this.#commonParams = commonParams;
@@ -168,20 +168,20 @@ export class ParamsValidator {
                         type: 'string',
                     },
                     {
-                        pattern: "^[0-9]{4}\/[0-9]{1,2}\/[0-9]{1,2}$",
+                        pattern: '^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$',
                         type: 'string',
                     },
                     {
-                        pattern: "^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$",
+                        pattern: '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$',
                         type: 'string',
-                    }
-                ]
+                    },
+                ],
             },
             {
                 key: 'conversionWindowDays',
                 pattern: '^([0-9]+(-[0-9]+)?)$',
             },
-        ]
+        ];
 
         return this.compileParamsSchema(expPrams);
     }

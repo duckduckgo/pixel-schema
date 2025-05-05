@@ -19,7 +19,7 @@ function main(mainDir, csvFile) {
     const commonParams = fileUtils.readCommonParams(mainDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
     const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
-    
+
     const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
     const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
