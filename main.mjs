@@ -18,11 +18,12 @@ import { tokenizePixelDefs } from './src/tokenizer.mjs';
  * @param {ProductDefinition} productDef
  * @param {object} ignoreParams
  * @param {object} tokenizedPixels
+ * @param {object} experimentsDef
  * @returns
  */
-export function buildLivePixelValidator(commonParams, commonSuffixes, productDef, ignoreParams, tokenizedPixels) {
-    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes);
-    return new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, paramsValidator);
+export function buildLivePixelValidator(commonParams, commonSuffixes, productDef, ignoreParams, tokenizedPixels, experimentsDef) {
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+    return new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 }
 
 /**
