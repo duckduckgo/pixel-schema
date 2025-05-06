@@ -25,7 +25,7 @@ function main(mainDir, csvFile) {
     const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
-    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, ignoreParams, experimentsDef, paramsValidator);
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())

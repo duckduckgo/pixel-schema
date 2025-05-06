@@ -31,7 +31,16 @@
         "/enrollmentDate must match format \"date\"": [
             "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
         ],
-        "/conversionWindowDays must match pattern \"[0-9]+(-[0-9]+)?\"": [
+        "/enrollmentDate must match pattern \"^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$\"": [
+            "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+        ],
+        "/enrollmentDate must match pattern \"^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$\"": [
+            "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+        ],
+        "/enrollmentDate must match a schema in anyOf": [
+            "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+        ],
+        "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"": [
             "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
         ],
         "must NOT have additional properties. Found extra property 'metric'": [
@@ -47,7 +56,7 @@
         "must be equal to one of the allowed values": [
             "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
         ],
-        "/conversionWindowDays must match pattern \"[0-9]+(-[0-9]+)?\"": [
+        "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"": [
             "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
         ],
         "Experiment metrics pixels must contain 'metric' and 'value' params": [

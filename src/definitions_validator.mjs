@@ -24,6 +24,7 @@ export class DefinitionsValidator {
 
     #commonParams;
     #commonSuffixes;
+    #ignoreParams;
 
     #paramsValidator;
     #ajv = new Ajv2020({ allErrors: true });
@@ -33,11 +34,13 @@ export class DefinitionsValidator {
     /**
      * @param {*} commonParams - object containing common parameters
      * @param {*} commonSuffixes - object containing common suffixes
+     * @param {*} ignoreParams - object containing parameters to ignore
      */
-    constructor(commonParams, commonSuffixes) {
+    constructor(commonParams, commonSuffixes, ignoreParams) {
         this.#commonParams = commonParams;
         this.#commonSuffixes = commonSuffixes;
-        this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes);
+        this.#ignoreParams = ignoreParams;
+        this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes, this.#ignoreParams);
 
         addFormats(this.#ajv);
         this.#ajv.addSchema(paramsSchema);

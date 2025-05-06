@@ -29,11 +29,10 @@ export class LivePixelsValidator {
      * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
      * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
      * @param {ProductDefinition} productDef
-     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
      * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
      * @param {ParamsValidator} paramsValidator
      */
-    constructor(tokenizedPixels, productDef, ignoreParams, experimentsDef, paramsValidator) {
+    constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#forceLowerCase = productDef.forceLowerCase;
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
@@ -109,7 +108,7 @@ export class LivePixelsValidator {
 
             // Pixel name is always lower case:
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
-            const normalizedParams = JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters)));
+            const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
 
             // Pre-compile each schema
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);

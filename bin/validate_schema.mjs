@@ -37,7 +37,11 @@ const mainDir = argv.dirPath;
 const pixelsDir = path.join(mainDir, 'pixels');
 const commonParams = fileUtils.readCommonParams(mainDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
-const validator = new DefinitionsValidator(commonParams, commonSuffixes);
+const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
+
+const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
 logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());
 
