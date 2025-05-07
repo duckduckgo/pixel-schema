@@ -22,10 +22,10 @@ function formatAjvErrors(validationErrors, suffixes) {
         let formattedError = `${error.instancePath} ${error.message}`;
         if (suffixes) {
             if (error.params.additionalProperty) {
-                formattedError += `. Found extra suffix '${suffixes[error.params.additionalProperty]}' at index ${error.params.additionalProperty}`;
+                formattedError += `. Found extra suffix '${suffixes[error.params.additionalProperty]}'`;
             } else if (error.params.allowedValues) {
-                const idx = error.instancePath ? Number(error.instancePath.split('/')[1]) : error.params.additionalProperty;
-                formattedError = `Suffix '${suffixes[idx]}' at index ${idx} ` + formattedError;
+                const idx = Number(error.instancePath.split('/')[1]);
+                formattedError = `Suffix '${suffixes[idx]}' ${error.message}`;
             }
         } else {
             if (error.params.additionalProperty) formattedError += `. Found extra property '${error.params.additionalProperty}'`;

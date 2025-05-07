@@ -158,7 +158,7 @@ describe('Common suffixes', () => {
         const pixel = `${prefix}.wrongkey.anystring.1`;
         liveValidator.validatePixel(pixel, params);
 
-        const expectedErrors = ["Suffix 'wrongkey' at index 0 /0 must be equal to one of the allowed values"];
+        const expectedErrors = ["Suffix 'wrongkey' must be equal to one of the allowed values"];
         expect(liveValidator.pixelErrors).to.have.property(prefix);
         expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });
@@ -174,7 +174,7 @@ describe('Common suffixes', () => {
         const pixel = `${prefix}.exception.anystring.1.extra`;
         liveValidator.validatePixel(pixel, params);
 
-        const expectedErrors = ["must NOT have additional properties. Found extra suffix 'extra' at index 3"];
+        const expectedErrors = ["must NOT have additional properties. Found extra suffix 'extra'"];
         expect(liveValidator.pixelErrors).to.have.property(prefix);
         expect(Object.keys(liveValidator.pixelErrors[prefix])).to.include.all.members(expectedErrors);
     });

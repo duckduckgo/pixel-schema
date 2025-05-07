@@ -9,8 +9,6 @@ import { ROOT_PREFIX } from './constants.mjs';
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
  */
 
-const EXP_PIXEL_PREFIX_LEN = 3;
-
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
@@ -41,10 +39,7 @@ export class LivePixelsValidator {
 
         // Experiments params and suffixes
         this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
-        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(
-            experimentsDef.defaultSuffixes || [],
-            EXP_PIXEL_PREFIX_LEN,
-        );
+        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(experimentsDef.defaultSuffixes || []);
 
         // Experiment metrics
         this.#compiledExperiments = experimentsDef.activeExperiments || {};
@@ -122,7 +117,8 @@ export class LivePixelsValidator {
     validateExperimentPixel(pixel, paramsUrlFormat) {
         const pixelParts = pixel.split('experiment.')[1].split('.');
 
-        if (pixelParts.length < EXP_PIXEL_PREFIX_LEN) {
+        const pixelPrefixLen = 3;
+        if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
             return;
@@ -150,10 +146,12 @@ export class LivePixelsValidator {
         }
 
         // Check suffixes if they exist
-        if (pixelParts.length > EXP_PIXEL_PREFIX_LEN) {
+        if (pixelParts.length > pixelPrefixLen) {
             const pixelNameStruct = {};
-            for (let i = EXP_PIXEL_PREFIX_LEN; i < pixelParts.length; i++) {
-                pixelNameStruct[i] = pixelParts[i];
+            let structIdx = 0;
+            for (let i = pixelPrefixLen; i < pixelParts.length; i++) {
+                pixelNameStruct[structIdx] = pixelParts[i];
+                structIdx++;
             }
             this.#commonExperimentSuffixesSchema(pixelNameStruct);
             this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
