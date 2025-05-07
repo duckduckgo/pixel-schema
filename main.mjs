@@ -48,13 +48,8 @@ export function validateSinglePixel(validator, url) {
     const parsedUrl = new URL(url);
     // parse pixel ID out of the URL path
     const pixel = parsedUrl.pathname.slice(3).replaceAll('_', '.');
-    // validator expects a JSON encoded array of parameters
-    const params = JSON.stringify(
-        parsedUrl.search
-            .slice(1)
-            .split('&')
-            .filter((v) => !v.match(/^\d+$/)),
-    );
+    // validator expects URL params after cache buster
+    const params = parsedUrl.search.slice(1).replace(/^\d+=?&/, '');
     // reset errors in validator
     validator.pixelErrors = {};
     validator.undocumentedPixels.clear();

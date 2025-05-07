@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import JSON5 from 'json5';
 import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
@@ -120,7 +119,7 @@ export class LivePixelsValidator {
         });
     }
 
-    validateExperimentPixel(pixel, paramsString) {
+    validateExperimentPixel(pixel, paramsUrlFormat) {
         const pixelParts = pixel.split('experiment.')[1].split('.');
 
         if (pixelParts.length < EXP_PIXEL_PREFIX_LEN) {
@@ -160,7 +159,6 @@ export class LivePixelsValidator {
             this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
         }
 
-        const paramsUrlFormat = JSON5.parse(paramsString).join('&');
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const metric = rawParamsStruct.metric;
         const metricValue = rawParamsStruct.value;
@@ -192,7 +190,7 @@ export class LivePixelsValidator {
     /**
      * Validates pixel against saved schema and saves any errors
      * @param {String} pixel full pixel name in "." notation
-     * @param {String} params query params as a String representation of an array
+     * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
     validatePixel(pixel, params) {
         if (pixel.startsWith('experiment.')) {
@@ -223,9 +221,8 @@ export class LivePixelsValidator {
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelSchemas) {
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
         // 1) Skip outdated pixels based on version
-        const paramsUrlFormat = JSON5.parse(paramsString).join('&');
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {

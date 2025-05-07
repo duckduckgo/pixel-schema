@@ -35,20 +35,20 @@ describe('No common params nor suffixes', () => {
 
     it('no params should pass', () => {
         const prefix = 'simplePixel';
-        liveValidator.validatePixel(prefix, '[]');
+        liveValidator.validatePixel(prefix, '');
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('conforming pixel should pass', () => {
         const prefix = 'simplePixel';
-        const params = "['param1=true']";
+        const params = 'param1=true';
         liveValidator.validatePixel(prefix, params);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('wrong type should fail', () => {
         const prefix = 'simplePixel';
-        const params = "['param1=not_a_bool']";
+        const params = 'param1=not_a_bool';
         liveValidator.validatePixel(prefix, params);
 
         const expectedErrors = ['/param1 must be boolean'];
@@ -58,7 +58,7 @@ describe('No common params nor suffixes', () => {
 
     it('extra param should fail', () => {
         const prefix = 'simplePixel';
-        const params = "['param1=true','param2=x']";
+        const params = 'param1=true&param2=x';
         liveValidator.validatePixel(prefix, params);
 
         const expectedErrors = ["must NOT have additional properties. Found extra property 'param2'"];
@@ -99,19 +99,19 @@ describe('Common params', () => {
     });
 
     it('common param only should pass', () => {
-        const params = "['common=42']";
+        const params = 'common=42';
         liveValidator.validatePixel(prefix, params);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('both common and custom params should pass', () => {
-        const params = "['param1=false','common=0']";
+        const params = 'param1=false&common=0';
         liveValidator.validatePixel(prefix, params);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('wrong common type should fail', () => {
-        const params = "['common=200']";
+        const params = 'common=200';
         liveValidator.validatePixel(prefix, params);
 
         const expectedErrors = ['/common must be <= 100'];
@@ -141,7 +141,7 @@ describe('Common suffixes', () => {
     const tokenizedDefs = {};
     tokenizePixelDefs(pixelDefs, tokenizedDefs);
     const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
-    const params = '[]';
+    const params = '';
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
@@ -235,7 +235,7 @@ testCases.forEach((scenario) => {
             if (scenario.base64Encoded) {
                 paramStr = Buffer.from(paramStr).toString('base64');
             }
-            return `'objParamKey=${paramStr}'`;
+            return `objParamKey=${paramStr}`;
         }
 
         function getNoramlizedError(error) {
@@ -260,7 +260,7 @@ testCases.forEach((scenario) => {
                 },
             };
 
-            liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)}]`);
+            liveValidator.validatePixel(prefix, `${getStrObjParam(paramObj)}`);
             const expectedErrors = [
                 getNoramlizedError('/objParamKey/p1 must be boolean'),
                 getNoramlizedError('/objParamKey/p2/nestedParam2 must be integer'),
@@ -278,7 +278,7 @@ testCases.forEach((scenario) => {
                 },
             };
 
-            liveValidator.validatePixel(prefix, `[${getStrObjParam(paramObj)},'basicParam=true']`);
+            liveValidator.validatePixel(prefix, `${getStrObjParam(paramObj)}&basicParam=true`);
             expect(liveValidator.pixelErrors).to.be.empty;
         });
     });
@@ -309,14 +309,14 @@ describe('Base64 simple param', () => {
     });
 
     it('invalid param', () => {
-        liveValidator.validatePixel(prefix, `['base64SimpleParam=${Buffer.from('123').toString('base64')}']`);
+        liveValidator.validatePixel(prefix, `base64SimpleParam=${Buffer.from('123').toString('base64')}`);
         const expectedErrors = ['/base64SimpleParam must be boolean'];
         expect(liveValidator.pixelErrors).to.have.property(prefix);
         expect(Object.keys(liveValidator.pixelErrors[prefix])).to.have.members(expectedErrors);
     });
 
     it('valid param', () => {
-        liveValidator.validatePixel(prefix, `['base64SimpleParam=${Buffer.from('false').toString('base64')}']`);
+        liveValidator.validatePixel(prefix, `base64SimpleParam=${Buffer.from('false').toString('base64')}`);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 });

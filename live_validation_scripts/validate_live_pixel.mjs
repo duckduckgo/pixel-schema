@@ -2,6 +2,7 @@
 
 import csv from 'csv-parser';
 import fs from 'fs';
+import JSON5 from 'json5';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -34,7 +35,8 @@ function main(mainDir, csvFile) {
             if (processedPixels % 100000 === 0) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
-            liveValidator.validatePixel(row.pixel, row.params);
+            const paramsUrlFormat = JSON5.parse(row.params).join('&');
+            liveValidator.validatePixel(row.pixel, paramsUrlFormat);
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
