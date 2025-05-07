@@ -36,6 +36,7 @@ function populateTempTable(tokenizedPixels, productDef) {
     console.log('Populating table');
 
     const pixelIDs = Object.keys(tokenizedPixels);
+    pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 

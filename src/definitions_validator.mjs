@@ -61,6 +61,11 @@ export class DefinitionsValidator {
         return formatAjvErrors(this.#ajvValidateSuffixes.errors);
     }
 
+    validateIgnoreParamsDefinition() {
+        this.#ajvValidateParams(this.#ignoreParams);
+        return formatAjvErrors(this.#ajvValidateParams.errors);
+    }
+
     /**
      * Validates experiments definition
      *

@@ -39,11 +39,12 @@ const commonParams = fileUtils.readCommonParams(mainDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
 const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
+const ignoreParams = {...pixelIgnoreParams, ...globalIgnoreParams};
 
 const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
 logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());
+logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments
 const experiments = fileUtils.readExperimentsDef(mainDir);
