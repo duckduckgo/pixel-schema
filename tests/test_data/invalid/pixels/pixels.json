@@ -1,3 +1,8 @@
 {
-    "invalid_pixel": {}
+    "invalid_pixel": {},
+    "experiment.invalid": {
+        "description": "Experiments must be in a separate schema",
+        "owners": ["test"],
+        "triggers": ["other"]
+    }
 }

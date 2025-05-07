@@ -13,7 +13,7 @@ const productDef = {
 };
 
 describe('No common params nor suffixes', () => {
-    const paramsValidator = new ParamsValidator('{}', '{}');
+    const paramsValidator = new ParamsValidator({}, {}, {});
     const pixelDefs = {
         simplePixel: {
             parameters: [
@@ -76,7 +76,7 @@ describe('Common params', () => {
             maximum: 100,
         },
     };
-    const paramsValidator = new ParamsValidator(commonParams, '{}');
+    const paramsValidator = new ParamsValidator(commonParams, {}, {});
     const prefix = 'simplePixel';
     const pixelDefs = {
         simplePixel: {
@@ -126,7 +126,7 @@ describe('Common suffixes', () => {
             key: 'exception',
         },
     };
-    const paramsValidator = new ParamsValidator('{}', commonSuffixes);
+    const paramsValidator = new ParamsValidator({}, commonSuffixes, {});
     const prefix = 'simplePixel';
     const pixelDefs = {
         simplePixel: {
@@ -191,7 +191,7 @@ const testCases = [
 
 testCases.forEach((scenario) => {
     describe(`Object param with scenario=${scenario}`, () => {
-        const paramsValidator = new ParamsValidator({}, {});
+        const paramsValidator = new ParamsValidator({}, {}, {});
         const prefix = 'simplePixel';
         const pixelDefs = {
             simplePixel: {
@@ -285,7 +285,7 @@ testCases.forEach((scenario) => {
 });
 
 describe('Base64 simple param', () => {
-    const paramsValidator = new ParamsValidator({}, {});
+    const paramsValidator = new ParamsValidator({}, {}, {});
     const prefix = 'simplePixel';
     const pixelDefs = {
         simplePixel: {

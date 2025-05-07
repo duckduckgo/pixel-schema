@@ -74,21 +74,21 @@ export function readIgnoreParams(mainPixelDir) {
 }
 
 /**
- * Get product definition path based on mainPixelDir.
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {string} product definition file path
- */
-export function getProductDefPath(mainPixelDir) {
-    return path.join(mainPixelDir, 'product.json');
-}
-
-/**
  * Read product definition
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {object} product definition
  */
 export function readProductDef(mainPixelDir) {
-    return parseFile(getProductDefPath(mainPixelDir));
+    return readSchemaFile(mainPixelDir, 'product.json');
+}
+
+/**
+ * Read experiments definitions
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {object} experiments definitions
+ */
+export function readExperimentsDef(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'native_experiments.json');
 }
 
 /**

@@ -2,7 +2,7 @@
     "kp": {
         "key": "kp",
         "description": "",
-        "enum": [1]
+        "enum": [1, -1, 0]
     },
     "p": {
         "key": "p",
@@ -17,6 +17,6 @@
     "scrlybrkr": {
         "key": "scrlybrkr",
         "description": "Added by 3rd party school proxy",
-        "type": "number"
+        "pattern": "^[0-9a-fA-F]+$"
     }
 }

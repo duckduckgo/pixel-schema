@@ -37,11 +37,20 @@ const mainDir = argv.dirPath;
 const pixelsDir = path.join(mainDir, 'pixels');
 const commonParams = fileUtils.readCommonParams(mainDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
-const validator = new DefinitionsValidator(commonParams, commonSuffixes);
+const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+const ignoreParams = { ...pixelIgnoreParams, ...globalIgnoreParams };
+
+const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
 logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());
+logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
-// 2) Validate pixels and params
+// 2) Validate experiments
+const experiments = fileUtils.readExperimentsDef(mainDir);
+logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
+
+// 3) Validate pixels and params
 function validateFile(file) {
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file));

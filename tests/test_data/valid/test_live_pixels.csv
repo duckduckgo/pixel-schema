@@ -12,3 +12,18 @@ m.my.first.pixel.new.exceptiontype.x.android.phone,['appVersion=wrongFormat']
 m.my.first.pixel.skip-due-to-version,"['appVersion=0.0', 'count=unexpectedButSkip']"
 m.my.first.pixel,"['appVersion=2.0.0', 'count=wrongFormat']"
 m.my.first.pixel,"['appVersion=2.0.3', 'count=42', 'date=2025-03-12']"
+experiment.enroll.defaultBrowser.control,"['enrollmentDate=2025-04-22', 'conversionWindowDays=8-15']"
+experiment.enroll.defaultBrowser.control,"['enrollmentDate=not_a_date', 'conversionWindowDays=x-x-x']"
+experiment.enroll.x,[]
+experiment.enroll.x.x_cohort,[]
+experiment.enroll.defaultBrowser.control,"['metric=stageImpression']"
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression', 'value=stage1', 'enrollmentDate=2025-04-22', 'conversionWindowDays=8-15']"
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression', 'value=x', 'conversionWindowDays=x-x-x']"
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression']"
+experiment.metrics.defaultBrowser.control,"['metric=unknown', 'value=x']"
+experiment.metrics.defaultBrowser.control,"['metric=stageImpression', 'value=stage1', 'unexpectedParam=unknown']"
+experiment.metrics.defaultBrowser.control.android.xxx,"['metric=stageImpression', 'value=stage1']"
+experiment.metrics.defaultBrowser.control.android.tablet,"['metric=stageImpression', 'value=stage1']"
+experiment.metrics.defaultBrowser.control.android.tablet,"['metric=app_use', 'value=4']"
+experiment.metrics.defaultBrowser.control.android.tablet,"['metric=search', 'value=21']"
+experiment.metrics.defaultBrowser.control.android.tablet,"['metric=search', 'value=invalid']"
