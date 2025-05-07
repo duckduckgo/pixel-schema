@@ -49,7 +49,7 @@ export class LivePixelsValidator {
 
         // Experiment metrics
         this.#compiledExperiments = experimentsDef.activeExperiments || {};
-        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1, 2, 3, 4, 5, 6, 10, 11, 21, 30] });
+        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1, 4, 6, 11, 21, 30] });
         Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
             Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
                 experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);

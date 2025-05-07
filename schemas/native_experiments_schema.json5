@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "experiments_enrollment_date.schema.json",
-    "title": "EnrollmentDate",
-    "description": "A schema defining the enrollmentDate parameter sent by the experiments framework",
+    "$id": "native_experiments.schema.json",
+    "title": "NativeExperiments",
+    "description": "A schema for defining native experiments",
     "type": "object",
     "properties": {
         "defaultSuffixes": {

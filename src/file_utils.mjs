@@ -26,7 +26,7 @@ function parseFile(filePath) {
         if (fs.existsSync(altPath)) {
             resolvedPath = altPath;
         } else {
-            return {};
+            throw new Error(`Neither ${filePath} nor ${altPath} exist.`);
         }
     }
     const fileContent = fs.readFileSync(resolvedPath, 'utf8');

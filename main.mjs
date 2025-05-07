@@ -21,7 +21,7 @@ import { tokenizePixelDefs } from './src/tokenizer.mjs';
  * @param {object} experimentsDef
  * @returns
  */
-export function buildLivePixelValidator(commonParams, commonSuffixes, productDef, ignoreParams, tokenizedPixels, experimentsDef) {
+export function buildLivePixelValidator(commonParams, commonSuffixes, productDef, ignoreParams, tokenizedPixels, experimentsDef = {}) {
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
     return new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 }
