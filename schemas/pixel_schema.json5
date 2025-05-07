@@ -4,6 +4,12 @@
     "title": "Pixel",
     "description": "A schema defining how DDG pixels are triggered and what data they send",
     "type": "object",
+    "propertyNames": {
+        "not": {
+            "type": "string",
+            "pattern": "^experiment\." // Experiments must be defined separately
+        }
+    },
     "additionalProperties": {
         "$ref": "#/$defs/pixel"
     },
