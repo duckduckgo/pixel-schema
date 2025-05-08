@@ -11,8 +11,7 @@ import { tokenizePixelDefs } from './src/tokenizer.mjs';
  */
 
 /**
- * Given a pixels dir, build a LivePixelsValidator. Optionally, override values on disk with
- * provided overrides.
+ * Build a LivePixelsValidator
  * @param {object} commonParams
  * @param {object} commonSuffixes
  * @param {ProductDefinition} productDef
@@ -47,21 +46,16 @@ export function buildTokenizedPixels(allPixelDefs) {
 export function validateSinglePixel(validator, url) {
     const parsedUrl = new URL(url);
     // parse pixel ID out of the URL path
-    const pixel = parsedUrl.pathname.slice(3).replaceAll('_', '.');
-    // validator expects a JSON encoded array of parameters
-    const params = JSON.stringify(
-        parsedUrl.search
-            .slice(1)
-            .split('&')
-            .filter((v) => !v.match(/^\d+$/)),
-    );
+    const pixel = parsedUrl.pathname.slice(3);
+    // validator expects URL params after cache buster
+    const params = parsedUrl.search.slice(1).replace(/^\d+=?&/, '');
     // reset errors in validator
     validator.pixelErrors = {};
     validator.undocumentedPixels.clear();
     // validate
     validator.validatePixel(pixel, params);
     if (validator.undocumentedPixels.size > 0) {
-        throw new Error(`Undocumented Pixel: ${JSON.stringify(validator.undocumentedPixels)}`);
+        throw new Error(`Undocumented Pixel: ${JSON.stringify(Array.from(validator.undocumentedPixels))}`);
     }
     if (Object.keys(validator.pixelErrors).length > 0) {
         throw new Error(`Pixel Errors: ${JSON.stringify(validator.pixelErrors)}`);

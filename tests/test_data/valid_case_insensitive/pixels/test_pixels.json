@@ -1,5 +1,5 @@
 {
-    "m.my.first.pixel": {
+    "m_my_first_pixel": {
         "description": "Fires when my cool feature is used.",
         "owners": ["ddg_username"],
         "triggers": ["exception"],

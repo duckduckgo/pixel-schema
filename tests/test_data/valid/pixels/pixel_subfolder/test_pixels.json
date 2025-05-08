@@ -1,5 +1,5 @@
 {
-    "m.my.first.pixel.test": {
+    "m_my_first_pixel_test": {
         "description": "Test pixel without params, sharing prefix with pixel from another file.",
         "owners": ["tester"],
         "triggers": ["other"]

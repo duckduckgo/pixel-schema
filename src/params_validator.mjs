@@ -84,15 +84,14 @@ export class ParamsValidator {
     /**
      * Replaces shortcuts to common suffixes and compiles the suffix schema
      * @param {Object} suffixes
-     * @param {number} startingIdx starting index for the suffixes schema
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
      */
-    compileSuffixesSchema(suffixes, startingIdx = 0) {
+    compileSuffixesSchema(suffixes) {
         if (!suffixes) return this.#ajv.compile({});
 
         const properties = {};
-        let idx = startingIdx;
+        let idx = 0;
         suffixes.forEach((item) => {
             const suffix = this.getUpdatedItem(item, this.#commonSuffixes);
             if (suffix.key) {

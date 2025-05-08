@@ -22,17 +22,18 @@ function formatAjvErrors(validationErrors, suffixes) {
         let formattedError = `${error.instancePath} ${error.message}`;
         if (suffixes) {
             if (error.params.additionalProperty) {
-                formattedError += `. Found extra suffix '${suffixes[error.params.additionalProperty]}' at index ${error.params.additionalProperty}`;
+                formattedError += `. Found extra suffix '${suffixes[error.params.additionalProperty]}'`;
             } else if (error.params.allowedValues) {
-                const idx = error.instancePath ? Number(error.instancePath.split('/')[1]) : error.params.additionalProperty;
-                formattedError = `Suffix '${suffixes[idx]}' at index ${idx} ` + formattedError;
+                const idx = Number(error.instancePath.split('/')[1]);
+                formattedError = `Suffix '${suffixes[idx]}' ${error.message}`;
             }
         } else {
             if (error.params.additionalProperty) formattedError += `. Found extra property '${error.params.additionalProperty}'`;
 
             if (error.message === 'property name must be valid') {
-                formattedError = `Invalid property name '${error.params.propertyName}'`;
-                formattedError += `\n\tIf this is a pixel: experiments must be defined in the 'native_experiments.json' file`;
+                formattedError = `Invalid property name '${error.params.propertyName}'. If this is a pixel:`;
+                formattedError += `\n\t* pixel names must not contain '.' --> use '_' instead`;
+                formattedError += `\n\t* experiments must be defined in the 'native_experiments.json' file`;
             }
         }
 

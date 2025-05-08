@@ -1,4 +1,4 @@
-import { ROOT_PREFIX } from './constants.mjs';
+import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
 
 /**
  * Tokenizes provided pixel definitions and saves them to the provided tokenized object.
@@ -9,7 +9,7 @@ import { ROOT_PREFIX } from './constants.mjs';
  */
 export function tokenizePixelDefs(pixelDefs, existingTokenizedDefs) {
     for (const prefix of Object.keys(pixelDefs)) {
-        const prefixParts = prefix.split('.');
+        const prefixParts = prefix.split(PIXEL_DELIMITER);
 
         let pixelParent = existingTokenizedDefs;
         for (let i = 0; i < prefixParts.length - 1; i++) {
