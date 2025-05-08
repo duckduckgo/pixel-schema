@@ -6,8 +6,16 @@
     "type": "object",
     "propertyNames": {
         "not": {
-            "type": "string",
-            "pattern": "^experiment\." // Experiments must be defined separately
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^experiment\\." // Experiments must be defined separately
+                },
+                {
+                    "type": "string",
+                    "pattern": ".*\\..*" // `.` not allowed - pixel names must use `_` instead
+                }
+            ]
         }
     },
     "additionalProperties": {

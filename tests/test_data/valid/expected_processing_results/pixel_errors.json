@@ -1,24 +1,24 @@
 {
-    "m.my.first.pixel.test": {
+    "m_my_first_pixel_test": {
         "must NOT have additional properties. Found extra property 'extraParam'": [
             "extraParam=10"
         ],
         "must NOT have additional properties. Found extra suffix 'extra-suffix'": [
-            "m.my.first.pixel.test.extra-suffix"
+            "m_my_first_pixel_test_extra-suffix"
         ]
     },
-    "m.my.first.pixel": {
+    "m_my_first_pixel": {
         "Suffix 'unexpected-suffix' must be equal to one of the allowed values": [
-            "m.my.first.pixel.unexpected-suffix"
+            "m_my_first_pixel_unexpected-suffix"
         ],
         "Suffix 'unexpected-suffix2' must be equal to one of the allowed values": [
-            "m.my.first.pixel.new.unexpected-suffix2"
+            "m_my_first_pixel_new_unexpected-suffix2"
         ],
         "Suffix 'unexpected-suffix3' must be equal to one of the allowed values": [
-            "m.my.first.pixel.new.exceptiontype.some-exception.unexpected-suffix3"
+            "m_my_first_pixel_new_exceptiontype_some-exception_unexpected-suffix3"
         ],
         "Suffix 'unexpected-4' must be equal to one of the allowed values": [
-            "m.my.first.pixel.new.exceptiontype.x.android.unexpected-4"
+            "m_my_first_pixel_new_exceptiontype_x_android_unexpected-4"
         ],
         "/appVersion must match pattern \"^[0-9]+\\.[0-9]+\\.[0-9]$\"": [
             "appVersion=wrongFormat"
@@ -27,7 +27,7 @@
             "appVersion=2.0.0&count=wrongFormat"
         ]
     },
-    "experiment.enroll.defaultBrowser.control": {
+    "experiment_enroll_defaultBrowser_control": {
         "/enrollmentDate must match format \"date\"": [
             "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
         ],
@@ -47,12 +47,12 @@
             "metric=stageImpression"
         ]
     },
-    "experiment.enroll.x": {
+    "experiment_enroll_x": {
         "Unknown experiment 'x'": [
-            "experiment.enroll.x.x_cohort"
+            "experiment_enroll_x_x_cohort"
         ]
     },
-    "experiment.metrics.defaultBrowser.control": {
+    "experiment_metrics_defaultBrowser_control": {
         "must be equal to one of the allowed values": [
             "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
         ],
@@ -69,12 +69,12 @@
             "metric=stageImpression&value=stage1&unexpectedParam=unknown"
         ]
     },
-    "experiment.metrics.defaultBrowser": {
+    "experiment_metrics_defaultBrowser": {
         "Suffix 'xxx' must be equal to one of the allowed values": [
-            "experiment.metrics.defaultBrowser.control.android.xxx"
+            "experiment_metrics_defaultBrowser_control_android_xxx"
         ]
     },
-    "experiment.metrics.defaultBrowser.control.android.tablet": {
+    "experiment_metrics_defaultBrowser_control_android_tablet": {
         "must be equal to one of the allowed values": [
             "metric=search&value=invalid"
         ]

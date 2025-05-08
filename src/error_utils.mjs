@@ -31,8 +31,9 @@ function formatAjvErrors(validationErrors, suffixes) {
             if (error.params.additionalProperty) formattedError += `. Found extra property '${error.params.additionalProperty}'`;
 
             if (error.message === 'property name must be valid') {
-                formattedError = `Invalid property name '${error.params.propertyName}'`;
-                formattedError += `\n\tIf this is a pixel: experiments must be defined in the 'native_experiments.json' file`;
+                formattedError = `Invalid property name '${error.params.propertyName}'. If this is a pixel:`;
+                formattedError += `\n\t* pixel names must not contain '.' --> use '_' instead`;
+                formattedError += `\n\t* experiments must be defined in the 'native_experiments.json' file`;
             }
         }
 

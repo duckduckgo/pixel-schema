@@ -19,7 +19,7 @@ describe('Invalid defs', () => {
                 'ERROR in native_experiments.json: /defaultSuffixes must be array',
                 "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'cohorts'",
                 "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'metrics'",
-                `ERROR in ${pixelPath}: Invalid property name 'experiment.invalid'`,
+                `ERROR in ${pixelPath}: Invalid property name 'experiment.invalid'. If this is a pixel:`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'description'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'triggers'`,

@@ -2,7 +2,7 @@
 import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
-import { ROOT_PREFIX } from './constants.mjs';
+import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -115,7 +115,7 @@ export class LivePixelsValidator {
     }
 
     validateExperimentPixel(pixel, paramsUrlFormat) {
-        const pixelParts = pixel.split('experiment.')[1].split('.');
+        const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
         const pixelPrefixLen = 3;
         if (pixelParts.length < pixelPrefixLen) {
@@ -132,7 +132,7 @@ export class LivePixelsValidator {
         }
 
         const experimentName = pixelParts[1];
-        const pixelPrefix = `experiment.${pixelType}.${experimentName}`;
+        const pixelPrefix = `experiment${PIXEL_DELIMITER}${pixelType}${PIXEL_DELIMITER}${experimentName}`;
         if (!this.#compiledExperiments[experimentName]) {
             this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
             return;
@@ -187,24 +187,24 @@ export class LivePixelsValidator {
 
     /**
      * Validates pixel against saved schema and saves any errors
-     * @param {String} pixel full pixel name in "." notation
+     * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
     validatePixel(pixel, params) {
-        if (pixel.startsWith('experiment.')) {
+        if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             this.validateExperimentPixel(pixel, params);
             return;
         }
 
         // Match longest prefix:
-        const pixelParts = pixel.split('.');
+        const pixelParts = pixel.split(PIXEL_DELIMITER);
         let pixelMatch = this.#compiledPixels;
         let matchedParts = '';
         for (let i = 0; i < pixelParts.length; i++) {
             const part = pixelParts[i];
             if (pixelMatch[part]) {
                 pixelMatch = pixelMatch[part];
-                matchedParts += part + '.';
+                matchedParts += part + PIXEL_DELIMITER;
             } else {
                 break;
             }
@@ -242,9 +242,9 @@ export class LivePixelsValidator {
         // 3) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;
 
-        const pixelSuffix = pixel.split(`${prefix}.`)[1];
+        const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
         const pixelNameStruct = {};
-        pixelSuffix.split('.').forEach((suffix, idx) => {
+        pixelSuffix.split(PIXEL_DELIMITER).forEach((suffix, idx) => {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);

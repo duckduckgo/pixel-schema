@@ -6,8 +6,10 @@ import fs from 'fs';
 import path from 'path';
 import JSON5 from 'json5';
 
+import { fileURLToPath } from 'url';
+
 const RESULTS_DIR = 'pixel_processing_results';
-export const GLOBAL_PIXEL_DIR = 'global_pixel_definitions';
+export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
 /**
  * Attempt to read and parse a file using JSON5. Tries .json

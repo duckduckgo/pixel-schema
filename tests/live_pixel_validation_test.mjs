@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { tokenizePixelDefs } from '../src/tokenizer.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
+import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
 const productDef = {
     target: {
@@ -149,13 +150,13 @@ describe('Common suffixes', () => {
     });
 
     it('both common and custom suffix should pass', () => {
-        const pixel = `${prefix}.exception.anystring.1`;
+        const pixel = `${prefix}${PIXEL_DELIMITER}exception${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}1`;
         liveValidator.validatePixel(pixel, params);
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('unexpected value should fail', () => {
-        const pixel = `${prefix}.wrongkey.anystring.1`;
+        const pixel = `${prefix}${PIXEL_DELIMITER}wrongkey${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}1`;
         liveValidator.validatePixel(pixel, params);
 
         const expectedErrors = ["Suffix 'wrongkey' must be equal to one of the allowed values"];
@@ -164,14 +165,14 @@ describe('Common suffixes', () => {
     });
 
     it('missing part of name should NOT fail', () => {
-        const pixel = `${prefix}.exception.1`;
+        const pixel = `${prefix}${PIXEL_DELIMITER}exception${PIXEL_DELIMITER}1`;
         liveValidator.validatePixel(pixel, params);
 
         expect(liveValidator.pixelErrors).to.be.empty;
     });
 
     it('extra suffix should fail', () => {
-        const pixel = `${prefix}.exception.anystring.1.extra`;
+        const pixel = `${prefix}${PIXEL_DELIMITER}exception${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}1${PIXEL_DELIMITER}extra`;
         liveValidator.validatePixel(pixel, params);
 
         const expectedErrors = ["must NOT have additional properties. Found extra suffix 'extra'"];
