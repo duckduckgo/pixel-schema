@@ -2,12 +2,14 @@
 
 import csv from 'csv-parser';
 import fs from 'fs';
+import JSON5 from 'json5';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
+import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
 
@@ -34,7 +36,9 @@ function main(mainDir, csvFile) {
             if (processedPixels % 100000 === 0) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
-            liveValidator.validatePixel(row.pixel, row.params);
+            const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
+            const paramsUrlFormat = JSON5.parse(row.params).join('&');
+            liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
