@@ -36,6 +36,7 @@ function populateTempTable(tokenizedPixels, productDef) {
     console.log('Populating table');
 
     const pixelIDs = Object.keys(tokenizedPixels);
+    pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
@@ -45,7 +46,7 @@ function populateTempTable(tokenizedPixels, productDef) {
     while (pastDate <= currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
             WITH extractURLParameters(request) AS params
-            SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+$'), params) AS filtered_params
+            SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+=?$'), params) AS filtered_params
             FROM metrics.pixels
             WHERE (${pixelIDsWhereClause}) 
             AND (${agentWhereClause})

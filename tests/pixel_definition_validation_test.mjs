@@ -7,7 +7,7 @@ describe('Validating commons', () => {
     const commons = {
         invalid: {},
     };
-    const validator = new DefinitionsValidator(commons, commons);
+    const validator = new DefinitionsValidator(commons, commons, {});
 
     it('params must have required properties', () => {
         const errors = validator.validateCommonParamsDefinition();
@@ -27,7 +27,7 @@ describe('Validating commons', () => {
 });
 
 describe('Pixel with no params and no suffixes', () => {
-    const validator = new DefinitionsValidator('{}', '{}');
+    const validator = new DefinitionsValidator({}, {}, {});
 
     it('must have required properties', () => {
         const errors = validator.validatePixelsDefinition({ pixel: {} });
@@ -93,7 +93,7 @@ describe('Pixel with params', () => {
             parameters: params,
         };
 
-        const validator = new DefinitionsValidator(commonParams, '{}');
+        const validator = new DefinitionsValidator(commonParams, {}, {});
         const errors = validator.validatePixelsDefinition({ pixel });
         if (strict) {
             expect(errors).to.have.members(expectedErrors);
@@ -221,7 +221,7 @@ describe('Pixel with suffixes', () => {
             description: 'A common suffix',
         },
     };
-    const validator = new DefinitionsValidator('{}', commonSuffixes);
+    const validator = new DefinitionsValidator({}, commonSuffixes, {});
 
     // Most of the logic is shared with params, so just run a smoke-test
     it('valid pixel with both custom and common suffix', () => {
@@ -248,7 +248,7 @@ describe('Pixel with suffixes', () => {
 });
 
 describe('Object-based params', () => {
-    const paramsValidator = new ParamsValidator({}, {});
+    const paramsValidator = new ParamsValidator({}, {}, {});
     it('incorrect type for propertied object', () => {
         const param = {
             key: 'objKey',

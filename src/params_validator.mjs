@@ -12,10 +12,18 @@ export class ParamsValidator {
     #ajv = new Ajv2020({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
     #commonParams;
     #commonSuffixes;
+    #ignoreParams;
 
-    constructor(commonParams, commonSuffixes) {
+    /**
+     *
+     * @param {object} commonParams contains params that follow the schemas/param_schema.json5 type.
+     * @param {object} commonSuffixes contains suffixes that follow the schemas/suffix_schema.json5 type.
+     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
+     */
+    constructor(commonParams, commonSuffixes, ignoreParams) {
         this.#commonParams = commonParams;
         this.#commonSuffixes = commonSuffixes;
+        this.#ignoreParams = Object.values(ignoreParams);
 
         addFormats(this.#ajv);
         this.#ajv.addKeyword('key');
@@ -113,11 +121,12 @@ export class ParamsValidator {
      * @throws if any errors are found
      */
     compileParamsSchema(parameters) {
-        if (!parameters) return this.#ajv.compile({});
+        const combinedParams = [...(parameters || []), ...this.#ignoreParams];
+        if (!combinedParams) return this.#ajv.compile({});
 
         const properties = {};
         const patternProperties = {};
-        parameters
+        combinedParams
             .map((param) => this.getUpdatedItem(param, this.#commonParams))
             .forEach((param) => {
                 if (param.keyPattern) {
@@ -141,5 +150,38 @@ export class ParamsValidator {
         };
 
         return this.#ajv.compile(pixelParams);
+    }
+
+    /** EXPERIMENTS */
+    compileExperimentMetricSchema(metricDef) {
+        return this.#ajv.compile(this.getUpdatedItem(metricDef, {}));
+    }
+
+    compileCommonExperimentParamsSchema() {
+        const expPrams = [
+            {
+                key: 'enrollmentDate',
+                anyOf: [
+                    {
+                        format: 'date',
+                        type: 'string',
+                    },
+                    {
+                        pattern: '^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$',
+                        type: 'string',
+                    },
+                    {
+                        pattern: '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$',
+                        type: 'string',
+                    },
+                ],
+            },
+            {
+                key: 'conversionWindowDays',
+                pattern: '^([0-9]+(-[0-9]+)?)$',
+            },
+        ];
+
+        return this.compileParamsSchema(expPrams);
     }
 }

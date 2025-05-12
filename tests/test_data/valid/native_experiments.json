@@ -1,0 +1,18 @@
+{
+    "defaultSuffixes": ["device_type"],
+    "activeExperiments": {
+        "defaultBrowser": {
+            "cohorts": ["control", "variant_1", "variant_2", "variant_3"],
+            "metrics": {
+                "stageImpression": {
+                    "description": "Stage the user was at when they set the default",
+                    "enum": ["stage1", "stage2", "stage3"]
+                },
+                "defaultSetViaCta": {
+                    "description": "Measures performance of conversion methods we control",
+                    "enum": ["dialog", "menu"]
+                }
+            }
+        }
+    }
+}

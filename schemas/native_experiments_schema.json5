@@ -1,0 +1,52 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "native_experiments.schema.json",
+    "title": "NativeExperiments",
+    "description": "A schema for defining native experiments",
+    "type": "object",
+    "properties": {
+        "defaultSuffixes": {
+            "type": "array",
+            "description": "List of pixel suffix combinations (after cohort) that will be sent by the experiments framework",
+            "items": {
+                "$ref": "suffix.schema.json#/$defs/suffix"
+            }
+        },
+        "activeExperiments": {
+            "type": "object",
+            "description": "List of active experiments",
+            "additionalProperties": {
+                "$ref": "#/$defs/experiment"
+            }
+        }
+    },
+    "$defs": {
+        "metric": {
+            "type": "object",
+            "description": "A metric collected by a specific experiment",
+            "required": ["description"],
+            "additionalProperties": true
+        },
+        "experiment": {
+            "type": "object",
+            "required": ["cohorts", "metrics"],
+            "additionalProperties": false,
+            "properties": {
+                "cohorts": {
+                    "type": "array",
+                    "description": "List of cohorts in this experiment",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "metrics": {
+                    "type": "object",
+                    "description": "List of metrics collected by this experiment",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/metric"
+                    }
+                }
+            }
+        }
+    }
+}

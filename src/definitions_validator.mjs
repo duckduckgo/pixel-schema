@@ -12,6 +12,7 @@ const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')));
 const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')));
 const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')));
+const experimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')));
 
 /**
  * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
@@ -23,6 +24,7 @@ export class DefinitionsValidator {
 
     #commonParams;
     #commonSuffixes;
+    #ignoreParams;
 
     #paramsValidator;
     #ajv = new Ajv2020({ allErrors: true });
@@ -32,11 +34,13 @@ export class DefinitionsValidator {
     /**
      * @param {*} commonParams - object containing common parameters
      * @param {*} commonSuffixes - object containing common suffixes
+     * @param {*} ignoreParams - object containing parameters to ignore
      */
-    constructor(commonParams, commonSuffixes) {
+    constructor(commonParams, commonSuffixes, ignoreParams) {
         this.#commonParams = commonParams;
         this.#commonSuffixes = commonSuffixes;
-        this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes);
+        this.#ignoreParams = ignoreParams;
+        this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes, this.#ignoreParams);
 
         addFormats(this.#ajv);
         this.#ajv.addSchema(paramsSchema);
@@ -55,6 +59,23 @@ export class DefinitionsValidator {
     validateCommonSuffixesDefinition() {
         this.#ajvValidateSuffixes(this.#commonSuffixes);
         return formatAjvErrors(this.#ajvValidateSuffixes.errors);
+    }
+
+    validateIgnoreParamsDefinition() {
+        this.#ajvValidateParams(this.#ignoreParams);
+        return formatAjvErrors(this.#ajvValidateParams.errors);
+    }
+
+    /**
+     * Validates experiments definition
+     *
+     * @param {object} experimentsDef should follow the schema defined in native_experiments_schema.json5
+     * @returns any validation errors
+     */
+    validateExperimentsDefinition(experimentsDef) {
+        const ajvExpSchema = this.#ajv.compile(experimentsSchema);
+        ajvExpSchema(experimentsDef);
+        return formatAjvErrors(ajvExpSchema.errors);
     }
 
     /**

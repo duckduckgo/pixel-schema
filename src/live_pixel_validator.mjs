@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import JSON5 from 'json5';
 import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
-import { ROOT_PREFIX } from './constants.mjs';
+import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -16,6 +15,10 @@ export class LivePixelsValidator {
     #defsVersionKey;
     #forceLowerCase;
 
+    #commonExperimentParamsSchema;
+    #commonExperimentSuffixesSchema;
+    #compiledExperiments;
+
     undocumentedPixels = new Set();
     pixelErrors = {};
 
@@ -23,16 +26,31 @@ export class LivePixelsValidator {
      * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
      * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
      * @param {ProductDefinition} productDef
-     * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
+     * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
      * @param {ParamsValidator} paramsValidator
      */
-    constructor(tokenizedPixels, productDef, ignoreParams, paramsValidator) {
+    constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#forceLowerCase = productDef.forceLowerCase;
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
 
-        this.#compileDefs(tokenizedPixels, ignoreParams, paramsValidator);
+        this.#compileDefs(tokenizedPixels, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
+
+        // Experiments params and suffixes
+        this.#commonExperimentParamsSchema = paramsValidator.compileCommonExperimentParamsSchema();
+        this.#commonExperimentSuffixesSchema = paramsValidator.compileSuffixesSchema(experimentsDef.defaultSuffixes || []);
+
+        // Experiment metrics
+        this.#compiledExperiments = experimentsDef.activeExperiments || {};
+        const defaultsSchema = paramsValidator.compileExperimentMetricSchema({ enum: [1, 4, 6, 11, 21, 30] });
+        Object.entries(this.#compiledExperiments).forEach(([_, experimentDef]) => {
+            Object.entries(experimentDef.metrics).forEach(([metric, metricDef]) => {
+                experimentDef.metrics[metric] = paramsValidator.compileExperimentMetricSchema(metricDef);
+            });
+            experimentDef.metrics.app_use = defaultsSchema;
+            experimentDef.metrics.search = defaultsSchema;
+        });
     }
 
     /**
@@ -75,18 +93,16 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
-    #compileDefs(tokenizedPixels, ignoreParams, paramsValidator) {
+    #compileDefs(tokenizedPixels, paramsValidator) {
         Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
             if (prefix !== ROOT_PREFIX) {
-                this.#compileDefs(pixelDef, ignoreParams, paramsValidator);
+                this.#compileDefs(pixelDef, paramsValidator);
                 return;
             }
 
-            const combinedParams = [...(pixelDef.parameters || []), ...Object.values(ignoreParams)];
-
             // Pixel name is always lower case:
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
-            const normalizedParams = JSON.parse(this.#getNormalizedVal(JSON.stringify(combinedParams)));
+            const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
 
             // Pre-compile each schema
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
@@ -98,21 +114,97 @@ export class LivePixelsValidator {
         });
     }
 
+    validateExperimentPixel(pixel, paramsUrlFormat) {
+        const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
+
+        const pixelPrefixLen = 3;
+        if (pixelParts.length < pixelPrefixLen) {
+            // Invalid experiment pixel
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+
+        const pixelType = pixelParts[0];
+        if (pixelType !== 'enroll' && pixelType !== 'metrics') {
+            // Invalid experiment pixel type
+            this.undocumentedPixels.add(pixel);
+            return;
+        }
+
+        const experimentName = pixelParts[1];
+        const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
+        if (!this.#compiledExperiments[experimentName]) {
+            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
+            return;
+        }
+
+        // Check cohort
+        const cohortName = pixelParts[2];
+        if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
+            this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
+            return;
+        }
+
+        // Check suffixes if they exist
+        if (pixelParts.length > pixelPrefixLen) {
+            const pixelNameStruct = {};
+            let structIdx = 0;
+            for (let i = pixelPrefixLen; i < pixelParts.length; i++) {
+                pixelNameStruct[structIdx] = pixelParts[i];
+                structIdx++;
+            }
+            this.#commonExperimentSuffixesSchema(pixelNameStruct);
+            this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
+        }
+
+        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+        const metric = rawParamsStruct.metric;
+        const metricValue = rawParamsStruct.value;
+        if (pixelType === 'metrics') {
+            if (!metric || !metricValue) {
+                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
+                return;
+            }
+
+            const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
+            if (!metricSchema) {
+                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
+                return;
+            }
+
+            metricSchema(metricValue);
+            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+
+            // Remove metric and value from params for further validation
+            delete rawParamsStruct.metric;
+            delete rawParamsStruct.value;
+        }
+
+        // Validate enrollmentDate and conversionWindow
+        this.#commonExperimentParamsSchema(rawParamsStruct);
+        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors));
+    }
+
     /**
      * Validates pixel against saved schema and saves any errors
-     * @param {String} pixel full pixel name in "." notation
-     * @param {String} params query params as a String representation of an array
+     * @param {String} pixel full pixel name in "_" notation
+     * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
     validatePixel(pixel, params) {
+        if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
+            this.validateExperimentPixel(pixel, params);
+            return;
+        }
+
         // Match longest prefix:
-        const pixelParts = pixel.split('.');
+        const pixelParts = pixel.split(PIXEL_DELIMITER);
         let pixelMatch = this.#compiledPixels;
         let matchedParts = '';
         for (let i = 0; i < pixelParts.length; i++) {
             const part = pixelParts[i];
             if (pixelMatch[part]) {
                 pixelMatch = pixelMatch[part];
-                matchedParts += part + '.';
+                matchedParts += part + PIXEL_DELIMITER;
             } else {
                 break;
             }
@@ -127,9 +219,8 @@ export class LivePixelsValidator {
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsString, pixelSchemas) {
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
         // 1) Skip outdated pixels based on version
-        const paramsUrlFormat = JSON5.parse(paramsString).join('&');
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
@@ -151,9 +242,9 @@ export class LivePixelsValidator {
         // 3) Validate suffixes if they exist
         if (pixel.length === prefix.length) return;
 
-        const pixelSuffix = pixel.split(`${prefix}.`)[1];
+        const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
         const pixelNameStruct = {};
-        pixelSuffix.split('.').forEach((suffix, idx) => {
+        pixelSuffix.split(PIXEL_DELIMITER).forEach((suffix, idx) => {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);

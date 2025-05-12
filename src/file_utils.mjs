@@ -6,8 +6,10 @@ import fs from 'fs';
 import path from 'path';
 import JSON5 from 'json5';
 
+import { fileURLToPath } from 'url';
+
 const RESULTS_DIR = 'pixel_processing_results';
-export const GLOBAL_PIXEL_DIR = 'global_pixel_definitions';
+export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
 /**
  * Attempt to read and parse a file using JSON5. Tries .json
@@ -74,21 +76,21 @@ export function readIgnoreParams(mainPixelDir) {
 }
 
 /**
- * Get product definition path based on mainPixelDir.
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {string} product definition file path
- */
-export function getProductDefPath(mainPixelDir) {
-    return path.join(mainPixelDir, 'product.json');
-}
-
-/**
  * Read product definition
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {object} product definition
  */
 export function readProductDef(mainPixelDir) {
-    return parseFile(getProductDefPath(mainPixelDir));
+    return readSchemaFile(mainPixelDir, 'product.json');
+}
+
+/**
+ * Read experiments definitions
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {object} experiments definitions
+ */
+export function readExperimentsDef(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'native_experiments.json');
 }
 
 /**
