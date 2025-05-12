@@ -132,7 +132,7 @@ export class LivePixelsValidator {
         }
 
         const experimentName = pixelParts[1];
-        const pixelPrefix = `experiment${PIXEL_DELIMITER}${pixelType}${PIXEL_DELIMITER}${experimentName}`;
+        const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
             this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
             return;
