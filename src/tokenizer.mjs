@@ -22,13 +22,14 @@ export function tokenizePixelDefs(pixelDefs, existingTokenizedDefs) {
 
         const lastPart = prefixParts[prefixParts.length - 1];
         if (!pixelParent[lastPart]) {
-            pixelParent[lastPart] = { [ROOT_PREFIX]: {} };
+            pixelParent[lastPart] = {};
         } else if (pixelParent[lastPart][ROOT_PREFIX]) {
             // Should not happen (we assume valid defs at this point):
             throw new Error(`Duplicate pixel definition found for ${prefix}`);
         }
 
         // We only care about saving params and suffixes
+        pixelParent[lastPart][ROOT_PREFIX] = {};
         pixelParent[lastPart][ROOT_PREFIX].parameters = pixelDefs[prefix].parameters;
         pixelParent[lastPart][ROOT_PREFIX].suffixes = pixelDefs[prefix].suffixes;
     }

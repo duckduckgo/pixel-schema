@@ -98,5 +98,17 @@
                 }
             }
         }
+    },
+    "test": {
+        "tokenizer": {
+            "3": {
+                "level": {
+                    "deep": {
+                        "__root_prefix__": {}
+                    }
+                }
+            },
+            "__root_prefix__": {}
+        }
     }
 }
