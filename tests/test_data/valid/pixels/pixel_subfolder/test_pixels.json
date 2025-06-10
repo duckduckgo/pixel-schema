@@ -3,5 +3,15 @@
         "description": "Test pixel without params, sharing prefix with pixel from another file.",
         "owners": ["tester"],
         "triggers": ["other"]
+    },
+    "test_tokenizer_3_level_deep": {
+        "description": "Test processing pixels that's 3 levels deeper than the next one.",
+        "owners": ["tester"],
+        "triggers": ["other"]
+    },
+    "test_tokenizer": {
+        "description": "Test processing pixels that's 3 levels above the previous one.",
+        "owners": ["tester"],
+        "triggers": ["other"]
     }
 }
