@@ -48,6 +48,14 @@ function main(mainDir, csvFile) {
                 fileUtils.getUndocumentedPixelsPath(mainDir),
                 JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
             );
+
+            /*
+                This script will fail if there are too many errors to write out the JSON.
+                For now we are limiting the validation to the last 7 days in 
+                clickhouse_fetcher.mjs and that keeps the JSON at an acceptable size. 
+                Long term we can revisit this for a more robust solution.
+
+            */
             fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
             console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
         });

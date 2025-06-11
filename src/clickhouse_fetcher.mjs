@@ -7,6 +7,7 @@ import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
+const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for
 
 function createTempTable() {
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
@@ -41,7 +42,7 @@ function populateTempTable(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     const currentDate = new Date();
-    const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
+    const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
     /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
