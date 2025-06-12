@@ -7,7 +7,7 @@ import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
-const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for
+const DAYS_TO_FETCH = 28; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
 
 function createTempTable() {
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
