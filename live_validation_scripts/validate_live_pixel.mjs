@@ -48,7 +48,27 @@ function main(mainDir, csvFile) {
                 fileUtils.getUndocumentedPixelsPath(mainDir),
                 JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
             );
-            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+
+            /*
+                This script will fail if there are too many errors to write out the JSON.
+                For now we could limit the validation to the last 7 days in 
+                clickhouse_fetcher.mjs and that keeps the JSON at an acceptable size. 
+                Longer term we can revisit this for a more robust solution.
+
+            */
+            try {
+                fs.writeFileSync(
+                    fileUtils.getPixelErrorsPath(mainDir),
+                    JSON.stringify(liveValidator.pixelErrors, setReplacer, 4)
+                );
+            } catch (err) {
+                if (err instanceof RangeError) {
+                    console.error('Error: Validation results are too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+                    process.exit(1);
+                } else {
+                    throw err;
+                }
+            }
             console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
         });
 }
