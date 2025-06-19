@@ -67,8 +67,11 @@ function main(mainDir, csvFile) {
             }
         })
         .on('end', async () => {
+            
+            // Two original output lines; don't remove for now or tests will fail
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
-            //  console.log(`Unique pixels: ${liveValidator.uniquePixels.size.toLocaleString('en-US')}`);
+            console.log(`Undocumented pixels: ${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}`);
+
             console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${processedPixels.toLocaleString('en-US')}`);
 
             let percent = (undocumentedPixels.size / uniquePixels.size) * 100;
