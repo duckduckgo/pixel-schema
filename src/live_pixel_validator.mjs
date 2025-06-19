@@ -9,14 +9,13 @@ import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
  */
 
-//This might be better?
+// This might be better?
 export const PixelValidationResult = Object.freeze({
     UNDOCUMENTED: -2,
     DEFINITION_OUTDATED: -1,
     VALIDATION_FAILED: 0,
     VALIDATION_PASSED: 1,
 });
-
 
 export class LivePixelsValidator {
     #compiledPixels;
@@ -28,25 +27,12 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    uniquePixels = new Set();
     undocumentedPixels = new Set();
-    documentedPixels = new Set();
-    documentedPixelsWithOutdatedDefinitions = new Set()
-    documentedPixelsWithErrors = new Set()
-    documentedPixelsWithSuccessfulValidations = new Set();
-
-    accesses_total = 0;
-    accesses_valid = 0;
-    accesses_error = 0;
-    accesses_outdatedDefs = 0;
-    accesses_undocumented = 0;
-    accesses_documented = 0;
 
     static PIXEL_UNDOCUMENTED = -2;
     static PIXEL_DEFINITION_OUTDATED = -1;
     static PIXEL_VALIDATION_FAILED = 0;
     static PIXEL_VALIDATION_PASSED = 1;
-
 
     pixelErrors = {};
 
@@ -149,29 +135,21 @@ export class LivePixelsValidator {
         if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
-            this.accesses_undocumented++;
             return LivePixelsValidator.PIXEL_UNDOCUMENTED;
-        } else {
-            this.documentedPixels.add(pixel);
-            this.accesses_documented++;
         }
 
         const pixelType = pixelParts[0];
         if (pixelType !== 'enroll' && pixelType !== 'metrics') {
             // Invalid experiment pixel type
             this.undocumentedPixels.add(pixel);
-            this.accesses_undocumented++;
             return LivePixelsValidator.PIXEL_UNDOCUMENTED;
-        } else {
-            this.documentedPixels.add(pixel);
-            this.accesses_documented++;
         }
 
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
             if (this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`])) {
-                return PIXEL_VALIDATION_FAILED;
+                return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
             }
         }
 
@@ -231,7 +209,6 @@ export class LivePixelsValidator {
         }
 
         return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
-
     }
 
     /**
@@ -241,18 +218,11 @@ export class LivePixelsValidator {
      */
 
     validatePixel(pixel, params) {
-
         this.uniquePixels.add(pixel);
         this.accesses_total++;
 
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
-            const ret = this.validateExperimentPixel(pixel, params);
-            if (ret == LivePixelsValidator.PIXEL_VALIDATION_PASSED) {
-                this.documentedPixelsWithSuccessfulValidations.add(pixel);
-            } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
-                this.documentedPixelsWithErrors.add(pixel);
-            }
-            return ret;
+            return this.validateExperimentPixel(pixel, params);
         }
 
         // Match longest prefix:
@@ -275,16 +245,9 @@ export class LivePixelsValidator {
         }
 
         const prefix = matchedParts.slice(0, -1);
-        const ret = this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
-        if (ret == LivePixelsValidator.PIXEL_VALIDATION_PASSED) {
-            this.documentedPixelsWithSuccessfulValidations.add(pixel);
-        } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
-            this.documentedPixelsWithErrors.add(pixel);
-        }
-        return ret;
+        return this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
-    
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
         // 1) Skip outdated pixels based on version
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
@@ -298,7 +261,6 @@ export class LivePixelsValidator {
         if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
             if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
                 // Pixel is outdated, skip validation
-                this.documentedPixelsWithOutdatedDefinitions.add(pixel);
                 return LivePixelsValidator.PIXEL_DEFINITION_OUTDATED;
             }
         }
@@ -332,11 +294,8 @@ export class LivePixelsValidator {
     // Reture true if errors were found
     // Return false if errors were not found
     #saveErrors(prefix, example, errors) {
-
         // No errors found
         if (!errors.length) return false;
-
-        this.documentedPixelsWithErrors.add(example);
 
         if (!this.pixelErrors[prefix]) {
             this.pixelErrors[prefix] = {};
@@ -349,7 +308,7 @@ export class LivePixelsValidator {
             this.pixelErrors[prefix][error].add(example);
         }
 
-        //Errors were found
+        // Errors were found
         return true;
     }
 }

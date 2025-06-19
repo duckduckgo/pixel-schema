@@ -28,21 +28,18 @@ function main(mainDir, csvFile) {
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
-    
+
     const uniquePixels = new Set();
-    const undocumentedPixels= new Set();
+    const undocumentedPixels = new Set();
     const documentedPixelsWithOutdatedDefinitions = new Set();
     const documentedPixelsWithErrors = new Set();
     const documentedPixelsWithSuccessfulValidations = new Set();
 
     let processedPixels = 0;
-    let accesses_undocumented = 0;
-    let accesses_documented = 0;
-    let accesses_undocumented_with_errors = 0;
-    let accesses_documented_with_errors = 0;
-    let accesses_documented_with_successful_validations = 0;
-    let accesses_documented_with_outdated_definitions = 0;
-  
+    let accessesUndocumented = 0;
+    let accessesDocumentedWithErrors = 0;
+    let accessesDocumentedWithSuccessfulValidations = 0;
+    let accessesDocumentedWithOutdatedDefinitions = 0;
 
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -55,17 +52,17 @@ function main(mainDir, csvFile) {
             const paramsUrlFormat = JSON5.parse(row.params).join('&');
             const ret = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             uniquePixels.add(pixelRequestFormat);
-            if (ret == LivePixelsValidator.PIXEL_UNDOCUMENTED) {
-                accesses_undocumented++;
+            if (ret === LivePixelsValidator.PIXEL_UNDOCUMENTED) {
+                accessesUndocumented++;
                 undocumentedPixels.add(pixelRequestFormat);
-            } else if (ret == LivePixelsValidator.PIXEL_DEFINITION_OUTDATED) {
-                accesses_documented_with_outdated_definitions++;
+            } else if (ret === LivePixelsValidator.PIXEL_DEFINITION_OUTDATED) {
+                accessesDocumentedWithOutdatedDefinitions++;
                 documentedPixelsWithOutdatedDefinitions.add(pixelRequestFormat);
-            } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
-                accesses_documented_with_errors++;
+            } else if (ret === LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
+                accessesDocumentedWithErrors++;
                 documentedPixelsWithErrors.add(pixelRequestFormat);
-            } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_PASSED) {
-                accesses_documented_with_successful_validations++;
+            } else if (ret === LivePixelsValidator.PIXEL_VALIDATION_PASSED) {
+                accessesDocumentedWithSuccessfulValidations++;
                 documentedPixelsWithSuccessfulValidations.add(pixelRequestFormat);
             }
         })
@@ -73,26 +70,33 @@ function main(mainDir, csvFile) {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
             //  console.log(`Unique pixels: ${liveValidator.uniquePixels.size.toLocaleString('en-US')}`);
             console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${processedPixels.toLocaleString('en-US')}`);
-            
-            let percent = undocumentedPixels.size / uniquePixels.size * 100;
-            let percentAccessed = accesses_undocumented / processedPixels * 100;
-            console.log(`Undocumented pixels (unique)\t${undocumentedPixels.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_undocumented.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
 
-            percent = documentedPixelsWithOutdatedDefinitions.size / uniquePixels.size * 100;
-            percentAccessed = accesses_documented_with_outdated_definitions / processedPixels * 100;
-            console.log(`Documented pixels with outdated definitions\t${ documentedPixelsWithOutdatedDefinitions.size.toLocaleString('en-US') } percent(${ percent.toFixed(2) } %) accesses ${ accesses_documented_with_outdated_definitions.toLocaleString('en-US') } percentAccessed (${ percentAccessed.toFixed(2) }%)`);
+            let percent = (undocumentedPixels.size / uniquePixels.size) * 100;
+            let percentAccessed = (accessesUndocumented / processedPixels) * 100;
+            console.log(
+                `Undocumented pixels (unique)\t${undocumentedPixels.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accessesUndocumented.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+            );
 
-            percent = documentedPixelsWithErrors.size / uniquePixels.size * 100;
-            percentAccessed = accesses_documented_with_errors / processedPixels * 100;
-            console.log(`Documented pixels with errors\t${documentedPixelsWithErrors.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_documented_with_errors.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
+            percent = (documentedPixelsWithOutdatedDefinitions.size / uniquePixels.size) * 100;
+            percentAccessed = (accessesDocumentedWithOutdatedDefinitions / processedPixels) * 100;
+            console.log(
+                `Documented pixels with outdated definitions\t${documentedPixelsWithOutdatedDefinitions.size.toLocaleString('en-US')} percent(${percent.toFixed(2)} %) accesses ${accessesDocumentedWithOutdatedDefinitions.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+            );
 
-            percent = documentedPixelsWithSuccessfulValidations.size / uniquePixels.size * 100;
-            percentAccessed = accesses_documented_with_successful_validations / processedPixels * 100;
-            console.log(`Documented pixels with successful validations\t${documentedPixelsWithSuccessfulValidations.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_documented_with_successful_validations.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
+            percent = (documentedPixelsWithErrors.size / uniquePixels.size) * 100;
+            percentAccessed = (accessesDocumentedWithErrors / processedPixels) * 100;
+            console.log(
+                `Documented pixels with errors\t${documentedPixelsWithErrors.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accessesDocumentedWithErrors.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+            );
 
-            //Other stats?
-            //Documented pixels not seen?
+            percent = (documentedPixelsWithSuccessfulValidations.size / uniquePixels.size) * 100;
+            percentAccessed = (accessesDocumentedWithSuccessfulValidations / processedPixels) * 100;
+            console.log(
+                `Documented pixels with successful validations\t${documentedPixelsWithSuccessfulValidations.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accessesDocumentedWithSuccessfulValidations.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+            );
 
+            // Other stats?
+            // Documented pixels not seen?
 
             try {
                 fs.writeFileSync(
@@ -101,7 +105,9 @@ function main(mainDir, csvFile) {
                 );
             } catch (err) {
                 if (err instanceof RangeError) {
-                    console.error('Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+                    console.error(
+                        'Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                    );
                     process.exit(1);
                 } else {
                     throw err;
@@ -116,13 +122,12 @@ function main(mainDir, csvFile) {
 
             */
             try {
-                fs.writeFileSync(
-                    fileUtils.getPixelErrorsPath(mainDir),
-                    JSON.stringify(liveValidator.pixelErrors, setReplacer, 4)
-                );
+                fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
             } catch (err) {
                 if (err instanceof RangeError) {
-                    console.error('Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+                    console.error(
+                        'Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                    );
                     process.exit(1);
                 } else {
                     throw err;
@@ -135,7 +140,7 @@ function main(mainDir, csvFile) {
 function setReplacer(_, value) {
     if (value instanceof Set) {
         return Array.from(value);
-        //return Array.from(value).slice(0,10);
+        // return Array.from(value).slice(0,10);
     }
     return value;
 }
