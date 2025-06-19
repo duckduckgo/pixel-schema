@@ -68,7 +68,8 @@ function main(mainDir, csvFile) {
         })
         .on('end', async () => {
             
-            // Two original output lines; don't remove for now or tests will fail
+            // Two original output lines; is that part of tests?
+            // Don't remove for now until tests all passing
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
             console.log(`Undocumented pixels: ${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}`);
 
