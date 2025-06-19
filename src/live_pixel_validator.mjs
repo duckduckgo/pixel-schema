@@ -3,11 +3,20 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
+import { error } from 'console';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
  */
+
+// This might be better?
+export const PixelValidationResult = Object.freeze({
+    UNDOCUMENTED: -2,
+    DEFINITION_OUTDATED: -1,
+    VALIDATION_FAILED: 0,
+    VALIDATION_PASSED: 1,
+});
 
 export class LivePixelsValidator {
     #compiledPixels;
@@ -20,6 +29,12 @@ export class LivePixelsValidator {
     #compiledExperiments;
 
     undocumentedPixels = new Set();
+
+    static PIXEL_UNDOCUMENTED = -2;
+    static PIXEL_DEFINITION_OUTDATED = -1;
+    static PIXEL_VALIDATION_FAILED = 0;
+    static PIXEL_VALIDATION_PASSED = 1;
+
     pixelErrors = {};
 
     /**
@@ -115,34 +130,34 @@ export class LivePixelsValidator {
     }
 
     validateExperimentPixel(pixel, paramsUrlFormat) {
+        let errorFound = false;
+
         const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
         const pixelPrefixLen = 3;
         if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
             this.undocumentedPixels.add(pixel);
-            return;
+            return LivePixelsValidator.PIXEL_UNDOCUMENTED;
         }
 
         const pixelType = pixelParts[0];
         if (pixelType !== 'enroll' && pixelType !== 'metrics') {
             // Invalid experiment pixel type
             this.undocumentedPixels.add(pixel);
-            return;
+            return LivePixelsValidator.PIXEL_UNDOCUMENTED;
         }
 
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
-            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
-            return;
+            return this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
         }
 
         // Check cohort
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-            this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
-            return;
+            return this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
         }
 
         // Check suffixes if they exist
@@ -154,7 +169,9 @@ export class LivePixelsValidator {
                 structIdx++;
             }
             this.#commonExperimentSuffixesSchema(pixelNameStruct);
-            this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
+            if (this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct))) {
+                errorFound = true;
+            }            
         }
 
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
@@ -162,18 +179,31 @@ export class LivePixelsValidator {
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
             if (!metric || !metricValue) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
-                return;
+                if (this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`])) {
+                    return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+                } else if (errorFound) {
+                    return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+                } else {
+                    return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
+                }
             }
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
-                return;
+                if (this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`])) {
+                    return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+                } else if (errorFound) {
+                    return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+                } else {
+                    return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
+                }
             }
 
             metricSchema(metricValue);
-            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+            if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors))) {
+                errorFound = true;
+            }
+            
 
             // Remove metric and value from params for further validation
             delete rawParamsStruct.metric;
@@ -182,7 +212,15 @@ export class LivePixelsValidator {
 
         // Validate enrollmentDate and conversionWindow
         this.#commonExperimentParamsSchema(rawParamsStruct);
-        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors));
+        if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors))) {
+            errorFound = true;
+        }
+
+        if (errorFound) {
+            return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+        } 
+
+        return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
     }
 
     /**
@@ -190,10 +228,11 @@ export class LivePixelsValidator {
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
+
     validatePixel(pixel, params) {
+
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
-            this.validateExperimentPixel(pixel, params);
-            return;
+            return this.validateExperimentPixel(pixel, params);
         }
 
         // Match longest prefix:
@@ -212,14 +251,18 @@ export class LivePixelsValidator {
 
         if (!pixelMatch[ROOT_PREFIX]) {
             this.undocumentedPixels.add(pixel);
-            return;
+            return LivePixelsValidator.PIXEL_UNDOCUMENTED;
         }
 
         const prefix = matchedParts.slice(0, -1);
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        return this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
+
+        // Don't exit on first error found, continue validating
+        let errorFound = false;
+
         // 1) Skip outdated pixels based on version
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
@@ -231,16 +274,25 @@ export class LivePixelsValidator {
 
         if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
             if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
-                return [];
+                // Pixel is outdated, skip validation
+                return LivePixelsValidator.PIXEL_DEFINITION_OUTDATED;
             }
         }
 
         // 2) Validate regular params
+        const paramErrors = formatAjvErrors(pixelSchemas.paramsSchema.errors);
         pixelSchemas.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
-
+        if (this.#saveErrors(prefix, paramsUrlFormat, paramErrors)) {
+            errorFound = true;
+        }
         // 3) Validate suffixes if they exist
-        if (pixel.length === prefix.length) return;
+        if (pixel.length === prefix.length) {
+            // No suffixes, nothing more to validate
+            if (errorFound) {
+                return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+            }
+            return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
+        }
 
         const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
         const pixelNameStruct = {};
@@ -248,11 +300,22 @@ export class LivePixelsValidator {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);
-        this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
+        const suffixErrors = formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct);
+        if (this.#saveErrors(prefix, pixel, suffixErrors)) {
+            errorFound = true;
+        }
+        
+        if (errorFound) {
+            return LivePixelsValidator.PIXEL_VALIDATION_FAILED;
+        }
+        return LivePixelsValidator.PIXEL_VALIDATION_PASSED;
     }
 
+    // Reture true if errors were found
+    // Return false if errors were not found
     #saveErrors(prefix, example, errors) {
-        if (!errors.length) return;
+        // No errors found
+        if (!errors.length) return false;
 
         if (!this.pixelErrors[prefix]) {
             this.pixelErrors[prefix] = {};
@@ -264,5 +327,8 @@ export class LivePixelsValidator {
             }
             this.pixelErrors[prefix][error].add(example);
         }
+
+        // Errors were found
+        return true;
     }
 }
