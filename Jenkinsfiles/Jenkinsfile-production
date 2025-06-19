@@ -1,0 +1,37 @@
+pipeline {
+    agent { label 'pixel-validation' }
+    triggers { cron('H H * * *') }
+    stages {
+        stage ('run pixel validation') {
+            steps {
+                    sh '''#!/bin/bash
+                        DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                        fnm install && fnm exec npm ci && fnm exec npm run validate-live-pixels ../windows-browser/PixelDefinitions > /tmp/${DATE}.txt
+                        /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                            --attachment /tmp/${DATE}.txt \
+                            --assignee jmatthews@duckduckgo.com \
+                            --description "pixel validation report ${DATE}" \
+                            --project_id 1210585418929080 \
+                            --no_duplicates \
+                            "pixel validation report ${DATE}"
+                        rm /tmp/${DATE}.txt
+                    '''
+            }
+        }
+    }
+    post {
+        failure {
+            sh '''#!/bin/bash
+                source /etc/profile.d/perlbrew.sh
+                export PERL5LIB=/usr/local/ddg/lib:$PERL5LIB  # /usr/local/ddg repo
+                /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                    --assignee jmatthews@duckduckgo.com \
+                    --description "Jenkins pixel validation failed" \
+                    --project_id 1210585418929080 \
+                    --section_id 1200757590157463 \
+                    --no_duplicates \
+                    "pixel validation failed"
+            '''
+        }
+    }
+}
