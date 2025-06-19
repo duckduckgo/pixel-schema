@@ -28,7 +28,22 @@ function main(mainDir, csvFile) {
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
+    
+    const uniquePixels = new Set();
+    const undocumentedPixels= new Set();
+    const documentedPixelsWithOutdatedDefinitions = new Set();
+    const documentedPixelsWithErrors = new Set();
+    const documentedPixelsWithSuccessfulValidations = new Set();
+
     let processedPixels = 0;
+    let accesses_undocumented = 0;
+    let accesses_documented = 0;
+    let accesses_undocumented_with_errors = 0;
+    let accesses_documented_with_errors = 0;
+    let accesses_documented_with_successful_validations = 0;
+    let accesses_documented_with_outdated_definitions = 0;
+  
+
     fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {
@@ -38,17 +53,81 @@ function main(mainDir, csvFile) {
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
             const paramsUrlFormat = JSON5.parse(row.params).join('&');
-            liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const ret = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            uniquePixels.add(pixelRequestFormat);
+            if (ret == LivePixelsValidator.PIXEL_UNDOCUMENTED) {
+                accesses_undocumented++;
+                undocumentedPixels.add(pixelRequestFormat);
+            } else if (ret == LivePixelsValidator.PIXEL_DEFINITION_OUTDATED) {
+                accesses_documented_with_outdated_definitions++;
+                documentedPixelsWithOutdatedDefinitions.add(pixelRequestFormat);
+            } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
+                accesses_documented_with_errors++;
+                documentedPixelsWithErrors.add(pixelRequestFormat);
+            } else if (ret == LivePixelsValidator.PIXEL_VALIDATION_PASSED) {
+                accesses_documented_with_successful_validations++;
+                documentedPixelsWithSuccessfulValidations.add(pixelRequestFormat);
+            }
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
-            console.log(`Undocumented pixels: ${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}`);
+            //  console.log(`Unique pixels: ${liveValidator.uniquePixels.size.toLocaleString('en-US')}`);
+            console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${processedPixels.toLocaleString('en-US')}`);
+            
+            let percent = undocumentedPixels.size / uniquePixels.size * 100;
+            let percentAccessed = accesses_undocumented / processedPixels * 100;
+            console.log(`Undocumented pixels (unique)\t${undocumentedPixels.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_undocumented.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
 
-            fs.writeFileSync(
-                fileUtils.getUndocumentedPixelsPath(mainDir),
-                JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
-            );
-            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+            percent = documentedPixelsWithOutdatedDefinitions.size / uniquePixels.size * 100;
+            percentAccessed = accesses_documented_with_outdated_definitions / processedPixels * 100;
+            console.log(`Documented pixels with outdated definitions\t${ documentedPixelsWithOutdatedDefinitions.size.toLocaleString('en-US') } percent(${ percent.toFixed(2) } %) accesses ${ accesses_documented_with_outdated_definitions.toLocaleString('en-US') } percentAccessed (${ percentAccessed.toFixed(2) }%)`);
+
+            percent = documentedPixelsWithErrors.size / uniquePixels.size * 100;
+            percentAccessed = accesses_documented_with_errors / processedPixels * 100;
+            console.log(`Documented pixels with errors\t${documentedPixelsWithErrors.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_documented_with_errors.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
+
+            percent = documentedPixelsWithSuccessfulValidations.size / uniquePixels.size * 100;
+            percentAccessed = accesses_documented_with_successful_validations / processedPixels * 100;
+            console.log(`Documented pixels with successful validations\t${documentedPixelsWithSuccessfulValidations.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accesses_documented_with_successful_validations.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`);
+
+            //Other stats?
+            //Documented pixels not seen?
+
+
+            try {
+                fs.writeFileSync(
+                    fileUtils.getUndocumentedPixelsPath(mainDir),
+                    JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
+                );
+            } catch (err) {
+                if (err instanceof RangeError) {
+                    console.error('Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+                    process.exit(1);
+                } else {
+                    throw err;
+                }
+            }
+
+            /*
+                This script will fail if there are too many errors to write out the JSON.
+                For now we could limit the validation to the last 7 days in 
+                clickhouse_fetcher.mjs and that keeps the JSON at an acceptable size. 
+                Longer term we can revisit this for a more robust solution.
+
+            */
+            try {
+                fs.writeFileSync(
+                    fileUtils.getPixelErrorsPath(mainDir),
+                    JSON.stringify(liveValidator.pixelErrors, setReplacer, 4)
+                );
+            } catch (err) {
+                if (err instanceof RangeError) {
+                    console.error('Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+                    process.exit(1);
+                } else {
+                    throw err;
+                }
+            }
             console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
         });
 }
@@ -56,6 +135,7 @@ function main(mainDir, csvFile) {
 function setReplacer(_, value) {
     if (value instanceof Set) {
         return Array.from(value);
+        //return Array.from(value).slice(0,10);
     }
     return value;
 }
