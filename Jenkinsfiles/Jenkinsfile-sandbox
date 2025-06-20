@@ -2,20 +2,43 @@ pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
     stages {
-        stage ('run pixel validation') {
+        
+        stage('Clone needed repos') {
             steps {
-                    sh '''#!/bin/bash
-                        DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
-                        fnm install && fnm exec npm ci && fnm exec npm run validate-live-pixels ../windows-browser/PixelDefinitions > /tmp/${DATE}.txt
-                        ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                sh '''#!/bin/bash
+                ls
+                git clone https://github.com/duckduckgo/duckduckgo-privacy-extension.git
+                git clone https://github.com/duckduckgo/pixel-schema.git
+                ls
+                
+            '''
+            }
+        }
+        stage('Validate pixels for scripts duckduckgo-privacy-extensions'){
+             steps {
+                sh '''#!/bin/bash
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    echo "Preprocess defs"
+                    fnm exec npm run preprocess-defs ../duckduckgo-privacy-extension/pixel-definitions/.
+                    echo "Fetch Clickhouse"
+                    fnm exec npm run fetch-clickhouse-data ../duckduckgo-privacy-extension/pixel-definitions/
+                    echo "Validate pixels"
+                    fnm exec npm run validate-live-pixels ../duckduckgo-privacy-extension/pixel-definitions/ >  /tmp/${DATE}.txt
+                    
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
                             --description "pixel validation report ${DATE}" \
-                            --project_id 1210585418929080 \
+                            --project_id 1210584574754345 \
                             --no_duplicates \
                             "pixel validation report ${DATE}"
-                        rm /tmp/${DATE}.txt
-                    '''
+                    more /tmp/${DATE}.txt
+                    rm /tmp/${DATE}.txt
+                '''
             }
         }
     }
@@ -26,7 +49,7 @@ pipeline {
                 ddg-perl/usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                     --assignee jmatthews@duckduckgo.com \
                     --description "Jenkins pixel validation failed" \
-                    --project_id 1210585418929080 \
+                    --project_id  1210584574754345 \
                     --no_duplicates \
                     "pixel validation failed"
             '''
