@@ -31,7 +31,7 @@ function main(mainDir, csvFile) {
 
     const uniquePixels = new Set();
     const undocumentedPixels = new Set();
-    const documentedPixelsWithOutdatedDefinitions = new Set();
+    const documentedPixelsWithAppVersionOutdated = new Set();
     const documentedPixelsWithErrors = new Set();
     const documentedPixelsWithSuccessfulValidations = new Set();
 
@@ -39,7 +39,7 @@ function main(mainDir, csvFile) {
     let accessesUndocumented = 0;
     let accessesDocumentedWithErrors = 0;
     let accessesDocumentedWithSuccessfulValidations = 0;
-    let accessesDocumentedWithOutdatedDefinitions = 0;
+    let accessesDocumentedWithAppVersionOutdated = 0;
 
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -55,9 +55,9 @@ function main(mainDir, csvFile) {
             if (ret === LivePixelsValidator.PIXEL_UNDOCUMENTED) {
                 accessesUndocumented++;
                 undocumentedPixels.add(pixelRequestFormat);
-            } else if (ret === LivePixelsValidator.PIXEL_DEFINITION_OUTDATED) {
-                accessesDocumentedWithOutdatedDefinitions++;
-                documentedPixelsWithOutdatedDefinitions.add(pixelRequestFormat);
+            } else if (ret === LivePixelsValidator.PIXEL_APP_VERSION_OUTDATED) {
+                accessesDocumentedWithAppVersionOutdated++;
+                documentedPixelsWithAppVersionOutdated.add(pixelRequestFormat);
             } else if (ret === LivePixelsValidator.PIXEL_VALIDATION_FAILED) {
                 accessesDocumentedWithErrors++;
                 documentedPixelsWithErrors.add(pixelRequestFormat);
@@ -81,10 +81,10 @@ function main(mainDir, csvFile) {
                 `Undocumented pixels (unique)\t${undocumentedPixels.size.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${accessesUndocumented.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
             );
 
-            percent = (documentedPixelsWithOutdatedDefinitions.size / uniquePixels.size) * 100;
-            percentAccessed = (accessesDocumentedWithOutdatedDefinitions / processedPixels) * 100;
+            percent = (documentedPixelsWithAppVersionOutdated.size / uniquePixels.size) * 100;
+            percentAccessed = (accessesDocumentedWithAppVersionOutdated / processedPixels) * 100;
             console.log(
-                `Documented pixels with outdated definitions\t${documentedPixelsWithOutdatedDefinitions.size.toLocaleString('en-US')} percent(${percent.toFixed(2)} %) accesses ${accessesDocumentedWithOutdatedDefinitions.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+                `Documented pixels with app version outdated\t${documentedPixelsWithAppVersionOutdated.size.toLocaleString('en-US')} percent(${percent.toFixed(2)} %) accesses ${accessesDocumentedWithAppVersionOutdated.toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
             );
 
             percent = (documentedPixelsWithErrors.size / uniquePixels.size) * 100;

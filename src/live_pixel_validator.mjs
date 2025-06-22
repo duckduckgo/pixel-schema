@@ -22,7 +22,7 @@ export class LivePixelsValidator {
     undocumentedPixels = new Set();
 
     static PIXEL_UNDOCUMENTED = -2;
-    static PIXEL_DEFINITION_OUTDATED = -1;
+    static PIXEL_APP_VERSION_OUTDATED = -1;
     static PIXEL_VALIDATION_FAILED = 0;
     static PIXEL_VALIDATION_PASSED = 1;
 
@@ -260,7 +260,7 @@ export class LivePixelsValidator {
 
         if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
             if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
-                return LivePixelsValidator.PIXEL_DEFINITION_OUTDATED;
+                return LivePixelsValidator.PIXEL_APP_VERSION_OUTDATED;
             }
         }
 
