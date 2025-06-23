@@ -151,13 +151,15 @@ export class LivePixelsValidator {
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
-            return this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
+            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
+            return PixelValidationResult.VALIDATION_FAILED;
         }
 
         // Check cohort
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-            return this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
+            this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
+            return PixelValidationResult.VALIDATION_FAILED;
         }
 
         // Check suffixes if they exist
