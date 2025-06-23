@@ -30,14 +30,14 @@ function main(mainDir, csvFile) {
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     const uniquePixels = new Set();
-    let   totalAccesses = 0;
+    let totalAccesses = 0;
 
     const pixelSets = {
         [PixelValidationResult.UNDOCUMENTED]: new Set(),
         [PixelValidationResult.DEFINITION_OUTDATED]: new Set(),
         [PixelValidationResult.VALIDATION_FAILED]: new Set(),
         [PixelValidationResult.VALIDATION_PASSED]: new Set(),
-      };
+    };
 
     const stats = {
         [PixelValidationResult.UNDOCUMENTED]: 0,
@@ -45,7 +45,6 @@ function main(mainDir, csvFile) {
         [PixelValidationResult.VALIDATION_FAILED]: 0,
         [PixelValidationResult.VALIDATION_PASSED]: 0,
     };
-
 
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -59,20 +58,20 @@ function main(mainDir, csvFile) {
             uniquePixels.add(pixelRequestFormat);
 
             const ret = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
-            
-            if ((ret !== PixelValidationResult.VALIDATION_PASSED) &&
-                (ret !== PixelValidationResult.DEFINITION_OUTDATED) &&
-                (ret !== PixelValidationResult.UNDOCUMENTED) &&
-                (ret !== PixelValidationResult.VALIDATION_FAILED)
+
+            if (
+                ret !== PixelValidationResult.VALIDATION_PASSED &&
+                ret !== PixelValidationResult.DEFINITION_OUTDATED &&
+                ret !== PixelValidationResult.UNDOCUMENTED &&
+                ret !== PixelValidationResult.VALIDATION_FAILED
             ) {
                 console.error(`Unexpected validation result: ${ret} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
                 process.exit(1);
-            } 
+            }
             stats[ret]++;
             pixelSets[ret].add(pixelRequestFormat);
         })
         .on('end', async () => {
-            
             // Two original output lines; is that part of tests?
             // Don't remove for now until tests all passing
             console.log(`\nDone.\nTotal pixels processed: ${totalAccesses.toLocaleString('en-US')}`);
@@ -80,14 +79,13 @@ function main(mainDir, csvFile) {
             console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${totalAccesses.toLocaleString('en-US')}`);
 
             for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
-                let numUnique = pixelSets[i].size
-                let numAccesses = stats[i];
-                let percentUnique = (numUnique / uniquePixels.size) * 100;
-                let percentAccessed = (numAccesses / totalAccesses) * 100;
+                const numUnique = pixelSets[i].size;
+                const numAccesses = stats[i];
+                const percentUnique = (numUnique / uniquePixels.size) * 100;
+                const percentAccessed = (numAccesses / totalAccesses) * 100;
                 console.log(
-                    //`${PixelValidationResultString[i]} (unique)\t${unique.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${stats[PixelValidationResult[i]].toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+                    // `${PixelValidationResultString[i]} (unique)\t${unique.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${stats[PixelValidationResult[i]].toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
                     `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percent (${percentUnique.toFixed(2)}%)\t accesses ${numAccesses.toLocaleString('en-US')}\t percentAccessed (${percentAccessed.toFixed(2)}%)`,
-
                 );
             }
             // Other stats?
