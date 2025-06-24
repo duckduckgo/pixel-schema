@@ -117,7 +117,7 @@ function getResultsFilePath(mainPixelDir, filename) {
     return path.join(getResultsDir(mainPixelDir), filename);
 }
 
-**
+/**
  * Get path to the list of pixels with errors encountered during live validation
     * @param { string } mainPixelDir - path to the main pixels directory
         * @returns { string } pixel errors path
