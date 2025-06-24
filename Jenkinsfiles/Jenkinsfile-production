@@ -1,24 +1,94 @@
-pipeline {
-    agent { label 'pixel-validation' }
+ipeline {
+    agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
     stages {
-        stage ('run pixel validation') {
+        stage('clone pixel-schema repo ') {
             steps {
-                    sh '''#!/bin/bash
-                        DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
-                        fnm install && fnm exec npm ci && fnm exec npm run validate-live-pixels ../windows-browser/PixelDefinitions > /tmp/${DATE}.txt
-                        /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate_live_validation_alerts"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                }
+            }
+        }
+        stage('clone duckduckgo-privacy-extension repo ') {
+            steps {
+                dir('duckduckgo-privacy-extension') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                }
+            }
+        }
+        stage('clone windows-browser repo with credentials') {
+            steps {
+                dir('windows-browser') {
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+            }
+        }
+        stage('Validate pixels for duckduckgo-privacy-extension'){
+             steps {
+                sh '''#!/bin/bash
+                    ls duckduckgo-privacy-extension/pixel-definitions/
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    echo "Preprocess defs"
+                    fnm exec npm run preprocess-defs ../duckduckgo-privacy-extension/pixel-definitions/.
+                    echo "Fetch Clickhouse"
+                    fnm exec npm run fetch-clickhouse-data ../duckduckgo-privacy-extension/pixel-definitions/
+                    echo "Validate pixels"
+                    fnm exec npm run validate-live-pixels ../duckduckgo-privacy-extension/pixel-definitions/ >  /tmp/${DATE}.txt
+                    
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "pixel validation report ${DATE}" \
-                            --project_id 1210585418929080 \
+                            --description "Pixel validation report: duckduckgo-privacy-extension' ${DATE}" \
+                            --project_id 1210584574754345 \
                             --no_duplicates \
-                            "pixel validation report ${DATE}"
-                        rm /tmp/${DATE}.txt
-                    '''
+                            "Pixel validation report: duckduckgo-privacy-extension' ${DATE}"
+                    more /tmp/${DATE}.txt
+                    rm /tmp/${DATE}.txt 
+                    cd ..
+                '''
+            }
+        }
+        stage('Validate pixels for windows-browser'){
+             steps {
+                sh '''#!/bin/bash
+                    ls windows-browser/PixelDefinitions/
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    echo "Preprocess defs"
+                    fnm exec npm run preprocess-defs ../windows-browser/PixelDefinitions/.
+                    echo "Fetch Clickhouse"
+                    fnm exec npm run fetch-clickhouse-data ../windows-browser/PixelDefinitions/
+                    echo "Validate pixels"
+                    fnm exec npm run validate-live-pixels ../windows-browser/PixelDefinitions/ >  /tmp/${DATE}.txt
+                    
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                            --attachment /tmp/${DATE}.txt \
+                            --assignee jmatthews@duckduckgo.com \
+                            --description "Pixel validation report: windows-browser' ${DATE}" \
+                            --project_id 1210584574754345 \
+                            --no_duplicates \
+                            "Pixel validation report: windows-browser' ${DATE}"
+                    more /tmp/${DATE}.txt
+                    rm /tmp/${DATE}.txt
+                    cd ..
+                '''
             }
         }
     }
+    
     post {
         failure {
             sh '''#!/bin/bash
@@ -28,7 +98,6 @@ pipeline {
                     --assignee jmatthews@duckduckgo.com \
                     --description "Jenkins pixel validation failed" \
                     --project_id 1210585418929080 \
-                    --section_id 1200757590157463 \
                     --no_duplicates \
                     "pixel validation failed"
             '''
