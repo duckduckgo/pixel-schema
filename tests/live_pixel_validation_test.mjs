@@ -31,7 +31,6 @@ describe('No common params nor suffixes', () => {
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
-        liveValidator.undocumentedPixels.clear();
     });
 
     it('no params should pass', () => {
@@ -96,7 +95,6 @@ describe('Common params', () => {
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
-        liveValidator.undocumentedPixels.clear();
     });
 
     it('common param only should pass', () => {
@@ -146,7 +144,6 @@ describe('Common suffixes', () => {
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
-        liveValidator.undocumentedPixels.clear();
     });
 
     it('both common and custom suffix should pass', () => {
@@ -249,7 +246,6 @@ testCases.forEach((scenario) => {
 
         beforeEach(function () {
             liveValidator.pixelErrors = {};
-            liveValidator.undocumentedPixels.clear();
         });
 
         it('wrong types within obj schema', () => {
@@ -306,7 +302,6 @@ describe('Base64 simple param', () => {
 
     beforeEach(function () {
         liveValidator.pixelErrors = {};
-        liveValidator.undocumentedPixels.clear();
     });
 
     it('invalid param', () => {

@@ -39,7 +39,7 @@ function main(mainDir, csvFile) {
         [PixelValidationResult.VALIDATION_PASSED]: new Set(),
     };
 
-    const stats = {
+    const accessCounts = {
         [PixelValidationResult.UNDOCUMENTED]: 0,
         [PixelValidationResult.DEFINITION_OUTDATED]: 0,
         [PixelValidationResult.VALIDATION_FAILED]: 0,
@@ -68,19 +68,18 @@ function main(mainDir, csvFile) {
                 console.error(`Unexpected validation result: ${ret} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
                 process.exit(1);
             }
-            stats[ret]++;
+            accessCounts[ret]++;
             pixelSets[ret].add(pixelRequestFormat);
         })
         .on('end', async () => {
             // Two original output lines; is that part of tests?
             // Don't remove for now until tests all passing
             console.log(`\nDone.\nTotal pixels processed: ${totalAccesses.toLocaleString('en-US')}`);
-            console.log(`Undocumented pixels: ${liveValidator.undocumentedPixels.size.toLocaleString('en-US')}`);
             console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${totalAccesses.toLocaleString('en-US')}`);
 
             for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                 const numUnique = pixelSets[i].size;
-                const numAccesses = stats[i];
+                const numAccesses = accessCounts[i];
                 const percentUnique = (numUnique / uniquePixels.size) * 100;
                 const percentAccessed = (numAccesses / totalAccesses) * 100;
                 console.log(
@@ -94,7 +93,8 @@ function main(mainDir, csvFile) {
             try {
                 fs.writeFileSync(
                     fileUtils.getUndocumentedPixelsPath(mainDir),
-                    JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
+                    //        JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
+                    JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
                 );
             } catch (err) {
                 if (err instanceof RangeError) {

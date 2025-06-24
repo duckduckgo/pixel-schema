@@ -33,8 +33,6 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    undocumentedPixels = new Set();
-
     pixelErrors = {};
 
     /**
@@ -137,14 +135,12 @@ export class LivePixelsValidator {
         const pixelPrefixLen = 3;
         if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
-            this.undocumentedPixels.add(pixel);
             return PixelValidationResult.UNDOCUMENTED;
         }
 
         const pixelType = pixelParts[0];
         if (pixelType !== 'enroll' && pixelType !== 'metrics') {
             // Invalid experiment pixel type
-            this.undocumentedPixels.add(pixel);
             return PixelValidationResult.UNDOCUMENTED;
         }
 
@@ -249,7 +245,6 @@ export class LivePixelsValidator {
         }
 
         if (!pixelMatch[ROOT_PREFIX]) {
-            this.undocumentedPixels.add(pixel);
             return PixelValidationResult.UNDOCUMENTED;
         }
 

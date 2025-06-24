@@ -2,7 +2,7 @@
  * Public validation API
  */
 
-import { LivePixelsValidator } from './src/live_pixel_validator.mjs';
+import { LivePixelsValidator, PixelValidationResult } from './src/live_pixel_validator.mjs';
 import { ParamsValidator } from './src/params_validator.mjs';
 import { tokenizePixelDefs } from './src/tokenizer.mjs';
 
@@ -51,11 +51,12 @@ export function validateSinglePixel(validator, url) {
     const params = parsedUrl.search.slice(1).replace(/^\d+=?&/, '');
     // reset errors in validator
     validator.pixelErrors = {};
-    validator.undocumentedPixels.clear();
+    // validator.undocumentedPixels.clear();
     // validate
-    validator.validatePixel(pixel, params);
-    if (validator.undocumentedPixels.size > 0) {
-        throw new Error(`Undocumented Pixel: ${JSON.stringify(Array.from(validator.undocumentedPixels))}`);
+    const ret = validator.validatePixel(pixel, params);
+    if (ret === PixelValidationResult.UNDOCUMENTED) {
+        // throw new Error(`Undocumented Pixel: ${JSON.stringify(Array.from(validator.undocumentedPixels))}`);
+        throw new Error(`Undocumented Pixel: ${JSON.stringify(pixel)}`);
     }
     if (Object.keys(validator.pixelErrors).length > 0) {
         throw new Error(`Pixel Errors: ${JSON.stringify(validator.pixelErrors)}`);
