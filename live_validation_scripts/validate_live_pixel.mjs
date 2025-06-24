@@ -90,6 +90,26 @@ function main(mainDir, csvFile) {
             // Other stats?
             // Documented pixels not seen?
 
+            
+
+            try {
+                fs.writeFileSync(
+                    fileUtils.getUniqueErrorPixelPath(mainDir),
+                    //        JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
+                    JSON.stringify(Array.from(pixelSets[PixelValidationResult.VALIDATION_FAILED]), null, 4),
+                );
+            } catch (err) {
+                if (err instanceof RangeError) {
+                    console.error(
+                        'Error: List of unique pixels with errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                    );
+                    process.exit(1);
+                } else {
+                    throw err;
+                }
+            }
+
+
             try {
                 fs.writeFileSync(
                     fileUtils.getUndocumentedPixelsPath(mainDir),

@@ -117,6 +117,15 @@ function getResultsFilePath(mainPixelDir, filename) {
     return path.join(getResultsDir(mainPixelDir), filename);
 }
 
+**
+ * Get path to the list of pixels with errors encountered during live validation
+    * @param { string } mainPixelDir - path to the main pixels directory
+        * @returns { string } pixel errors path
+            */
+export function getUniqueErrorPixelPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'unique_error_pixels.json');
+}
+
 /**
  * Get path to pixel errors encountered during live validation
  * @param {string} mainPixelDir - path to the main pixels directory

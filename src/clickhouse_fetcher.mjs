@@ -7,7 +7,9 @@ import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
-const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
+// For now we just want to audit yesterday's pixels
+// TODO Better to pass in start day and end day as parameters
+const DAYS_TO_FETCH = 1; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
 
 function createTempTable() {
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
@@ -41,7 +43,8 @@ function populateTempTable(tokenizedPixels, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
-    const currentDate = new Date();
+    // Audit yesterdays pixels
+    const currentDate = new Date() -1;
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
     /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
