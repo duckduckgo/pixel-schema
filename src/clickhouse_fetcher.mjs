@@ -44,7 +44,8 @@ function populateTempTable(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     // Audit yesterdays pixels
-    const currentDate = new Date() -1;
+    const currentDate = new Date();
+    currentDate.setDate(currentDate.getDate() - 1);
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
     /* eslint-disable no-unmodified-loop-condition */
     while (pastDate <= currentDate) {
