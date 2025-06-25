@@ -12,7 +12,7 @@ import * as fileUtils from '../src/file_utils.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
 const KEEP_ALL_ERRORS = false;
-const NUM_EXAMPLE_ERRORS= 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
+const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
 
 function main(mainDir, csvFile) {
