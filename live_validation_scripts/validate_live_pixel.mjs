@@ -11,6 +11,8 @@ import { LivePixelsValidator, PixelValidationResult, PixelValidationResultString
 import * as fileUtils from '../src/file_utils.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
+const KEEP_ALL_ERRORS = false;
+const NUM_EXAMPLE_ERRORS= 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
 
 function main(mainDir, csvFile) {
@@ -149,8 +151,11 @@ function main(mainDir, csvFile) {
 
 function setReplacer(_, value) {
     if (value instanceof Set) {
-        return Array.from(value);
-        // return Array.from(value).slice(0,10);
+        if (KEEP_ALL_ERRORS) {
+            return Array.from(value);
+        } else {
+            return Array.from(value).slice(0, NUM_EXAMPLE_ERRORS);
+        }
     }
     return value;
 }

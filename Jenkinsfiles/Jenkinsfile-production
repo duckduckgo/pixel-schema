@@ -1,7 +1,14 @@
 ipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
-    stages {
+ stages {
+        stage('Cleanup'){
+             steps {
+                sh '''#!/bin/bash
+                    ls
+                '''
+            }
+        }
         stage('clone pixel-schema repo ') {
             steps {
                 dir('pixel-schema') {
@@ -23,7 +30,7 @@ ipeline {
         stage('clone windows-browser repo with credentials') {
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
@@ -44,16 +51,18 @@ ipeline {
                     fnm exec npm run fetch-clickhouse-data ../duckduckgo-privacy-extension/pixel-definitions/
                     echo "Validate pixels"
                     fnm exec npm run validate-live-pixels ../duckduckgo-privacy-extension/pixel-definitions/ >  /tmp/${DATE}.txt
-                    
+                    echo "UNIQUE ERROR PIXELS duckduckgo-privacy-extension"
+                    ls -al ../duckduckgo-privacy-extension/pixel-definitions/pixel_processing_results/pixel_errors.json 
+                    cat ../duckduckgo-privacy-extension/pixel-definitions/pixel_processing_results/pixel_errors.json >>  /tmp/${DATE}.txt
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
                             --description "Pixel validation report: duckduckgo-privacy-extension' ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: duckduckgo-privacy-extension' ${DATE}"
-                    more /tmp/${DATE}.txt
+                            "Pixel validation report: duckduckgo-privacy-extension ${DATE}"
                     rm /tmp/${DATE}.txt 
+                    rm /tmp/live_pixels.csv 
                     cd ..
                 '''
             }
@@ -73,6 +82,9 @@ ipeline {
                     fnm exec npm run fetch-clickhouse-data ../windows-browser/PixelDefinitions/
                     echo "Validate pixels"
                     fnm exec npm run validate-live-pixels ../windows-browser/PixelDefinitions/ >  /tmp/${DATE}.txt
+                    echo "UNIQUE ERROR PIXELS windows-browser"
+                    ls -al ../windows-browser/PixelDefinitions/pixel_processing_results/pixel_errors.json
+                    cat ../windows-browser/PixelDefinitions/pixel_processing_results/pixel_errors.json >>  /tmp/${DATE}.txt
                     
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
@@ -80,15 +92,14 @@ ipeline {
                             --description "Pixel validation report: windows-browser' ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: windows-browser' ${DATE}"
-                    more /tmp/${DATE}.txt
+                            "Pixel validation report: windows-browser ${DATE}"
                     rm /tmp/${DATE}.txt
+                    rm /tmp/live_pixels.csv 
                     cd ..
                 '''
             }
         }
     }
-    
     post {
         failure {
             sh '''#!/bin/bash
