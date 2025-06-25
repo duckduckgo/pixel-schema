@@ -34,14 +34,14 @@ function main(mainDir, csvFile) {
 
     const pixelSets = {
         [PixelValidationResult.UNDOCUMENTED]: new Set(),
-        [PixelValidationResult.DEFINITION_OUTDATED]: new Set(),
+        [PixelValidationResult.OLD_APP_VERSION]: new Set(),
         [PixelValidationResult.VALIDATION_FAILED]: new Set(),
         [PixelValidationResult.VALIDATION_PASSED]: new Set(),
     };
 
     const accessCounts = {
         [PixelValidationResult.UNDOCUMENTED]: 0,
-        [PixelValidationResult.DEFINITION_OUTDATED]: 0,
+        [PixelValidationResult.OLD_APP_VERSION]: 0,
         [PixelValidationResult.VALIDATION_FAILED]: 0,
         [PixelValidationResult.VALIDATION_PASSED]: 0,
     };
@@ -61,7 +61,7 @@ function main(mainDir, csvFile) {
 
             if (
                 ret !== PixelValidationResult.VALIDATION_PASSED &&
-                ret !== PixelValidationResult.DEFINITION_OUTDATED &&
+                ret !== PixelValidationResult.OLD_APP_VERSION &&
                 ret !== PixelValidationResult.UNDOCUMENTED &&
                 ret !== PixelValidationResult.VALIDATION_FAILED
             ) {
@@ -90,8 +90,6 @@ function main(mainDir, csvFile) {
             // Other stats?
             // Documented pixels not seen?
 
-            
-
             try {
                 fs.writeFileSync(
                     fileUtils.getUniqueErrorPixelPath(mainDir),
@@ -108,7 +106,6 @@ function main(mainDir, csvFile) {
                     throw err;
                 }
             }
-
 
             try {
                 fs.writeFileSync(

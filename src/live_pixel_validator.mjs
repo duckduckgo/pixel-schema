@@ -11,14 +11,14 @@ import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
 
 export const PixelValidationResult = Object.freeze({
     UNDOCUMENTED: 0,
-    DEFINITION_OUTDATED: 1,
+    OLD_APP_VERSION: 1,
     VALIDATION_FAILED: 2,
     VALIDATION_PASSED: 3,
 });
 
 export const PixelValidationResultString = {
     [PixelValidationResult.UNDOCUMENTED]: 'Undocumented',
-    [PixelValidationResult.DEFINITION_OUTDATED]: 'Definition Outdated',
+    [PixelValidationResult.OLD_APP_VERSION]: 'DDG App Version Outdated',
     [PixelValidationResult.VALIDATION_FAILED]: 'Validation Failed',
     [PixelValidationResult.VALIDATION_PASSED]: 'Validation Passed',
 };
@@ -264,7 +264,11 @@ export class LivePixelsValidator {
 
         if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
             if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
-                return PixelValidationResult.DEFINITION_OUTDATED;
+                /*  This is not the latest version of the app
+                    Parameters are sometimes added to pixels in newer versions
+                    Err on side of not flagging this as a failed validation
+                    */
+                return PixelValidationResult.OLD_APP_VERSION;
             }
         }
 
