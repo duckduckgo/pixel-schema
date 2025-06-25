@@ -57,7 +57,7 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: duckduckgo-privacy-extension' ${DATE}" \
+                            --description "Pixel validation report: duckduckgo-privacy-extension ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
                             "Pixel validation report: duckduckgo-privacy-extension ${DATE}"
@@ -89,7 +89,7 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: windows-browser' ${DATE}" \
+                            --description "Pixel validation report: windows-browser ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
                             "Pixel validation report: windows-browser ${DATE}"
