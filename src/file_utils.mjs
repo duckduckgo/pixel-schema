@@ -145,6 +145,15 @@ export function getUndocumentedPixelsPath(mainPixelDir) {
 }
 
 /**
+ * Get path to the list of pixel owners with errors
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} pixel owner errors path
+ */
+export function getPixelOwnerErrorsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'pixel_owner_errors.json');
+}
+
+/**
  * Get tokenized pixels path
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} tokenized pixels path
