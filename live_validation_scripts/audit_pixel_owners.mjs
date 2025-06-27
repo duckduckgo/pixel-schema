@@ -73,10 +73,11 @@ function auditPixelOwners(mainDir, userMapFile) {
         const pixelsDefs = JSON5.parse(fs.readFileSync(fullPath).toString());
         getPixelOwners(pixelsDefs).forEach((pixel) => {
             if (!userMap[pixel.owner]) {
-                invalidOwners.add({
+                invalidPixelOwnerPairs.add({
                     pixel: pixel.name,
                     owner: pixel.owner,
                 });
+                invalidOwners.add(pixel.owner);
             } else {
                 validOwners.add(pixel.owner);
             }
