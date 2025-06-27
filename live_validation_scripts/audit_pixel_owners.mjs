@@ -6,7 +6,7 @@ import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { getPixelOwnerErrorsPath } from '../src/file_utils.mjs';
+import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
 import yaml from 'js-yaml';
 
 const USER_MAP_YAML = 'user_map.yml';
@@ -37,6 +37,7 @@ function getArgParserWithYaml(description, yamlFileDescription) {
 
 const argv = getArgParserWithYaml('audit pixel owners are all github usernames').parse();
 
+
 function getPixelOwners(pixelsDefs) {
     const owners = [];
     for (const [name, def] of Object.entries(pixelsDefs)) {
@@ -44,13 +45,19 @@ function getPixelOwners(pixelsDefs) {
             def.owners.forEach((owner) => {
                 owners.push({ name, owner });
             });
+        } else {
+            owners.push({ name, owner: "NO OWNER" });
         }
     }
     return owners;
 }
 function auditPixelOwners(mainDir, userMapFile) {
     const invalidOwners = new Set();
+    const validOwners = new Set();
+    const invalidPixelOwnerPairs = new Set();
     const pixelDir = path.join(mainDir, 'pixels');
+    let numDefFiles = 0;
+    let numPixels = 0;
 
     console.log(`...Reading user map: ${userMapFile}`);
     const userMap = yaml.load(fs.readFileSync(userMapFile, 'utf8'));
@@ -62,26 +69,37 @@ function auditPixelOwners(mainDir, userMapFile) {
         }
 
         console.log(`...Reading pixel def file: ${fullPath}`);
+        numDefFiles++;
         const pixelsDefs = JSON5.parse(fs.readFileSync(fullPath).toString());
         getPixelOwners(pixelsDefs).forEach((pixel) => {
-            console.log(`...Processing pixel: ${pixel.name} (${pixel.owner})`);
             if (!userMap[pixel.owner]) {
-                console.warn(`Pixel ${pixel.name} (${pixel.owner}) does not have a valid owner
-defined in ${userMapFile}`);
                 invalidOwners.add({
                     pixel: pixel.name,
                     owner: pixel.owner,
                 });
             } else {
-                console.log(`Pixel ${pixel.name} (${pixel.owner}) has a valid owner.`);
+                validOwners.add(pixel.owner);
             }
         });
+        
+        numPixels += Object.keys(pixelsDefs).length;
     });
 
-    // Write out tokenized pixel defs to a file
-    const outFile = getPixelOwnerErrorsPath(mainDir);
-    console.log(`Writing out pixel owner errors to ${outFile}`);
+    console.log(`Processed ${numDefFiles} pixel definition files with a total of ${numPixels} pixel definitions.`);
+
+    // TODO: make an Asana task for each valid pixel owner with any errors in their pixels
+    console.log('Number of unique valid pixel owners:', validOwners.size)
+
+    console.log('Number of unique invalid owners:', invalidOwners.size)
+    let outFile = getInvalidOwnersPath(mainDir);
+    console.log(`Writing out invalid owner names to ${outFile}`);
     fs.writeFileSync(outFile, JSON.stringify(Array.from(invalidOwners), null, 4));
+
+    console.log('Total pixel owner errors:', invalidPixelOwnerPairs.size)
+    outFile = getPixelOwnerErrorsPath(mainDir);
+    console.log(`Writing out pixel owner errors to ${outFile}`);
+    fs.writeFileSync(outFile, JSON.stringify(Array.from(invalidPixelOwnerPairs), null, 4));
+
 }
 console.log(`YamlFile ${argv.yamlFile}`);
 auditPixelOwners(argv.dirPath, argv.yamlFile);

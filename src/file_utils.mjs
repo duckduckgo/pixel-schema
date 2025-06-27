@@ -146,11 +146,21 @@ export function getUndocumentedPixelsPath(mainPixelDir) {
 
 /**
  * Get path to the list of pixel owners with errors
+ * This is a list of all the errors - pairs of invalid owner names and pixel names
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} pixel owner errors path
  */
 export function getPixelOwnerErrorsPath(mainPixelDir) {
     return getResultsFilePath(mainPixelDir, 'pixel_owner_errors.json');
+}
+
+/**
+ * Get path to the list of unique owner names not in the map if github usernames to Asana user IDs
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} invalid owners path
+ */
+export function getInvalidOwnersPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'invalid_owner_errors.json');
 }
 
 /**
