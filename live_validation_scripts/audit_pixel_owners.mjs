@@ -11,6 +11,12 @@ import yaml from 'js-yaml';
 
 const USER_MAP_YAML = 'user_map.yml';
 
+/* 
+    validaete_schema.mjs has an optional parameter to verify owners against a user map
+    at schema validation time. That is a better place to do it, but this script can be used 
+    to audit existing pixel definitions and find any owners that are not in the user map
+    later if needed as well.
+   */
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
         .command('$0 [dirPath] [yamlFile]', description, (yargs) => {
