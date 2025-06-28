@@ -6,7 +6,6 @@ import path from 'path';
 import yargs from 'yargs';
 import yaml from 'js-yaml';
 
-
 import { DefinitionsValidator } from '../src/definitions_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
@@ -31,7 +30,7 @@ const argv = yargs(hideBin(process.argv))
         alias: 'g',
         describe: 'Path to the GitHub user map YAML file',
         type: 'string',
-        demandOption: false
+        demandOption: false,
     })
     .option('file', {
         alias: 'f',
@@ -77,7 +76,6 @@ function validateFolder(folder, userMap) {
 }
 let userMap = null;
 
-
 if (argv.githubUserMap) {
     console.log(`Reading GitHub user map from: ${argv.githubUserMap}`);
     try {
@@ -85,8 +83,7 @@ if (argv.githubUserMap) {
     } catch (error) {
         console.error(`Error reading GitHub user map from ${argv.githubUserMap}:`, error.message);
         process.exit(1);
-    }   
-    
+    }
 } else {
     console.log('No GitHub user map provided, skipping owner validation.');
 }

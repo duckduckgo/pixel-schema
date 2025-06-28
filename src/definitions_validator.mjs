@@ -84,7 +84,7 @@ export class DefinitionsValidator {
      * @param {*} pixelsDef - object containing multiple pixel definitions
      * @returns {Array<string>} - array of error messages
      */
-    validatePixelsDefinition(pixelsDef) {
+    validatePixelsDefinition(pixelsDef, userMap) {
         // 1) Validate that pixel definition conforms to schema
         if (!this.#ajvValidatePixels(pixelsDef)) {
             // Doesn't make sense to check the rest if main definition is invalid
@@ -94,11 +94,21 @@ export class DefinitionsValidator {
         // 2) Validate that:
         // (a) there are no duplicate prefixes and
         // (b) shortcuts, params, and suffixes can be compiled into a separate schema
+        // (c) all owners are valid github usernames in the provided userMap
         const errors = [];
         Object.entries(pixelsDef).forEach(([pixelName, pixelDef]) => {
             if (this.#definedPrefixes.has(pixelName)) {
                 errors.push(`${pixelName} --> Conflicting/duplicated definitions found!`);
                 return;
+            }
+
+            // If a github user map is provided, check if all owners are valid
+            if (userMap) {
+                for (const owner of pixelDef.owners) {
+                    if (!userMap[owner]) {
+                        errors.push(`${pixelName} ${owner}--> Owner not in list of acceptable github user names!`);
+                    }
+                }
             }
 
             this.#definedPrefixes.add(pixelName);
