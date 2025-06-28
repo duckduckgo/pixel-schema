@@ -16,6 +16,9 @@ const USER_MAP_YAML = 'user_map.yml';
     at schema validation time. That is a better place to do it, but this script can be used 
     to audit existing pixel definitions and find any owners that are not in the user map
     later if needed as well.
+    For example, this can catch if existing pixels were owned by a user who has left the company
+    and needs to be reassigned. This should also happen when there are PRs against the repo with the 
+    pixel definitions, but the user is not in the user map if that happens first.
    */
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
