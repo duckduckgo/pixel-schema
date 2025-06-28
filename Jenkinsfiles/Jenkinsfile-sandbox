@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
-   stages {
+    stages {
         stage('Cleanup'){
              steps {
                 sh '''#!/bin/bash
@@ -36,10 +36,46 @@ pipeline {
                 }
             }
         }
+        
+        
+        stage('clone internal-github-asana-utils repo ') {
+            steps {
+                dir('internal-github-asana-utils') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                }
+            }
+        }
+
+    stage('Audit pixel owners for duckduckgo-privacy-extension'){
+             steps {
+                sh '''#!/bin/bash
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    echo "Audit Pixel Owners"
+                    fnm exec npm run audit-pixel-owners ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml > /tmp/${DATE}.txt
+                    cat ../duckduckgo-privacy-extension/pixel-definitions/pixel_processing_results/invalid_owner_errors.json >> /tmp/${DATE}.txt
+                    cat ../duckduckgo-privacy-extension/pixel-definitions/pixel_processing_results/pixel_owner_errors.json  >> /tmp/${DATE}.txt
+                    
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                            --attachment /tmp/${DATE}.txt \
+                            --assignee jmatthews@duckduckgo.com \
+                            --description "Pixel owner report: duckduckgo-privacy-extension ${DATE}" \
+                            --project_id 1210584574754345 \
+                            --no_duplicates \
+                            "Pixel owner report: duckduckgo-privacy-extension ${DATE}"
+                    rm /tmp/${DATE}.txt 
+                    cd ..
+                '''
+            }
+        }
         stage('Validate pixels for duckduckgo-privacy-extension'){
              steps {
                 sh '''#!/bin/bash
-                    ls duckduckgo-privacy-extension/pixel-definitions/
                     DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
                     echo $DATE
                     cd pixel-schema
@@ -63,6 +99,30 @@ pipeline {
                             "Pixel validation report: duckduckgo-privacy-extension ${DATE}"
                     rm /tmp/${DATE}.txt 
                     rm /tmp/live_pixels.csv 
+                    cd ..
+                '''
+            }
+        }
+        stage('Audit pixel owners for windows-browser'){
+             steps {
+                sh '''#!/bin/bash
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    echo "Audit Pixel Owners"
+                    fnm exec npm run audit-pixel-owners ../windows-browser/PixelDefinitions/ ../internal-github-asana-utils/user_map.yml > /tmp/${DATE}.txt
+                    cat ../windows-browser/PixelDefinitions/pixel_processing_results/invalid_owner_errors.json >> /tmp/${DATE}.txt
+                    cat  ../windows-browser/PixelDefinitions/pixel_processing_results/pixel_owner_errors.json  >> /tmp/${DATE}.txt
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                            --attachment /tmp/${DATE}.txt \
+                            --assignee jmatthews@duckduckgo.com \
+                            --description "Pixel owner report: windows-browser ${DATE}" \
+                            --project_id 1210584574754345 \
+                            --no_duplicates \
+                            "Pixel owner report: windows-browser ${DATE}"
+                    rm /tmp/${DATE}.txt 
                     cd ..
                 '''
             }
