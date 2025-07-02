@@ -1,7 +1,7 @@
-ipeline {
+pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
- stages {
+    stages {
         stage('Cleanup'){
              steps {
                 sh '''#!/bin/bash
@@ -21,7 +21,7 @@ ipeline {
         stage('clone duckduckgo-privacy-extension repo ') {
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/add_experiment"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
@@ -36,10 +36,20 @@ ipeline {
                 }
             }
         }
+        
+        
+        stage('clone internal-github-asana-utils repo ') {
+            steps {
+                dir('internal-github-asana-utils') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                }
+            }
+        }
         stage('Validate pixels for duckduckgo-privacy-extension'){
              steps {
                 sh '''#!/bin/bash
-                    ls duckduckgo-privacy-extension/pixel-definitions/
                     DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
                     echo $DATE
                     cd pixel-schema
@@ -57,10 +67,10 @@ ipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: duckduckgo-privacy-extension ${DATE}" \
+                            --description "Pixel validation report (APPLES-TO-APPLES-WITH FIXES): duckduckgo-privacy-extension ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: duckduckgo-privacy-extension ${DATE}"
+                            "Pixel validation report (APPLES-TO-APPLES-WITH FIXES): duckduckgo-privacy-extension ${DATE}"
                     rm /tmp/${DATE}.txt 
                     rm /tmp/live_pixels.csv 
                     cd ..
@@ -89,10 +99,10 @@ ipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: windows-browser ${DATE}" \
+                            --description "Pixel validation report (APPLES-TO-APPLES-WITH FIXES): windows-browser ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: windows-browser ${DATE}"
+                            "Pixel validation report (APPLES-TO-APPLES-WITH FIXES): windows-browser ${DATE}"
                     rm /tmp/${DATE}.txt
                     rm /tmp/live_pixels.csv 
                     cd ..
