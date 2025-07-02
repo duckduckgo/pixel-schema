@@ -30,6 +30,7 @@ RepoSpecificPixelFolder
     --> params_dictionary.json [file that defines commonly used parameters]
     --> suffixes_dictionary.json [file that defines commonly used suffixes]
     --> native_experiments.json [file that defines pixels sent by the native experiments framework]
+    --> notify.json [file that lists users (github user ids) who wish to be regularly notified of pixel errors in this repo]
 ```
 
 You can organize the files and sub-directories within `pixels` however you like, the example above is just one option.
@@ -69,7 +70,7 @@ As you read through, you can refer to the [pixel_guide.json](./tests/test_data/v
 #### Minimum requirements
 Each pixel **must** contain the following properties:
 * `description` - when the pixel fires and its purpose
-* `owners` - DDG usernames of who to contact about the pixel
+* `owners` - Github usernames of who to contact about the pixel
 * `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel
 
 #### Pixels with dynamic names
@@ -126,10 +127,12 @@ If the pixel is temporary, set an expiration date in the `expires` property.
 **Running validation**:
 ```
 $ cd ${PackageFolder}
-$ npm run validate-defs
+$ npm run validate-ddg-pixel-defs 
 ```
 Note:
 * If formatting errors are found, you can fix them with `npm run lint.fix`
+* You can check pixel owner names against a valid list of [Github user ids](https://github.com/duckduckgo/internal-github-asana-utils/blob/main/user_map.yml) with the --githubUserMap option (Example: 
+-- --githubUserMap=<path to user_map.yml> )
 * For schema validation failures, check the output and apply fixes manually
 * You can also (re)validate a single file: 
     * Schema validation: `npx validate-ddg-pixel-defs . -f ${path to file relative to PackageFolder/pixels/ directory}`
