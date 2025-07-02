@@ -9,15 +9,15 @@ import asana from 'asana';
 
 // npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 
 
-import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
+// import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
 import yaml from 'js-yaml';
 
 
 
 const USER_MAP_YAML = 'user_map.yml';
 
-let ownerMap = new Map();
-let pixelMap = new Map();
+const ownerMap = new Map();
+const pixelMap = new Map();
 
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
@@ -60,9 +60,6 @@ function getPixelOwners(pixelsDefs) {
     return owners;
 }
 function buildMaps(mainDir, userMapFile) {
-    const invalidOwners = new Set();
-    const validOwners = new Set();
-    const invalidPixelOwnerPairs = new Set();
     const pixelDir = path.join(mainDir, 'pixels');
     let numDefFiles = 0;
     let numPixels = 0;
@@ -129,7 +126,7 @@ console.log(`YamlFile ${argv.yamlFile}`);
 // Build the maps of pixel owners and pixels from the Pixel defintion files
 buildMaps(argv.dirPath, argv.yamlFile);
 
-//console.log(ownerMap.get('user').asanaId); 
+// console.log(ownerMap.get('user').asanaId); 
 
 // Now read through the live pixel data and update the pixelMap with the live data
 // including data on undocumented pixels
@@ -157,19 +154,52 @@ console.log('Access Token: ' + token.accessToken);
 console.log('Workspace ID: ' + workspaceId);
 console.log('Pixel Validation Project: ' + pixelValidationProject);
 
-const opts = {};
+// const opts = {};
 
 
 const tasks = new asana.TasksApi();
 
 
+const userGID1 = '1202818073638528';
+const userGID2 = '1202096681718068';
+// const userGID = ownerMap.get('jmatthews').asanaId; // Get the Asana ID for the user from the ownerMap  
+
+// https://developers.asana.com/reference/createtask
+/* 
+"memberships": [
+      {
+        "project": {
+          "gid": "12345",
+          "resource_type": "project",
+          "name": "Stuff to buy"
+        },
+        "section": {
+          "gid": "12345",
+          "resource_type": "section",
+          "name": "Next Actions"
+        }
+      }
+    ],
+    "html_notes": "<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>",
+    "attachments": [
+      {
+        "type": "file",
+        "name": "humboldt.jpg",
+        "url": "https://example.com/humboldt.jpg"
+      }
+    ]
+    */
 try {
     const body = {
         data: {
             workspace: workspaceId,
             name: 'New Task Name',
-            notes: 'This is a sample task created via the Asana API.',
+            assignee: userGID1,
+            due_on: '2025-07-08', 
+            //     notes: 'This is a sample task created via the Asana API.',
+            html_notes: "<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>",
             projects: [pixelValidationProject], // Optional: Array of project GIDs to add the task to
+            followers: [userGID1, userGID2], // Optional: Array of user GIDs to add as follower
 
         },
     };
@@ -178,7 +208,7 @@ try {
     console.log('Create task...');
     tasks.createTask(body, opts).then((result) => {
         console.log('task created', result.data.gid);
-        //return createStory(client, result.data.gid, comment, true);
+        // return createStory(client, result.data.gid, comment, true);
     });
 } catch (error) {
     console.error('rejecting promise', error);
