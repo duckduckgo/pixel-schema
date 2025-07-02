@@ -131,8 +131,7 @@ $ npm run validate-ddg-pixel-defs
 ```
 Note:
 * If formatting errors are found, you can fix them with `npm run lint.fix`
-* You can check pixel owner names against a valid list of [Github user ids](https://github.com/duckduckgo/internal-github-asana-utils/blob/main/user_map.yml) with the --githubUserMap option (Example: 
--- --githubUserMap=<path to user_map.yml> )
+* You can check pixel owner names against a valid list of [Github user ids](https://github.com/duckduckgo/internal-github-asana-utils/blob/main/user_map.yml) with the --githubUserMap option 
 * For schema validation failures, check the output and apply fixes manually
 * You can also (re)validate a single file: 
     * Schema validation: `npx validate-ddg-pixel-defs . -f ${path to file relative to PackageFolder/pixels/ directory}`
