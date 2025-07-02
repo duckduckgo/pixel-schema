@@ -7,12 +7,10 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import asana from 'asana';
 
-// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 
+// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml
 
 // import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
 import yaml from 'js-yaml';
-
-
 
 const USER_MAP_YAML = 'user_map.yml';
 
@@ -76,36 +74,30 @@ function buildMaps(mainDir, userMapFile) {
         console.log(`...Reading pixel def file: ${fullPath}`);
         numDefFiles++;
         const pixelsDefs = JSON5.parse(fs.readFileSync(fullPath).toString());
-        
+
         for (const [name, def] of Object.entries(pixelsDefs)) {
-    
             pixelMap.set(name, {
                 owners: [def.owners],
                 documented: true,
                 numPasses: 0,
                 numFailures: 0,
-                numAppVersionOutOfDate: 0
+                numAppVersionOutOfDate: 0,
             });
         }
 
         getPixelOwners(pixelsDefs).forEach((pixel) => {
-
-            
             if (userMap[pixel.owner]) {
-
                 if (ownerMap.has(pixel.owner)) {
                     const existingEntry = ownerMap.get(pixel.owner);
                     if (!existingEntry.pixels.includes(pixel.name)) {
                         existingEntry.pixels.push(pixel.name);
                     }
-
                 } else {
                     ownerMap.set(pixel.owner, {
                         asanaId: userMap[pixel.owner].asanaId,
-                        pixels: [pixel.name]
+                        pixels: [pixel.name],
                     });
                 }
-                
             } else {
                 console.log(`...Invalid pixel owner: ${pixel.owner} for pixel: ${pixel.name}`);
             }
@@ -118,7 +110,6 @@ function buildMaps(mainDir, userMapFile) {
     console.log(`Found ${ownerMap.size} unique owners in pixel definitions.`);
     console.log(JSON.stringify(Array.from(ownerMap), null, 4));
     console.log(JSON.stringify(Array.from(pixelMap), null, 4));
-
 }
 
 console.log(`YamlFile ${argv.yamlFile}`);
@@ -126,7 +117,7 @@ console.log(`YamlFile ${argv.yamlFile}`);
 // Build the maps of pixel owners and pixels from the Pixel defintion files
 buildMaps(argv.dirPath, argv.yamlFile);
 
-// console.log(ownerMap.get('user').asanaId); 
+// console.log(ownerMap.get('user').asanaId);
 
 // Now read through the live pixel data and update the pixelMap with the live data
 // including data on undocumented pixels
@@ -137,18 +128,16 @@ buildMaps(argv.dirPath, argv.yamlFile);
 
 // Make a repo level report
 
-
 const client = asana.ApiClient.instance;
 const token = client.authentications.token;
 
 // Get the access token from environment variable
 // This should not be checked in to repo
-token.accessToken = process.env.ASANA_ACCESS_TOKEN; 
+token.accessToken = process.env.ASANA_ACCESS_TOKEN;
 
 // Get these from environment variables too - how do we feel about checking these in?
 const workspaceId = process.env.ASANA_DDG_WORKSPACE_ID;
 const pixelValidationProject = process.env.ASANA_PIXEL_VALIDATION_PROJECT;
-
 
 console.log('Access Token: ' + token.accessToken);
 console.log('Workspace ID: ' + workspaceId);
@@ -156,13 +145,14 @@ console.log('Pixel Validation Project: ' + pixelValidationProject);
 
 // const opts = {};
 
-
 const tasks = new asana.TasksApi();
 
-
+// TODO: Read asana_notify.json file to get the list of users who want to be notified of pixel errors
 const userGID1 = '1202818073638528';
 const userGID2 = '1202096681718068';
-// const userGID = ownerMap.get('jmatthews').asanaId; // Get the Asana ID for the user from the ownerMap  
+const followers = [userGID1, userGID2];
+
+// const userGID = ownerMap.get('jmatthews').asanaId; // Get the Asana ID for the user from the ownerMap
 
 // https://developers.asana.com/reference/createtask
 /* 
@@ -180,7 +170,6 @@ const userGID2 = '1202096681718068';
         }
       }
     ],
-    "html_notes": "<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>",
     "attachments": [
       {
         "type": "file",
@@ -195,12 +184,11 @@ try {
             workspace: workspaceId,
             name: 'New Task Name',
             assignee: userGID1,
-            due_on: '2025-07-08', 
+            due_on: '2025-07-08',
             //     notes: 'This is a sample task created via the Asana API.',
-            html_notes: "<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>",
+            html_notes: '<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>',
             projects: [pixelValidationProject], // Optional: Array of project GIDs to add the task to
-            followers: [userGID1, userGID2], // Optional: Array of user GIDs to add as follower
-
+            followers: [followers], // Optional: Array of user GIDs to add as follower
         },
     };
     const opts = {};
@@ -214,7 +202,6 @@ try {
     console.error('rejecting promise', error);
 }
 
-
 // Move acess token to environment variable
 // const token = process.env.ASANA_ACCESS_TOKEN;
 
@@ -224,7 +211,7 @@ try {
 // REPO, is used, success, errors
 
 // Make an undocumented pixel to stats map
-// REPO, number of times used 
+// REPO, number of times used
 
 // Aggregate stats over all pixels - documented and undocumented
 
@@ -233,5 +220,3 @@ try {
 // Make a repo level report
 
 // Make a per owner level report
-
-

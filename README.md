@@ -30,7 +30,7 @@ RepoSpecificPixelFolder
     --> params_dictionary.json [file that defines commonly used parameters]
     --> suffixes_dictionary.json [file that defines commonly used suffixes]
     --> native_experiments.json [file that defines pixels sent by the native experiments framework]
-    --> notify.json [file that lists users (github user ids) who wish to be regularly notified of pixel errors in this repo]
+    --> asana_notify.json [file that lists users (github user ids) who wish to be regularly notified of pixel errors in this repo]
 ```
 
 You can organize the files and sub-directories within `pixels` however you like, the example above is just one option.
