@@ -5,6 +5,7 @@ import JSON5 from 'json5';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import asana from 'asana';
 
 // npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 
 
@@ -138,5 +139,69 @@ buildMaps(argv.dirPath, argv.yamlFile);
 // Make an overall report
 
 // Make a repo level report
+
+
+const client = asana.ApiClient.instance;
+const token = client.authentications.token;
+
+// Get the access token from environment variable
+// This should not be checked in to repo
+token.accessToken = process.env.ASANA_ACCESS_TOKEN; 
+
+// Get these from environment variables too - how do we feel about checking these in?
+const workspaceId = process.env.ASANA_DDG_WORKSPACE_ID;
+const pixelValidationProject = process.env.ASANA_PIXEL_VALIDATION_PROJECT;
+
+
+console.log('Access Token: ' + token.accessToken);
+console.log('Workspace ID: ' + workspaceId);
+console.log('Pixel Validation Project: ' + pixelValidationProject);
+
+const opts = {};
+
+
+const tasks = new asana.TasksApi();
+
+
+try {
+    const body = {
+        data: {
+            workspace: workspaceId,
+            name: 'New Task Name',
+            notes: 'This is a sample task created via the Asana API.',
+            projects: [pixelValidationProject], // Optional: Array of project GIDs to add the task to
+
+        },
+    };
+    const opts = {};
+
+    console.log('Create task...');
+    tasks.createTask(body, opts).then((result) => {
+        console.log('task created', result.data.gid);
+        //return createStory(client, result.data.gid, comment, true);
+    });
+} catch (error) {
+    console.error('rejecting promise', error);
+}
+
+
+// Move acess token to environment variable
+// const token = process.env.ASANA_ACCESS_TOKEN;
+
+// Make a owner to pixel map
+
+// Make a documented pixel to stats map
+// REPO, is used, success, errors
+
+// Make an undocumented pixel to stats map
+// REPO, number of times used 
+
+// Aggregate stats over all pixels - documented and undocumented
+
+// Make an overall report
+
+// Make a repo level report
+
+// Make a per owner level report
 
 
