@@ -353,7 +353,27 @@ export class LivePixelsValidator {
         return true;
     }
 
-    getPixelErrors(prefix) {
-        return JSON.stringify(this.pixelErrors[prefix], null, 4);
+    // numExamples is -1 if all errors should be returned
+    getSamplePixelErrors(prefix, numExamples) {
+        // return JSON.stringify(this.pixelErrors[prefix], null, 4);
+        if (!this.pixelErrors[prefix]) {
+            return [];
+        }
+        const errors = [];
+        for (const [errorType, examples] of Object.entries(this.pixelErrors[prefix])) {
+            if (numExamples === -1) {
+                errors.push({
+                    type: errorType,
+                    examples: Array.from(examples),
+                });
+            } else {
+                errors.push({
+                    type: errorType,
+                    examples: Array.from(examples).slice(0, numExamples),
+                });
+            }
+        }
+
+        return errors;
     }
 }

@@ -20,6 +20,9 @@ import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 // import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
 import yaml from 'js-yaml';
 
+// Set to -1 to keep all errors
+// const NUM_EXAMPLE_ERRORS = 5;
+
 // TODO
 // import { PIXELS_TMP_CSV } from '../constants.mjs';
 const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
@@ -109,6 +112,7 @@ function buildMapsFromPixelDefs(mainDir, userMapFile) {
                 numFailures: 0,
                 numAppVersionOutOfDate: 0,
                 numAccesses: 0,
+                sampleErrors: [],
             });
         }
 
@@ -298,9 +302,8 @@ async function validateLivePixels(mainDir, csvFile) {
                         }
                     }
                     if (pixelData.numFailures > 0) {
-                        pixelMap.set(pixelName, {
-                            errors: liveValidator.getPixelErrors(pixelName),
-                        });
+                        // pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
+                        pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, 5);
                     }
                 });
                 console.log(
@@ -374,6 +377,7 @@ async function validateLivePixels(mainDir, csvFile) {
     });
 }
 
+// TODO
 function setReplacer(_, value) {
     if (value instanceof Set) {
         if (KEEP_ALL_ERRORS) {
@@ -392,6 +396,8 @@ async function main() {
         console.error(`Acceptable pixel owner file ${argv.yamlFile} does not exist!`);
         process.exit(1);
     }
+
+    // TODO: Run the tokenizer
 
     // Build the maps of pixel owners and pixels from the Pixel definition files
     buildMapsFromPixelDefs(argv.dirPath, argv.yamlFile);
@@ -425,7 +431,7 @@ async function main() {
 
     // Generate owner-based reports
     const ownerReports = generateOwnerReports();
-    console.log('Owner Reports:', ownerReports);
+    // console.log('Owner Reports:', ownerReports);
 
     // Create Asana tasks for validation issues
     await createAsanaTasks(ownerReports);
