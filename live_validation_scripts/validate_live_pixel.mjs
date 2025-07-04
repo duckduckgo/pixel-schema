@@ -74,8 +74,6 @@ function main(mainDir, csvFile) {
             pixelSets[ret].add(pixelRequestFormat);
         })
         .on('end', async () => {
-            // Two original output lines; is that part of tests?
-            // Don't remove for now until tests all passing
             console.log(`\nDone.\nTotal pixels processed: ${totalAccesses.toLocaleString('en-US')}`);
             console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${totalAccesses.toLocaleString('en-US')}`);
 

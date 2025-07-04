@@ -6,6 +6,20 @@ import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import asana from 'asana';
+import csv from 'csv-parser';
+
+// Add imports for validation functionality
+import { getArgParserWithCsv } from '../src/args_utils.mjs';
+import { ParamsValidator } from '../src/params_validator.mjs';
+import { LivePixelsValidator, PixelValidationResult, PixelValidationResultString } from '../src/live_pixel_validator.mjs';
+import * as fileUtils from '../src/file_utils.mjs';
+import { PIXEL_DELIMITER } from '../src/constants.mjs';
+import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
+
+// TODO
+//import { PIXELS_TMP_CSV } from '../constants.mjs';
+const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
+
 
 // npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml
 
@@ -16,6 +30,10 @@ const USER_MAP_YAML = 'user_map.yml';
 
 const ownerMap = new Map();
 const pixelMap = new Map();
+
+// Add validation constants
+const KEEP_ALL_ERRORS = false;
+const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
@@ -37,6 +55,15 @@ function getArgParserWithYaml(description, yamlFileDescription) {
                     type: 'string',
                     demandOption: true,
                     default: USER_MAP_YAML,
+                })
+                .option('validate', {
+                    describe: 'Whether to fetch and validate live pixel data',
+                    type: 'boolean',
+                    default: false,
+                })
+                .option('csvFile', {
+                    describe: 'Path to CSV file containing pixels to validate (if not provided, will fetch from ClickHouse)',
+                    type: 'string',
                 });
         })
         .demandOption('dirPath');
@@ -57,7 +84,8 @@ function getPixelOwners(pixelsDefs) {
     }
     return owners;
 }
-function buildMaps(mainDir, userMapFile) {
+
+function buildMapsFromPixelDefs(mainDir, userMapFile) {
     const pixelDir = path.join(mainDir, 'pixels');
     let numDefFiles = 0;
     let numPixels = 0;
@@ -82,6 +110,7 @@ function buildMaps(mainDir, userMapFile) {
                 numPasses: 0,
                 numFailures: 0,
                 numAppVersionOutOfDate: 0,
+                numAccesses: 0,
             });
         }
 
@@ -108,115 +137,436 @@ function buildMaps(mainDir, userMapFile) {
 
     console.log(`Processed ${numDefFiles} pixel definition files with a total of ${numPixels} pixel definitions.`);
     console.log(`Found ${ownerMap.size} unique owners in pixel definitions.`);
+    console.log('BEFORE VALIDATE LIVE PIXELS');
     console.log(JSON.stringify(Array.from(ownerMap), null, 4));
     console.log(JSON.stringify(Array.from(pixelMap), null, 4));
 }
 
-console.log(`YamlFile ${argv.yamlFile}`);
+// Add validation function
+async function validateLivePixels(mainDir, csvFile) {
+    console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
+    
+    // Debug: Check what's in pixelMap at the start
+    console.log('mainDir:', mainDir);
+    console.log(`pixelMap size at start of validation: ${pixelMap.size}`);
+    //console.log(`First few pixelMap entries:`, Array.from(pixelMap.entries()).slice(0, 3));
 
-// Build the maps of pixel owners and pixels from the Pixel defintion files
-buildMaps(argv.dirPath, argv.yamlFile);
+    const productDef = fileUtils.readProductDef(mainDir);
+    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
+    const commonParams = fileUtils.readCommonParams(mainDir);
+    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
+    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
 
-// console.log(ownerMap.get('user').asanaId);
+    const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+    const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+    const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
-// Now read through the live pixel data and update the pixelMap with the live data
-// including data on undocumented pixels
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
-// Aggregate stats over all pixels - documented and undocumented
+    const uniquePixels = new Set();
+    let totalAccesses = 0;
+    let documentedAccesses = 0;
+    let undocumentedAccesses = 0;
 
-// Make an overall report
-
-// Make a repo level report
-
-const client = asana.ApiClient.instance;
-const token = client.authentications.token;
-
-// Get the access token from environment variable
-// This should not be checked in to repo
-token.accessToken = process.env.ASANA_ACCESS_TOKEN;
-
-// Get these from environment variables too - how do we feel about checking these in?
-const workspaceId = process.env.ASANA_DDG_WORKSPACE_ID;
-const pixelValidationProject = process.env.ASANA_PIXEL_VALIDATION_PROJECT;
-
-console.log('Access Token: ' + token.accessToken);
-console.log('Workspace ID: ' + workspaceId);
-console.log('Pixel Validation Project: ' + pixelValidationProject);
-
-// const opts = {};
-
-const tasks = new asana.TasksApi();
-
-// TODO: Read asana_notify.json file to get the list of users who want to be notified of pixel errors
-const userGID1 = '1202818073638528';
-const userGID2 = '1202096681718068';
-const followers = [userGID1, userGID2];
-
-// const userGID = ownerMap.get('jmatthews').asanaId; // Get the Asana ID for the user from the ownerMap
-
-// https://developers.asana.com/reference/createtask
-/* 
-"memberships": [
-      {
-        "project": {
-          "gid": "12345",
-          "resource_type": "project",
-          "name": "Stuff to buy"
-        },
-        "section": {
-          "gid": "12345",
-          "resource_type": "section",
-          "name": "Next Actions"
-        }
-      }
-    ],
-    "attachments": [
-      {
-        "type": "file",
-        "name": "humboldt.jpg",
-        "url": "https://example.com/humboldt.jpg"
-      }
-    ]
-    */
-try {
-    const body = {
-        data: {
-            workspace: workspaceId,
-            name: 'New Task Name',
-            assignee: userGID1,
-            due_on: '2025-07-08',
-            //     notes: 'This is a sample task created via the Asana API.',
-            html_notes: '<body>Mittens <em>really</em> likes the stuff from Humboldt.</body>',
-            projects: [pixelValidationProject], // Optional: Array of project GIDs to add the task to
-            followers: [followers], // Optional: Array of user GIDs to add as follower
-        },
+    const pixelSets = {
+        [PixelValidationResult.UNDOCUMENTED]: new Set(),
+        [PixelValidationResult.OLD_APP_VERSION]: new Set(),
+        [PixelValidationResult.VALIDATION_FAILED]: new Set(),
+        [PixelValidationResult.VALIDATION_PASSED]: new Set(),
     };
-    const opts = {};
 
-    console.log('Create task...');
-    tasks.createTask(body, opts).then((result) => {
-        console.log('task created', result.data.gid);
-        // return createStory(client, result.data.gid, comment, true);
+    const accessCounts = {
+        [PixelValidationResult.UNDOCUMENTED]: 0,
+        [PixelValidationResult.OLD_APP_VERSION]: 0,
+        [PixelValidationResult.VALIDATION_FAILED]: 0,
+        [PixelValidationResult.VALIDATION_PASSED]: 0,
+    };
+
+    const unusedPixelDefintions = new Set();
+
+    // Update pixelMap with validation results
+    const pixelValidationResults = new Map();
+
+    return new Promise((resolve, reject) => {
+        fs.createReadStream(csvFile)
+            .pipe(csv())
+            .on('data', (row) => {
+                if (totalAccesses % 100000 === 0) {
+                    console.log(`...Processing row ${totalAccesses.toLocaleString('en-US')}...`);
+                }
+                totalAccesses++;
+
+
+                const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
+                const paramsUrlFormat = JSON5.parse(row.params).join('&');
+                let pixelName = liveValidator.getPixelPrefix(pixelRequestFormat);
+                if (pixelName === "") {
+                    // Get tons of pixels with the wrong delimiter
+                    // Example: "email-unsubscribe-mailto"
+                    // Track that as the full pixelRequestFormat rather than just ""
+                    // The case I see the post is email-*
+                    // Worth tracking that special case specifically
+                    if (pixelRequestFormat.startsWith("email")) {
+                        pixelName = "email";
+                    } else {
+                        pixelName = pixelRequestFormat;
+                    }
+                }
+                uniquePixels.add(pixelName);
+
+                const ret = liveValidator.validatePixel(pixelName, paramsUrlFormat);
+
+                if (
+                    ret !== PixelValidationResult.VALIDATION_PASSED &&
+                    ret !== PixelValidationResult.OLD_APP_VERSION &&
+                    ret !== PixelValidationResult.UNDOCUMENTED &&
+                    ret !== PixelValidationResult.VALIDATION_FAILED
+                ) {
+                    console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
+                    process.exit(1);
+                }
+                accessCounts[ret]++;
+                pixelSets[ret].add(pixelName);
+
+                // Track validation results for each pixel
+                if (!pixelValidationResults.has(pixelName)) {
+                    pixelValidationResults.set(pixelName, {
+                        totalAccesses: 0,
+                        passes: 0,
+                        failures: 0,
+                        oldAppVersion: 0,
+                        undocumented: 0,
+                    });
+                }
+                const pixelResult = pixelValidationResults.get(pixelName);
+                pixelResult.totalAccesses++;
+                
+
+                if (!pixelMap.has(pixelName)) {
+                    pixelMap.set(pixelName, {
+                        documented: false,
+                        numAccesses: 0,
+                        numPasses: 0,
+                        numFailures: 0,
+                        numAppVersionOutOfDate: 0,
+                        numUndocumented: 0,
+                    });   
+                }
+
+                    const pixel = pixelMap.get(pixelName);
+                    pixel.numAccesses++;
+                    if (pixel.documented) {
+                        documentedAccesses++;
+                    } else {
+                        undocumentedAccesses++;
+                    }
+
+                    //console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
+                       
+                       
+                    if (ret === PixelValidationResult.VALIDATION_PASSED) {
+                        pixelResult.passes++;
+                        pixel.numPasses++;
+                    } else if (ret === PixelValidationResult.VALIDATION_FAILED) {
+                        pixelResult.failures++;
+                        pixel.numFailures++;
+                    } else if (ret === PixelValidationResult.OLD_APP_VERSION) {
+                        pixelResult.oldAppVersion++;
+                        pixel.numAppVersionOutOfDate++;
+                    } else if (ret === PixelValidationResult.UNDOCUMENTED) {
+                        pixelResult.undocumented++;
+                        pixel.numUndocumented++;
+                    } else {
+                        // console.log(liveValidator.getPixelPrefix(pixelName));
+                        console.error(`UNEXPECTED return ${ret} for ${pixelName}`);
+                        process.exit(1);
+                    }
+                        
+                   
+                
+                
+            })
+            .on('end', async () => {
+                console.log(`\nDone.\n`);
+
+                console.log('Total access counts:', totalAccesses);
+                console.log('Documented accessed:', documentedAccesses);
+                console.log('Undocumented accessed:', undocumentedAccesses);
+                console.log('Total unique pixels:', uniquePixels.size);
+                console.log('Total pixelMap size:', pixelMap.size);
+
+                
+                let pixelDefinitionsUnused = 0;
+                let documentedPixels = 0;
+                pixelMap.forEach((pixelData, pixelName) => {
+                    if (pixelData.documented) {
+                        documentedPixels++;
+                        if (pixelData.numAccesses === 0) {
+                            pixelDefinitionsUnused++;
+                            unusedPixelDefintions.add(pixelName);
+
+                        }
+                    }
+                });
+                console.log(`Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${(pixelDefinitionsUnused / documentedPixels * 100).toFixed(2)}%)`);
+
+                for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
+                    const numUnique = pixelSets[i].size;
+                    const numAccesses = accessCounts[i];
+                    const percentUnique = (numUnique / uniquePixels.size) * 100;
+                    const percentAccessed = (numAccesses / totalAccesses) * 100;
+                    console.log(
+                        `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percent (${percentUnique.toFixed(2)}%)\t accesses ${numAccesses.toLocaleString('en-US')}\t percentAccessed (${percentAccessed.toFixed(2)}%)`,
+                    );
+                }
+
+                // Save validation results
+                try {
+                    fs.writeFileSync(
+                        fileUtils.getUniqueErrorPixelPath(mainDir),
+                        JSON.stringify(Array.from(pixelSets[PixelValidationResult.VALIDATION_FAILED]), null, 4),
+                    );
+                } catch (err) {
+                    if (err instanceof RangeError) {
+                        console.error(
+                            'Error: List of unique pixels with errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                        );
+                    } else {
+                        throw err;
+                    }
+                }
+
+                try {
+                    fs.writeFileSync(
+                        fileUtils.getUndocumentedPixelsPath(mainDir),
+                        JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
+                    );
+                } catch (err) {
+                    if (err instanceof RangeError) {
+                        console.error(
+                            'Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                        );
+                    } else {
+                        throw err;
+                    }
+                }
+
+                try {
+                    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+                } catch (err) {
+                    if (err instanceof RangeError) {
+                        console.error(
+                            'Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+                        );
+                    } else {
+                        throw err;
+                    }
+                }
+
+
+                console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
+
+                resolve({
+                    pixelSets,
+                    accessCounts,
+                    totalAccesses,
+                    uniquePixels: uniquePixels.size,
+                    liveValidator,
+                });
+            })
+            .on('error', reject);
     });
-} catch (error) {
-    console.error('rejecting promise', error);
 }
 
-// Move acess token to environment variable
-// const token = process.env.ASANA_ACCESS_TOKEN;
+function setReplacer(_, value) {
+    if (value instanceof Set) {
+        if (KEEP_ALL_ERRORS) {
+            return Array.from(value);
+        } else {
+            return Array.from(value).slice(0, NUM_EXAMPLE_ERRORS);
+        }
+    }
+    return value;
+}
 
-// Make a owner to pixel map
+// Main execution
+async function main() {
+    console.log(`Acceptable owners yamlFile ${argv.yamlFile}`);
 
-// Make a documented pixel to stats map
-// REPO, is used, success, errors
+    // Build the maps of pixel owners and pixels from the Pixel definition files
+    buildMapsFromPixelDefs(argv.dirPath, argv.yamlFile);
+    
+    console.log(`Number of pixel definitions found: ${pixelMap.size}`);
+    
+   let csvFile = PIXELS_TMP_CSV;
 
-// Make an undocumented pixel to stats map
-// REPO, number of times used
+    if (argv.csvFile) {
+        csvFile = argv.csvFile;
+        console.log(`File exists: ${fs.existsSync(csvFile)}`);
+        if (!fs.existsSync(csvFile)) {
+            console.error(`CSV File ${csvFile} does not exist!`);
+            process.exit(1);
+        }
+        console.log(`Don't fetch from ClickHouse, using ${csvFile}...`);
 
-// Aggregate stats over all pixels - documented and undocumented
+        
+    } else {     
+        console.log('Fetching pixel data from ClickHouse into ${csvFile}...');
+        await preparePixelsCSV(argv.dirPath);
+       
+    }
+    console.log(`Validating pixels from ${csvFile}...`);
+    const validationResults = await validateLivePixels(argv.dirPath, csvFile);
 
-// Make an overall report
+        // Generate validation summary for Asana
+    const validationSummary = generateValidationSummary(validationResults);
+    console.log('Validation Summary:', validationSummary);
+    
 
-// Make a repo level report
+    console.log('AFTER VALIDATE LIVE PIXELS');
+    //console.log(JSON.stringify(Array.from(ownerMap), null, 4));
+    console.log(JSON.stringify(Array.from(pixelMap), null, 4));
+    
+    // Generate owner-based reports
+    //const ownerReports = generateOwnerReports();
+    //console.log('Owner Reports:', ownerReports);
 
-// Make a per owner level report
+    // Create Asana tasks for validation issues
+    //    await createAsanaTasks(ownerReports);
+    
+}
+
+function generateValidationSummary(validationResults) {
+    const { pixelSets, accessCounts, totalAccesses, uniquePixels } = validationResults;
+
+    return {
+        totalAccesses,
+        uniquePixels,
+        validationBreakdown: {
+            [PixelValidationResultString[PixelValidationResult.VALIDATION_PASSED]]: {
+                unique: pixelSets[PixelValidationResult.VALIDATION_PASSED].size,
+                accesses: accessCounts[PixelValidationResult.VALIDATION_PASSED],
+            },
+            [PixelValidationResultString[PixelValidationResult.VALIDATION_FAILED]]: {
+                unique: pixelSets[PixelValidationResult.VALIDATION_FAILED].size,
+                accesses: accessCounts[PixelValidationResult.VALIDATION_FAILED],
+            },
+            [PixelValidationResultString[PixelValidationResult.OLD_APP_VERSION]]: {
+                unique: pixelSets[PixelValidationResult.OLD_APP_VERSION].size,
+                accesses: accessCounts[PixelValidationResult.OLD_APP_VERSION],
+            },
+            [PixelValidationResultString[PixelValidationResult.UNDOCUMENTED]]: {
+                unique: pixelSets[PixelValidationResult.UNDOCUMENTED].size,
+                accesses: accessCounts[PixelValidationResult.UNDOCUMENTED],
+            },
+        },
+    };
+}
+
+function generateOwnerReports() {
+    const ownerReports = [];
+
+    ownerMap.forEach((ownerData, ownerName) => {
+        const ownerPixels = ownerData.pixels;
+        let totalPasses = 0;
+        let totalFailures = 0;
+        let totalOldAppVersion = 0;
+        let documentedPixels = 0;
+        let undocumentedPixels = 0;
+
+        ownerPixels.forEach(pixelName => {
+            const pixel = pixelMap.get(pixelName);
+            if (pixel) {
+                if (pixel.documented) {
+                    documentedPixels++;
+                    totalPasses += pixel.numPasses;
+                    totalFailures += pixel.numFailures;
+                    totalOldAppVersion += pixel.numAppVersionOutOfDate;
+                } else {
+                    undocumentedPixels++;
+                }
+            }
+        });
+
+        ownerReports.push({
+            owner: ownerName,
+            asanaId: ownerData.asanaId,
+            documentedPixels,
+            undocumentedPixels,
+            totalPasses,
+            totalFailures,
+            totalOldAppVersion,
+            failureRate: totalPasses + totalFailures > 0 ? (totalFailures / (totalPasses + totalFailures)) * 100 : 0,
+        });
+    });
+
+    return ownerReports;
+}
+
+async function createAsanaTasks(ownerReports) {
+    const client = asana.ApiClient.instance;
+    const token = client.authentications.token;
+
+    // Get the access token from environment variable
+    token.accessToken = process.env.ASANA_ACCESS_TOKEN;
+
+    // Get these from environment variables too
+    const workspaceId = process.env.ASANA_DDG_WORKSPACE_ID;
+    const pixelValidationProject = process.env.ASANA_PIXEL_VALIDATION_PROJECT;
+
+    console.log('Access Token: ' + token.accessToken);
+    console.log('Workspace ID: ' + workspaceId);
+    console.log('Pixel Validation Project: ' + pixelValidationProject);
+
+    const tasks = new asana.TasksApi();
+
+    // TODO: Read asana_notify.json file to get the list of users who want to be notified of pixel errors
+    const userGID1 = '1202818073638528';
+    const userGID2 = '1202096681718068';
+    const followers = [userGID1, userGID2];
+
+    // Create tasks for owners with validation issues
+    for (const report of ownerReports) {
+        if (report.totalFailures > 0 || report.undocumentedPixels > 0) {
+            const taskName = `Pixel Validation Issues for ${report.owner}`;
+            const taskNotes = `
+                <body>
+                    <h3>Pixel Validation Report for ${report.owner}</h3>
+                    <ul>
+                        <li><strong>Documented Pixels:</strong> ${report.documentedPixels}</li>
+                        <li><strong>Undocumented Pixels:</strong> ${report.undocumentedPixels}</li>
+                        <li><strong>Total Passes:</strong> ${report.totalPasses}</li>
+                        <li><strong>Total Failures:</strong> ${report.totalFailures}</li>
+                        <li><strong>Old App Version:</strong> ${report.totalOldAppVersion}</li>
+                        <li><strong>Failure Rate:</strong> ${report.failureRate.toFixed(2)}%</li>
+                    </ul>
+                </body>
+            `;
+
+            try {
+                const body = {
+                    data: {
+                        workspace: workspaceId,
+                        name: taskName,
+                        assignee: report.asanaId,
+                        due_on: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+                        html_notes: taskNotes,
+                        projects: [pixelValidationProject],
+                        followers: [followers],
+                    },
+                };
+                const opts = {};
+
+                console.log(`Creating task for ${report.owner}...`);
+                const result = await tasks.createTask(body, opts);
+                console.log(`Task created for ${report.owner}: ${result.data.gid}`);
+            } catch (error) {
+                console.error(`Error creating task for ${report.owner}:`, error);
+            }
+        }
+    }
+}
+
+// Run the main function
+main().catch(console.error);

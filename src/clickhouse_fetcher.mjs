@@ -42,10 +42,22 @@ function populateTempTable(tokenizedPixels, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
-    const currentDate = new Date();
+    // This will get the current time as well
+    let currentDate = new Date();
+
+    // This sets the time to midnight so we get full days starting at midnight
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+
+    console.log(`Current date ${currentDate.toISOString().split('T')[0]}`);
+
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
     /* eslint-disable no-unmodified-loop-condition */
-    while (pastDate <= currentDate) {
+
+    // Audit DAYS_TO_FETCH full days, not including the current day
+    // Will get more repeatable results run to run if we don't include current day
+    // because the current day is still changing
+
+    while (pastDate < currentDate) {
         const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
             WITH extractURLParameters(request) AS params
             SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+=?$'), params) AS filtered_params
@@ -59,6 +71,7 @@ function populateTempTable(tokenizedPixels, productDef) {
 
         console.log(`...Executing query ${queryString}`);
         console.log(`\t...With params ${params}`);
+        console.log(`\t...With date ${pastDate.toISOString().split('T')[0]}`);
 
         const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString, params]));
         const resultErr = clickhouseQuery.stderr.toString();

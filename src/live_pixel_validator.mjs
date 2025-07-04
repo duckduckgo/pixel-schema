@@ -221,6 +221,32 @@ export class LivePixelsValidator {
     }
 
     /**
+     * @param {String} pixel
+     * @returns {String} prefix of pixel
+     */
+    getPixelPrefix(pixel) {
+
+        if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
+            const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
+            return pixelParts[0]+ PIXEL_DELIMITER + pixelParts[1]+ PIXEL_DELIMITER + pixelParts[2];
+        }
+        const pixelParts = pixel.split(PIXEL_DELIMITER);
+        let pixelMatch = this.#compiledPixels;
+        let matchedParts = '';
+        for (let i = 0; i < pixelParts.length; i++) {
+            const part = pixelParts[i];
+            if (pixelMatch[part]) {
+                pixelMatch = pixelMatch[part];
+                matchedParts += part + PIXEL_DELIMITER;
+            } else {
+                break;
+            }
+        }
+        return matchedParts.slice(0, -1);
+        //return pixelParts.slice(0, -1).join(PIXEL_DELIMITER);
+    }
+
+     /**
      * Validates pixel against saved schema and saves any errors
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
