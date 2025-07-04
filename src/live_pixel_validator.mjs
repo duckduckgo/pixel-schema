@@ -3,6 +3,7 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
+import { getPixelErrorsPath } from './file_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -339,4 +340,9 @@ export class LivePixelsValidator {
         // Errors were found
         return true;
     }
+
+    getPixelErrors(prefix) {
+        return JSON.stringify(this.pixelErrors[prefix], null, 4);
+    }
 }
+

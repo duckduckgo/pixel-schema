@@ -254,34 +254,34 @@ async function validateLivePixels(mainDir, csvFile) {
                     });   
                 }
 
-                    const pixel = pixelMap.get(pixelName);
-                    pixel.numAccesses++;
-                    if (pixel.documented) {
-                        documentedAccesses++;
-                    } else {
-                        undocumentedAccesses++;
-                    }
+                const pixel = pixelMap.get(pixelName);
+                pixel.numAccesses++;
+                if (pixel.documented) {
+                    documentedAccesses++;
+                } else {
+                    undocumentedAccesses++;
+                }
 
-                    //console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
+                //console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
                        
                        
-                    if (ret === PixelValidationResult.VALIDATION_PASSED) {
-                        pixelResult.passes++;
-                        pixel.numPasses++;
-                    } else if (ret === PixelValidationResult.VALIDATION_FAILED) {
-                        pixelResult.failures++;
-                        pixel.numFailures++;
-                    } else if (ret === PixelValidationResult.OLD_APP_VERSION) {
-                        pixelResult.oldAppVersion++;
-                        pixel.numAppVersionOutOfDate++;
-                    } else if (ret === PixelValidationResult.UNDOCUMENTED) {
-                        pixelResult.undocumented++;
-                        pixel.numUndocumented++;
-                    } else {
-                        // console.log(liveValidator.getPixelPrefix(pixelName));
-                        console.error(`UNEXPECTED return ${ret} for ${pixelName}`);
-                        process.exit(1);
-                    }
+                if (ret === PixelValidationResult.VALIDATION_PASSED) {
+                    pixelResult.passes++;
+                    pixel.numPasses++;
+                } else if (ret === PixelValidationResult.VALIDATION_FAILED) {
+                    pixelResult.failures++;
+                    pixel.numFailures++;
+                } else if (ret === PixelValidationResult.OLD_APP_VERSION) {
+                    pixelResult.oldAppVersion++;
+                    pixel.numAppVersionOutOfDate++;
+                } else if (ret === PixelValidationResult.UNDOCUMENTED) {
+                    pixelResult.undocumented++;
+                    pixel.numUndocumented++;
+                } else {
+                    // console.log(liveValidator.getPixelPrefix(pixelName));
+                    console.error(`UNEXPECTED return ${ret} for ${pixelName}`);
+                    process.exit(1);
+                }
                         
                    
                 
@@ -307,6 +307,11 @@ async function validateLivePixels(mainDir, csvFile) {
                             unusedPixelDefintions.add(pixelName);
 
                         }
+                    }
+                    if (pixelData.numFailures > 0) {
+                        pixelMap.set(pixelName, {
+                            errors: liveValidator.getPixelErrors(pixelName),
+                        });   
                     }
                 });
                 console.log(`Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${(pixelDefinitionsUnused / documentedPixels * 100).toFixed(2)}%)`);
@@ -393,6 +398,10 @@ function setReplacer(_, value) {
 // Main execution
 async function main() {
     console.log(`Acceptable owners yamlFile ${argv.yamlFile}`);
+    if (!fs.existsSync(argv.yamlFile)) {
+        console.error(`Acceptable pixel owner file ${argv.yamlFile} does not exist!`);
+        process.exit(1);
+    }
 
     // Build the maps of pixel owners and pixels from the Pixel definition files
     buildMapsFromPixelDefs(argv.dirPath, argv.yamlFile);
@@ -408,11 +417,11 @@ async function main() {
             console.error(`CSV File ${csvFile} does not exist!`);
             process.exit(1);
         }
-        console.log(`Don't fetch from ClickHouse, using ${csvFile}...`);
+        console.log(`Don't fetch from ClickHouse, using pixel accessdata from${csvFile}...`);
 
         
     } else {     
-        console.log('Fetching pixel data from ClickHouse into ${csvFile}...');
+        console.log('Fetching live pixel data from ClickHouse into ${csvFile}...');
         await preparePixelsCSV(argv.dirPath);
        
     }
