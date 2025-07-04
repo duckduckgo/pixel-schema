@@ -5,7 +5,7 @@ import JSON5 from 'json5';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import asana from 'asana';
+// import asana from 'asana';
 import csv from 'csv-parser';
 
 // Add imports for validation functionality
@@ -430,11 +430,11 @@ async function main() {
     console.log(JSON.stringify(Array.from(pixelMap), null, 4));
 
     // Generate owner-based reports
-    const ownerReports = generateOwnerReports();
+    // const ownerReports = generateOwnerReports();
     // console.log('Owner Reports:', ownerReports);
 
     // Create Asana tasks for validation issues
-    await createAsanaTasks(ownerReports);
+    // await createAsanaTasks(ownerReports);
 }
 
 function generateValidationSummary(validationResults) {
@@ -463,7 +463,7 @@ function generateValidationSummary(validationResults) {
         },
     };
 }
-
+/* 
 function generateOwnerReports() {
     const ownerReports = [];
 
@@ -503,7 +503,8 @@ function generateOwnerReports() {
 
     return ownerReports;
 }
-
+*/
+/*
 async function createAsanaTasks(ownerReports) {
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
@@ -567,6 +568,6 @@ async function createAsanaTasks(ownerReports) {
         }
     }
 }
-
+*/
 // Run the main function
 main().catch(console.error);
