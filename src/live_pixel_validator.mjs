@@ -3,7 +3,6 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
-import { getPixelErrorsPath } from './file_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -226,10 +225,9 @@ export class LivePixelsValidator {
      * @returns {String} prefix of pixel
      */
     getPixelPrefix(pixel) {
-
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
-            return pixelParts[0]+ PIXEL_DELIMITER + pixelParts[1]+ PIXEL_DELIMITER + pixelParts[2];
+            return pixelParts[0] + PIXEL_DELIMITER + pixelParts[1] + PIXEL_DELIMITER + pixelParts[2];
         }
         const pixelParts = pixel.split(PIXEL_DELIMITER);
         let pixelMatch = this.#compiledPixels;
@@ -244,10 +242,10 @@ export class LivePixelsValidator {
             }
         }
         return matchedParts.slice(0, -1);
-        //return pixelParts.slice(0, -1).join(PIXEL_DELIMITER);
+        // return pixelParts.slice(0, -1).join(PIXEL_DELIMITER);
     }
 
-     /**
+    /**
      * Validates pixel against saved schema and saves any errors
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
@@ -299,12 +297,23 @@ export class LivePixelsValidator {
             }
         }
 
+        let errorFound = false;
+        let numErrorsFound = 0;
         // 2) Validate regular params
         pixelSchemas.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
+        errorFound = this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
 
+        if (errorFound) {
+            numErrorsFound++;
+        }
         // 3) Validate suffixes if they exist
-        if (pixel.length === prefix.length) return PixelValidationResult.VALIDATION_PASSED;
+        if (pixel.length === prefix.length) {
+            if (numErrorsFound > 0) {
+                return PixelValidationResult.VALIDATION_FAILED;
+            } else {
+                return PixelValidationResult.VALIDATION_PASSED;
+            }
+        }
 
         const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
         const pixelNameStruct = {};
@@ -312,9 +321,12 @@ export class LivePixelsValidator {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);
-        const errorFound = this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
+        errorFound = this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
 
         if (errorFound) {
+            numErrorsFound++;
+        }
+        if (numErrorsFound > 0) {
             return PixelValidationResult.VALIDATION_FAILED;
         }
         return PixelValidationResult.VALIDATION_PASSED;
@@ -345,4 +357,3 @@ export class LivePixelsValidator {
         return JSON.stringify(this.pixelErrors[prefix], null, 4);
     }
 }
-

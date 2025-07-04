@@ -9,22 +9,20 @@ import asana from 'asana';
 import csv from 'csv-parser';
 
 // Add imports for validation functionality
-import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator, PixelValidationResult, PixelValidationResultString } from '../src/live_pixel_validator.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
-// TODO
-//import { PIXELS_TMP_CSV } from '../constants.mjs';
-const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
-
-
 // npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml
 
 // import { getPixelOwnerErrorsPath, getInvalidOwnersPath } from '../src/file_utils.mjs';
 import yaml from 'js-yaml';
+
+// TODO
+// import { PIXELS_TMP_CSV } from '../constants.mjs';
+const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
 
 const USER_MAP_YAML = 'user_map.yml';
 
@@ -145,11 +143,11 @@ function buildMapsFromPixelDefs(mainDir, userMapFile) {
 // Add validation function
 async function validateLivePixels(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
-    
+
     // Debug: Check what's in pixelMap at the start
     console.log('mainDir:', mainDir);
     console.log(`pixelMap size at start of validation: ${pixelMap.size}`);
-    //console.log(`First few pixelMap entries:`, Array.from(pixelMap.entries()).slice(0, 3));
+    // console.log(`First few pixelMap entries:`, Array.from(pixelMap.entries()).slice(0, 3));
 
     const productDef = fileUtils.readProductDef(mainDir);
     const experimentsDef = fileUtils.readExperimentsDef(mainDir);
@@ -197,18 +195,17 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
                 totalAccesses++;
 
-
                 const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
                 const paramsUrlFormat = JSON5.parse(row.params).join('&');
                 let pixelName = liveValidator.getPixelPrefix(pixelRequestFormat);
-                if (pixelName === "") {
+                if (pixelName === '') {
                     // Get tons of pixels with the wrong delimiter
                     // Example: "email-unsubscribe-mailto"
                     // Track that as the full pixelRequestFormat rather than just ""
                     // The case I see the post is email-*
                     // Worth tracking that special case specifically
-                    if (pixelRequestFormat.startsWith("email")) {
-                        pixelName = "email";
+                    if (pixelRequestFormat.startsWith('email')) {
+                        pixelName = 'email';
                     } else {
                         pixelName = pixelRequestFormat;
                     }
@@ -241,7 +238,6 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
                 const pixelResult = pixelValidationResults.get(pixelName);
                 pixelResult.totalAccesses++;
-                
 
                 if (!pixelMap.has(pixelName)) {
                     pixelMap.set(pixelName, {
@@ -251,7 +247,7 @@ async function validateLivePixels(mainDir, csvFile) {
                         numFailures: 0,
                         numAppVersionOutOfDate: 0,
                         numUndocumented: 0,
-                    });   
+                    });
                 }
 
                 const pixel = pixelMap.get(pixelName);
@@ -262,9 +258,8 @@ async function validateLivePixels(mainDir, csvFile) {
                     undocumentedAccesses++;
                 }
 
-                //console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
-                       
-                       
+                // console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
+
                 if (ret === PixelValidationResult.VALIDATION_PASSED) {
                     pixelResult.passes++;
                     pixel.numPasses++;
@@ -282,10 +277,6 @@ async function validateLivePixels(mainDir, csvFile) {
                     console.error(`UNEXPECTED return ${ret} for ${pixelName}`);
                     process.exit(1);
                 }
-                        
-                   
-                
-                
             })
             .on('end', async () => {
                 console.log(`\nDone.\n`);
@@ -296,7 +287,6 @@ async function validateLivePixels(mainDir, csvFile) {
                 console.log('Total unique pixels:', uniquePixels.size);
                 console.log('Total pixelMap size:', pixelMap.size);
 
-                
                 let pixelDefinitionsUnused = 0;
                 let documentedPixels = 0;
                 pixelMap.forEach((pixelData, pixelName) => {
@@ -305,16 +295,17 @@ async function validateLivePixels(mainDir, csvFile) {
                         if (pixelData.numAccesses === 0) {
                             pixelDefinitionsUnused++;
                             unusedPixelDefintions.add(pixelName);
-
                         }
                     }
                     if (pixelData.numFailures > 0) {
                         pixelMap.set(pixelName, {
                             errors: liveValidator.getPixelErrors(pixelName),
-                        });   
+                        });
                     }
                 });
-                console.log(`Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${(pixelDefinitionsUnused / documentedPixels * 100).toFixed(2)}%)`);
+                console.log(
+                    `Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${((pixelDefinitionsUnused / documentedPixels) * 100).toFixed(2)}%)`,
+                );
 
                 for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                     const numUnique = pixelSets[i].size;
@@ -369,7 +360,6 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 }
 
-
                 console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
 
                 resolve({
@@ -405,10 +395,10 @@ async function main() {
 
     // Build the maps of pixel owners and pixels from the Pixel definition files
     buildMapsFromPixelDefs(argv.dirPath, argv.yamlFile);
-    
+
     console.log(`Number of pixel definitions found: ${pixelMap.size}`);
-    
-   let csvFile = PIXELS_TMP_CSV;
+
+    let csvFile = PIXELS_TMP_CSV;
 
     if (argv.csvFile) {
         csvFile = argv.csvFile;
@@ -418,32 +408,27 @@ async function main() {
             process.exit(1);
         }
         console.log(`Don't fetch from ClickHouse, using pixel accessdata from${csvFile}...`);
-
-        
-    } else {     
-        console.log('Fetching live pixel data from ClickHouse into ${csvFile}...');
+    } else {
+        console.log(`Fetching live pixel data from ClickHouse into ${csvFile}...`);
         await preparePixelsCSV(argv.dirPath);
-       
     }
     console.log(`Validating pixels from ${csvFile}...`);
     const validationResults = await validateLivePixels(argv.dirPath, csvFile);
 
-        // Generate validation summary for Asana
+    // Generate validation summary for Asana
     const validationSummary = generateValidationSummary(validationResults);
     console.log('Validation Summary:', validationSummary);
-    
 
     console.log('AFTER VALIDATE LIVE PIXELS');
-    //console.log(JSON.stringify(Array.from(ownerMap), null, 4));
+    // console.log(JSON.stringify(Array.from(ownerMap), null, 4));
     console.log(JSON.stringify(Array.from(pixelMap), null, 4));
-    
+
     // Generate owner-based reports
-    //const ownerReports = generateOwnerReports();
-    //console.log('Owner Reports:', ownerReports);
+    const ownerReports = generateOwnerReports();
+    console.log('Owner Reports:', ownerReports);
 
     // Create Asana tasks for validation issues
-    //    await createAsanaTasks(ownerReports);
-    
+    await createAsanaTasks(ownerReports);
 }
 
 function generateValidationSummary(validationResults) {
@@ -484,7 +469,7 @@ function generateOwnerReports() {
         let documentedPixels = 0;
         let undocumentedPixels = 0;
 
-        ownerPixels.forEach(pixelName => {
+        ownerPixels.forEach((pixelName) => {
             const pixel = pixelMap.get(pixelName);
             if (pixel) {
                 if (pixel.documented) {
