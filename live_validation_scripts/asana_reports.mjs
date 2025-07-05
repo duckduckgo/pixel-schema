@@ -5,7 +5,7 @@ import JSON5 from 'json5';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-// import asana from 'asana';
+import asana from 'asana';
 import csv from 'csv-parser';
 
 // Add imports for validation functionality
@@ -432,9 +432,10 @@ async function main() {
     // Generate owner-based reports
     // const ownerReports = generateOwnerReports();
     // console.log('Owner Reports:', ownerReports);
+    const report = generateValidationSummary(validationResults);
 
     // Create Asana tasks for validation issues
-    // await createAsanaTasks(ownerReports);
+    await createPixelMapAsanaTask(report, validationResults);
 }
 
 function generateValidationSummary(validationResults) {
@@ -504,10 +505,13 @@ function generateOwnerReports() {
     return ownerReports;
 }
 */
-/*
-async function createAsanaTasks(ownerReports) {
+
+async function createPixelMapAsanaTask(report, validationResults) {
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
+
+    const { pixelSets, accessCounts, totalAccesses, uniquePixels } = validationResults;
+
 
     // Get the access token from environment variable
     token.accessToken = process.env.ASANA_ACCESS_TOKEN;
@@ -525,49 +529,250 @@ async function createAsanaTasks(ownerReports) {
     // TODO: Read asana_notify.json file to get the list of users who want to be notified of pixel errors
     const userGID1 = '1202818073638528';
     const userGID2 = '1202096681718068';
-    const followers = [userGID1, userGID2];
+    //const followers = [userGID1, userGID2];
+    const followers = [userGID1];
 
     // Create tasks for owners with validation issues
-    for (const report of ownerReports) {
-        if (report.totalFailures > 0 || report.undocumentedPixels > 0) {
-            const taskName = `Pixel Validation Issues for ${report.owner}`;
-            const taskNotes = `
+    const taskName = `NEW Pixel Validation Report for ${argv.dirPath}`;
+
+    // Generate HTML table for all documented pixels in pixelMap
+    const documentedPixelTableRows = [];
+    let documentedPixelCount = 0;
+    pixelMap.forEach((pixelData, pixelName) => {
+        if (pixelData.documented) {
+            documentedPixelCount++;
+            const row = `
+                    <tr>
+                        <td>${pixelName}</td>
+                        <td>${pixelData.owners ? pixelData.owners.join(', ') : 'No Owner'}</td>
+                        <td>${pixelData.numAccesses}</td>
+                        <td>${pixelData.numAppVersionOutOfDate}</td>
+                        <td>${pixelData.numPasses}</td>
+                        <td>${pixelData.numFailures}</td>
+                        <td>${pixelData.sampleErrors ? pixelData.sampleErrors.length : 0}</td>
+                    </tr>`
+            documentedPixelTableRows.push(row);
+        }
+    });
+
+    //<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; margin-top: 10px;">
+
+   /* const pixelTable = pixelTableRows.length > 0 ? `
+                <h2>All Pixels</h2>
+                <<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; margin-top: 10px;">
+                >    <thead>
+                        <tr style="background-color: #f2f2f2;">
+                            <th>Pixel Name</th>
+                            <th>Documented</th>
+                            <th>Owners</th>
+                            <th>Passes</th>
+                            <th>Failures</th>
+                            <th>Old App Version</th>
+                            <th>Sample Errors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                                    ${pixelTableRows.join('')}
+                    </tbody>
+                </table>` : '<p>No pixels found.</p>';
+*/
+    
+    /* const pixelTable = pixelTableRows.length > 0 ? `
+                <h2>All Pixels</h2>
+                <table>
+                        <tr>
+                            <th>Pixel Name</th>
+                            <th>Documented</th>
+                            <th>Owners</th>
+                            <th>Passes</th>
+                            <th>Failures</th>
+                            <th>Old App Version</th>
+                            <th>Sample Errors</th>
+                        </tr>
+            
+                                    ${pixelTableRows.join('')}
+                </table>` : '<p>No pixels found.</p>';
+    */
+    
+    const documentedPixelTable = documentedPixelTableRows.length > 0 ? `
+                <h2>Documented Pixels</h2>
+                <table>
+                        <tr>
+                            <td>Pixel Name</td>
+                            <td>Owners</td>
+                            <td>Accesses</td>
+                            <td>Old App Version (Unvalidated)</td>
+                            <td>Passes</td>
+                            <td>Failures</td>
+                            <td>Failure Types (See Examples Below)</td>
+                        </tr>
+             ${documentedPixelTableRows.join('')}
+                </table>` : '<p>No pixels found.</p>';
+    
+    
+
+    const undocumentedPixelTableRows = [];
+    let undocumentedPixelCount = 0;
+    pixelMap.forEach((pixelData, pixelName) => {
+        if (!pixelData.documented) {
+            undocumentedPixelCount++;   
+            const row = `
+                    <tr>
+                        <td>${pixelName}</td>
+                        <td>${pixelData.numAccesses}</td>
+                        </tr>`
+            undocumentedPixelTableRows.push(row);
+        }
+    });
+
+    
+    const undocumentedPixelTable = undocumentedPixelTableRows.length > 0 ? `
+                <h2>Undocumented Pixels</h2>
+                <table>
+                        <tr>
+                            <td>Pixel Name</td>
+                            <td>Accesses</td>
+                        </tr>
+             ${undocumentedPixelTableRows.join('')}
+                </table>` : '<p>No pixels found.</p>';
+    /* const taskNotes = `
+    <html>  
                 <body>
-                    <h3>Pixel Validation Report for ${report.owner}</h3>
+                    <h1>Pixel Validation Report for ${argv.dirPath}</h1>
+                    
+                    <h2>Summary:</h2>
                     <ul>
                         <li><strong>Documented Pixels:</strong> ${report.documentedPixels}</li>
                         <li><strong>Undocumented Pixels:</strong> ${report.undocumentedPixels}</li>
                         <li><strong>Total Passes:</strong> ${report.totalPasses}</li>
                         <li><strong>Total Failures:</strong> ${report.totalFailures}</li>
                         <li><strong>Old App Version:</strong> ${report.totalOldAppVersion}</li>
-                        <li><strong>Failure Rate:</strong> ${report.failureRate.toFixed(2)}%</li>
+                    </ul>
+                    
+                    ${pixelTable}
+                </body>
+    </html>`;
+*/
+
+    const taskNotes = `<body>
+                    <h1>Pixel Validation Report for ${argv.dirPath}</h1>
+                    
+                    <h2>Summary</h2>
+                    <table>
+                        <tr>
+                            <td>Documented Pixels</td>
+                            <td>${documentedPixelCount}</td>
+                        </tr>
+                        <tr>
+                            <td>Undocumented Pixels</td>
+                            <td>${undocumentedPixelCount}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Passes</td>
+                            <td>${accessCounts[PixelValidationResult.VALIDATION_PASSED]}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Failures</td>
+                            <td>${accessCounts[PixelValidationResult.VALIDATION_FAILED]}</td>
+                        </tr>
+                        <tr>
+                            <td>Old App Version</td>
+                            <td>${accessCounts[PixelValidationResult.OLD_APP_VERSION]}</td>
+                        </tr>
+                    </table>
+
+                     ${documentedPixelTable}
+                     ${undocumentedPixelTable}
+
+                     <h2>Detailed Pixel Errors</h2>
+                     ${JSON.stringify(Array.from(pixelMap), null, 4)}
+                </body>
+                `;
+    
+    // WORKRS
+    /*const taskNotes = `<body>
+                    <h1>Pixel Validation Report for ${argv.dirPath}</h1>
+                    
+                    <h2>Summary</h2>
+                    <table>
+                        <tr>
+                            <td>Documented Pixels</td>
+                            <td>${report.documentedPixels}</td>
+                        </tr>
+                        <tr>
+                            <td>Undocumented Pixels</td>
+                            <td>${report.undocumentedPixels}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Passes</td>
+                            <td>${report.totalPasses}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Failures</td>
+                            <td>${report.totalFailures}</td>
+                        </tr>
+                        <tr>
+                            <td>Old App Version</td>
+                            <td>${report.totalOldAppVersion}</td>
+                        </tr>
+                    </table>
+                </body>
+                `;
+    // WORKS 
+    /*const taskNotes = `<body>
+                    <h1>Pixel Validation Report for ${argv.dirPath}</h1>
+                    
+                    <h2>Summary:</h2>
+                    <ul>
+                        <li><strong>Documented Pixels:</strong> ${report.documentedPixels}</li>
+                        <li><strong>Undocumented Pixels:</strong> ${report.undocumentedPixels}</li>
+                        <li><strong>Total Passes:</strong> ${report.totalPasses}</li>
+                        <li><strong>Total Failures:</strong> ${report.totalFailures}</li>
+                        <li><strong>Old App Version:</strong> ${report.totalOldAppVersion}</li>
                     </ul>
                 </body>
-            `;
+                `;
+                */
+    
+    // WORKS  - no h3 tag
+   /* const taskNotes = `<body>
+                    <h2>Pixel Validation Report for FOO</h2>
+                    
+                </body>
+                `;
+    */
+    
+    // WORKS 
+    // const taskNotes = `<body> All these new tasks are <em>really</em> getting disorganized</body>`;
 
-            try {
-                const body = {
-                    data: {
-                        workspace: workspaceId,
-                        name: taskName,
-                        assignee: report.asanaId,
-                        due_on: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-                        html_notes: taskNotes,
-                        projects: [pixelValidationProject],
-                        followers: [followers],
-                    },
-                };
-                const opts = {};
 
-                console.log(`Creating task for ${report.owner}...`);
-                const result = await tasks.createTask(body, opts);
-                console.log(`Task created for ${report.owner}: ${result.data.gid}`);
-            } catch (error) {
-                console.error(`Error creating task for ${report.owner}:`, error);
-            }
-        }
+    try {
+        const body = {
+            data: {
+                workspace: workspaceId,
+                name: taskName,
+                //assignee: report.asanaId,
+                due_on: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+                html_notes: taskNotes,
+                text: "TEST",
+                //text: JSON.stringify(Array.from(pixelMap), null, 4),
+                //notes: JSON.stringify(Array.from(pixelMap), null, 4),
+                //notes: taskNotes,
+                projects: [pixelValidationProject],
+                followers: followers,
+            },
+        };
+        const opts = {};
+
+        console.log(`Creating task for ${argv.dirPath}...`);
+        const result = await tasks.createTask(body, opts);
+        console.log(`Task created for ${argv.dirPath}: ${result.data.gid}`);
+    } catch (error) {
+        console.error(`Error creating task for ${argv.dirPath}:`, error);
     }
-}
-*/
+ }
+    
+
+
 // Run the main function
 main().catch(console.error);
