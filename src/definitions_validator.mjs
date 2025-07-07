@@ -18,6 +18,7 @@ const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_s
 const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')).toString());
 const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')).toString());
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
+const journeysSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'journeys_schema.json5')).toString());
 
 /**
  * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
@@ -105,6 +106,19 @@ export class DefinitionsValidator {
     validateSearchExperimentsDefinition(experimentsDef) {
         const ajvExpSchema = this.#ajv.compile(searchExperimentsSchema);
         ajvExpSchema(experimentsDef);
+        return formatAjvErrors(ajvExpSchema.errors);
+    }
+
+    /**
+     * Validates journeys definition
+     *
+     * @param {object} journeysDef should follow the schema defined in journeys_schema.json5
+     * @returns any validation errors
+     */
+    validateJourneysDefinition(journeysDef) {
+        console.log('Validating journeys schema...')
+        const ajvExpSchema = this.#ajv.compile(journeysSchema);
+        ajvExpSchema(journeysDef);
         return formatAjvErrors(ajvExpSchema.errors);
     }
 
