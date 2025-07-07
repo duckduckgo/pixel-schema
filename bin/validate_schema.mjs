@@ -50,7 +50,11 @@ logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefiniti
 const experiments = fileUtils.readExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
 
-// 3) Validate pixels and params
+// 3) Validate journeys
+const journeys = fileUtils.readJourneysDef(mainDir);
+logErrors('ERROR in journeys.json:', validator.validateJourneysDefinition(journeys));
+
+// 4) Validate pixels and params
 function validateFile(file) {
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file));

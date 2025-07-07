@@ -94,6 +94,15 @@ export function readExperimentsDef(mainPixelDir) {
 }
 
 /**
+ * Read journey definitions
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {object} journey definitions
+ */
+export function readJourneysDef(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'journeys.json');
+}
+
+/**
  * Get results directory path and create it if it doesn't exist
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} results directory path

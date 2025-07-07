@@ -1,0 +1,50 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "journeys.schema.json",
+    "title": "Journeys",
+    "description": "A schema for defining journeys (aka wide pixels) which encapsulate a set of traditional pixels for a single round-trip user interaction, API call, etc",
+    "type": "object",
+    "properties": {
+        "defaultSuffixes": {
+            "type": "array",
+            "description": "List of pixel suffix combinations for wide pixels",
+            "items": {
+                "$ref": "suffix.schema.json#/$defs/suffix"
+            }
+        },
+        "journeys": {
+            "type": "object",
+            "description": "List of journeys",
+            "additionalProperties": {
+                "$ref": "#/$defs/journey"
+            }
+        }
+    },
+    "$defs": {
+        "journey": {
+            "type": "object",
+            "required": ["description", "errors", "latency"],
+            "additionalProperties": false,
+            "properties": {
+              "description": {
+                  "type": "string",
+                  "description": "Detailed description of the specific interaction or API call that is instrumented",
+                },
+                "errors": {
+                    "type": "array",
+                    "description": "List of errors for this pixels (if any)",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "latency": {
+                    "type": "array",
+                    "description": "Array of latency buckets, in order of smallest to largest. ex: [10, 100, 1000, 5000]",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    }
+}
