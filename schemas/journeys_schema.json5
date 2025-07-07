@@ -26,9 +26,9 @@
             "required": ["description", "errors", "latency"],
             "additionalProperties": false,
             "properties": {
-              "description": {
-                  "type": "string",
-                  "description": "Detailed description of the specific interaction or API call that is instrumented",
+                "description": {
+                    "type": "string",
+                    "description": "Detailed description of the specific interaction or API call that is instrumented"
                 },
                 "errors": {
                     "type": "array",

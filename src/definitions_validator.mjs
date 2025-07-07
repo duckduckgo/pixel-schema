@@ -74,7 +74,7 @@ export class DefinitionsValidator {
      * @returns any validation errors
      */
     validateExperimentsDefinition(experimentsDef) {
-        console.log('Validating native_experiments schema...')
+        console.log('Validating native_experiments schema...');
         const ajvExpSchema = this.#ajv.compile(experimentsSchema);
         ajvExpSchema(experimentsDef);
         return formatAjvErrors(ajvExpSchema.errors);
@@ -87,7 +87,7 @@ export class DefinitionsValidator {
      * @returns any validation errors
      */
     validateJourneysDefinition(journeysDef) {
-        console.log('Validating journeys schema...')
+        console.log('Validating journeys schema...');
         const ajvExpSchema = this.#ajv.compile(journeysSchema);
         ajvExpSchema(journeysDef);
         return formatAjvErrors(ajvExpSchema.errors);
