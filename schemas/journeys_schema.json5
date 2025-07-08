@@ -21,6 +21,69 @@
         }
     },
     "$defs": {
+        "global" : {
+            "type": "object",
+            "required": ["id", "platform", "type", "sample_rate"],
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the journey"
+                },
+                "platform": {
+                    "type": "string",
+                    "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"],
+                    "description": "Platform for which the journey is defined"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["app", "web", "mobile"],
+                    "description": "Type of the journey, e.g., app, web, or mobile"
+                },
+                "sample_rate": {
+                    "type": "integer",
+                    "description": "Sample rate for the journey, indicating how often it should be recorded"
+                }
+            },
+            "app": {
+                "type": "object",
+                "required": ["name", "version"],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the application"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "Version of the application"
+                    }
+                }
+            },
+            "feature": {
+                "type": "object",
+                "required": ["name", "status"],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the feature being tracked"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"],
+                        "description": "Status of the feature interaction"
+                    },
+                    "experiment_ids": {
+                        "type": "array",
+                        "description": "List of experiment IDs associated with this feature",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "journey": {
             "type": "object",
             "required": ["description", "errors", "latency"],
@@ -48,3 +111,4 @@
         }
     }
 }
+
