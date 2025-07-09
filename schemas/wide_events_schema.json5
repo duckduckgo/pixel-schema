@@ -23,7 +23,8 @@
     "$defs": {
         "global" : {
             "type": "object",
-            "required": ["id", "platform", "type", "sample_rate"],
+            "description": "Global properties for a journey",
+            "required": ["id", "platform", "type", "sample_rate"], // are all of these required?
             "additionalProperties": false,
             "properties": {
                 "id": {
@@ -45,54 +46,58 @@
                     "description": "Sample rate for the journey, indicating how often it should be recorded"
                 }
             },
-            "app": {
-                "type": "object",
-                "required": ["name", "version"],
-                "additionalProperties": false,
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Name of the application"
-                    },
-                    "version": {
-                        "type": "string",
-                        "description": "Version of the application"
-                    }
-                }
-            },
-            "feature": {
-                "type": "object",
-                "required": ["name", "status"],
-                "additionalProperties": false,
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Name of the feature being tracked"
-                    },
-                    "status": {
-                        "type": "string",
-                        "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"],
-                        "description": "Status of the feature interaction"
-                    },
-                    "experiment_ids": {
-                        "type": "array",
-                        "description": "List of experiment IDs associated with this feature",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
+        },
+        "app": {
+            "type": "object",
+            "description": "Application information for the journey",
+            "required": ["name", "version"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the application"
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Version of the application"
                 }
             }
         },
-        "journey": {
+        "feature": {
             "type": "object",
-            "required": ["description", "errors", "latency"],
+            "description": "Feature being tracked within the journey",
+            "required": ["name", "status", "data"],
             "additionalProperties": false,
             "properties": {
-                "description": {
+                "name": {
                     "type": "string",
-                    "description": "Detailed description of the specific interaction or API call that is instrumented"
+                    "description": "Name of the feature being tracked"
                 },
+                "status": {
+                    "type": "string",
+                    "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"],
+                    "description": "Status of the feature interaction"
+                },
+                "experiment_ids": {
+                    "type": "array",
+                    "description": "List of experiment IDs associated with this feature",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Additional data associated with the feature",
+                    "$ref": "#/$defs/data"
+                }
+            }
+        },
+        "data": {
+            "type": "object",
+            "description": "Data collected for the journey",
+            "required": ["custom"],
+            "additionalProperties": false,
+            "properties": {
                 "errors": {
                     "type": "array",
                     "description": "List of errors for this pixels (if any)",
@@ -106,9 +111,66 @@
                     "items": {
                         "type": "integer"
                     }
+                },
+                "custom": {
+                    "type": "object",
+                    "description": "Custom data points for the journey",
+                    "additionalProperties": true
                 }
+            }
+        },
+        "context": {
+            "type": "object",
+            "description": "Context (aka journey) is a concept that encompasses multiple features. A specific feature may be entered from different context. For example, Import could be triggered by onboarding or by selecting the feature manually.",
+            "required": ["name", "id", "data"], // required or optional?
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the context"
+                },
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the context"
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Additional data associated with the context",
+                    "additionalProperties": true
+                }
+            }
+        },
+        "journey": {
+            "type": "object",
+            "description": "A specific journey that encapsulates a set of traditional pixels for a single round-trip user interaction, API call, etc",
+            "required": ["global", "app", "feature"],
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Detailed description of the specific interaction or API call that is instrumented"
+                },
+                "global": {
+                    "type": "object",
+                    "description": "Global properties for the journey",
+                    "$ref": "#/$defs/global"
+                },
+                "app": {
+                    "type": "object",
+                    "description": "Application information for the journey",
+                    "$ref": "#/$defs/app"
+                },
+                "feature": {
+                    "type": "object",
+                    "description": "Feature being tracked within the journey",
+                    "$ref": "#/$defs/feature"
+                },
+                "context": {
+                    "type": "object",
+                    "description": "Context (aka journey) is a concept that encompasses multiple features. A specific feature may be entered from different context. For example, Import could be triggered by onboarding or by selecting the feature manually.",
+                    "$ref": "#/$defs/context"
+                },
             }
         }
     }
 }
-
