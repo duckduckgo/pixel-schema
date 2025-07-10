@@ -86,7 +86,7 @@ export class DefinitionsValidator {
      * @param {object} journeysDef should follow the schema defined in journeys_schema.json5
      * @returns any validation errors
      */
-    validateJourneysDefinition(journeysDef) {
+    validateJourneysDefinition(journeysDef) { // TBD: validate only the feature.data.custom portion?
         console.log('Validating journeys schema...');
         const ajvExpSchema = this.#ajv.compile(journeysSchema);
         ajvExpSchema(journeysDef);

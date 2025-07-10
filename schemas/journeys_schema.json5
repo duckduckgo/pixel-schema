@@ -42,7 +42,7 @@
                     "description": "Type of the journey, e.g., app, web, or mobile"
                 },
                 "sample_rate": {
-                    "type": "integer",
+                    "type": "number",
                     "description": "Sample rate for the journey, indicating how often it should be recorded"
                 }
             },
@@ -98,14 +98,14 @@
             "required": ["custom"],
             "additionalProperties": false,
             "properties": {
-                "errors": {
+                "error_detail": {
                     "type": "array",
-                    "description": "List of errors for this pixels (if any)",
+                    "description": "List of errors for this operation (if any)",
                     "items": {
                         "type": "string"
                     }
                 },
-                "latency": {
+                "latency_ms_bucketed": {
                     "type": "array",
                     "description": "Array of latency buckets, in order of smallest to largest. ex: [10, 100, 1000, 5000]",
                     "items": {
