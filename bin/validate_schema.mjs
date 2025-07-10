@@ -70,8 +70,9 @@ if (productDef.searchExperimentsEnabled === true) {
 }
 
 // 3) Validate journeys
-const journeys = fileUtils.readJourneysDef(mainDir);
-logErrors('ERROR in journeys.json:', validator.validateJourneysDefinition(journeys));
+// This needs rethinking, we may want to only validate the feature.data.custom part
+// const journeys = fileUtils.readJourneysDef(mainDir);
+// logErrors('ERROR in journeys.json:', validator.validateJourneysDefinition(journeys));
 
 // 4) Validate pixels and params
 function validateFile(file, userMap) {
