@@ -95,7 +95,7 @@
         "data": {
             "type": "object",
             "description": "Data collected for the journey",
-            "required": ["custom"],
+            "required": ["ext"],
             "additionalProperties": false,
             "properties": {
                 "error_detail": {
@@ -112,7 +112,7 @@
                         "type": "integer"
                     }
                 },
-                "custom": {
+                "ext": {
                     "type": "object",
                     "description": "Custom data points for the journey",
                     "additionalProperties": true
