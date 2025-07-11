@@ -127,7 +127,7 @@ If the pixel is temporary, set an expiration date in the `expires` property.
 **Running validation**:
 ```
 $ cd ${PackageFolder}
-$ npm run validate-defs 
+$ npm run validate-defs
 ```
 Note:
 * If formatting errors are found, you can fix them with `npm run lint.fix`
