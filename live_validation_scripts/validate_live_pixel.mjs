@@ -32,7 +32,7 @@ function main(mainDir, csvFile) {
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     const uniquePixels = new Set();
-    let totalAccesses = 0;
+    let totalPixelVariants = 0;
 
     const pixelSets = {
         [PixelValidationResult.UNDOCUMENTED]: new Set(),
@@ -41,7 +41,7 @@ function main(mainDir, csvFile) {
         [PixelValidationResult.VALIDATION_PASSED]: new Set(),
     };
 
-    const accessCounts = {
+    const variantCounts = {
         [PixelValidationResult.UNDOCUMENTED]: 0,
         [PixelValidationResult.OLD_APP_VERSION]: 0,
         [PixelValidationResult.VALIDATION_FAILED]: 0,
@@ -51,9 +51,9 @@ function main(mainDir, csvFile) {
     fs.createReadStream(csvFile)
         .pipe(csv())
         .on('data', (row) => {
-            totalAccesses++;
-            if (totalAccesses % 100000 === 0) {
-                console.log(`...Processing row ${totalAccesses.toLocaleString('en-US')}...`);
+            totalPixelVariants++;
+            if (totalPixelVariants % 100000 === 0) {
+                console.log(`...Processing row ${totalPixelVariants.toLocaleString('en-US')}...`);
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
             const paramsUrlFormat = JSON5.parse(row.params).join('&');
@@ -70,21 +70,21 @@ function main(mainDir, csvFile) {
                 console.error(`Unexpected validation result: ${ret} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
                 process.exit(1);
             }
-            accessCounts[ret]++;
+            variantCounts[ret]++;
             pixelSets[ret].add(pixelRequestFormat);
         })
         .on('end', async () => {
-            console.log(`\nDone.\nTotal pixels processed: ${totalAccesses.toLocaleString('en-US')}`);
-            console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} accesses ${totalAccesses.toLocaleString('en-US')}`);
+            console.log(`\nDone.\nTotal pixels-param variants: ${totalPixelVariants.toLocaleString('en-US')}`);
+            console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} variants ${totalPixelVariants.toLocaleString('en-US')}`);
 
             for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                 const numUnique = pixelSets[i].size;
-                const numAccesses = accessCounts[i];
+                const numVariants = variantCounts[i];
                 const percentUnique = (numUnique / uniquePixels.size) * 100;
-                const percentAccessed = (numAccesses / totalAccesses) * 100;
+                const percentAccessed = (numVariants / totalPixelVariants) * 100;
                 console.log(
-                    // `${PixelValidationResultString[i]} (unique)\t${unique.toLocaleString('en-US')} percent (${percent.toFixed(2)}%) accesses ${stats[PixelValidationResult[i]].toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
-                    `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percent (${percentUnique.toFixed(2)}%)\t accesses ${numAccesses.toLocaleString('en-US')}\t percentAccessed (${percentAccessed.toFixed(2)}%)`,
+                    // `${PixelValidationResultString[i]} (unique)\t${unique.toLocaleString('en-US')} percentUnique (${percent.toFixed(2)}%) variants ${stats[PixelValidationResult[i]].toLocaleString('en-US')} percentAccessed (${percentAccessed.toFixed(2)}%)`,
+                    `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percentUnique (${percentUnique.toFixed(2)}%)\t variants ${numVariants.toLocaleString('en-US')}\t percentVariants (${percentAccessed.toFixed(2)}%)`,
                 );
             }
             // Other stats?
