@@ -21,7 +21,7 @@ pipeline {
         stage('clone duckduckgo-privacy-extension repo ') {
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/add_experiment"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
