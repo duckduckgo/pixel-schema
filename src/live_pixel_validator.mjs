@@ -9,6 +9,20 @@ import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
  */
 
+export const PixelValidationResult = Object.freeze({
+    UNDOCUMENTED: 0,
+    OLD_APP_VERSION: 1,
+    VALIDATION_FAILED: 2,
+    VALIDATION_PASSED: 3,
+});
+
+export const PixelValidationResultString = {
+    [PixelValidationResult.UNDOCUMENTED]: 'Undocumented',
+    [PixelValidationResult.OLD_APP_VERSION]: 'DDG App Version Outdated',
+    [PixelValidationResult.VALIDATION_FAILED]: 'Validation Failed',
+    [PixelValidationResult.VALIDATION_PASSED]: 'Validation Passed',
+};
+
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
@@ -19,7 +33,6 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    undocumentedPixels = new Set();
     pixelErrors = {};
 
     /**
@@ -115,34 +128,34 @@ export class LivePixelsValidator {
     }
 
     validateExperimentPixel(pixel, paramsUrlFormat) {
+        let errorFound = false;
+
         const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
         const pixelPrefixLen = 3;
         if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
-            this.undocumentedPixels.add(pixel);
-            return;
+            return PixelValidationResult.UNDOCUMENTED;
         }
 
         const pixelType = pixelParts[0];
         if (pixelType !== 'enroll' && pixelType !== 'metrics') {
             // Invalid experiment pixel type
-            this.undocumentedPixels.add(pixel);
-            return;
+            return PixelValidationResult.UNDOCUMENTED;
         }
 
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
             this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
-            return;
+            return PixelValidationResult.VALIDATION_FAILED;
         }
 
         // Check cohort
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
             this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
-            return;
+            return PixelValidationResult.VALIDATION_FAILED;
         }
 
         // Check suffixes if they exist
@@ -154,7 +167,9 @@ export class LivePixelsValidator {
                 structIdx++;
             }
             this.#commonExperimentSuffixesSchema(pixelNameStruct);
-            this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
+            if (this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct))) {
+                errorFound = true;
+            }
         }
 
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
@@ -162,18 +177,30 @@ export class LivePixelsValidator {
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
             if (!metric || !metricValue) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
-                return;
+                if (this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`])) {
+                    return PixelValidationResult.VALIDATION_FAILED;
+                } else if (errorFound) {
+                    return PixelValidationResult.VALIDATION_FAILED;
+                } else {
+                    return PixelValidationResult.VALIDATION_PASSED;
+                }
             }
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
-                return;
+                if (this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`])) {
+                    return PixelValidationResult.VALIDATION_FAILED;
+                } else if (errorFound) {
+                    return PixelValidationResult.VALIDATION_FAILED;
+                } else {
+                    return PixelValidationResult.VALIDATION_PASSED;
+                }
             }
 
             metricSchema(metricValue);
-            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+            if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors))) {
+                errorFound = true;
+            }
 
             // Remove metric and value from params for further validation
             delete rawParamsStruct.metric;
@@ -182,7 +209,40 @@ export class LivePixelsValidator {
 
         // Validate enrollmentDate and conversionWindow
         this.#commonExperimentParamsSchema(rawParamsStruct);
-        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors));
+        if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors))) {
+            errorFound = true;
+        }
+
+        if (errorFound) {
+            return PixelValidationResult.VALIDATION_FAILED;
+        }
+
+        return PixelValidationResult.VALIDATION_PASSED;
+    }
+
+    /**
+     * @param {String} pixel
+     * @returns {String} prefix of pixel
+     */
+    getPixelPrefix(pixel) {
+        if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
+            const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
+            return pixelParts[0] + PIXEL_DELIMITER + pixelParts[1] + PIXEL_DELIMITER + pixelParts[2];
+        }
+        const pixelParts = pixel.split(PIXEL_DELIMITER);
+        let pixelMatch = this.#compiledPixels;
+        let matchedParts = '';
+        for (let i = 0; i < pixelParts.length; i++) {
+            const part = pixelParts[i];
+            if (pixelMatch[part]) {
+                pixelMatch = pixelMatch[part];
+                matchedParts += part + PIXEL_DELIMITER;
+            } else {
+                break;
+            }
+        }
+        return matchedParts.slice(0, -1);
+        // return pixelParts.slice(0, -1).join(PIXEL_DELIMITER);
     }
 
     /**
@@ -192,8 +252,7 @@ export class LivePixelsValidator {
      */
     validatePixel(pixel, params) {
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
-            this.validateExperimentPixel(pixel, params);
-            return;
+            return this.validateExperimentPixel(pixel, params);
         }
 
         // Match longest prefix:
@@ -211,12 +270,11 @@ export class LivePixelsValidator {
         }
 
         if (!pixelMatch[ROOT_PREFIX]) {
-            this.undocumentedPixels.add(pixel);
-            return;
+            return PixelValidationResult.UNDOCUMENTED;
         }
 
         const prefix = matchedParts.slice(0, -1);
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        return this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
     }
 
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
@@ -231,16 +289,31 @@ export class LivePixelsValidator {
 
         if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
             if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
-                return [];
+                /*  This is not the latest version of the app
+                    Parameters are sometimes added to pixels in newer versions
+                    Err on side of not flagging this as a failed validation
+                    */
+                return PixelValidationResult.OLD_APP_VERSION;
             }
         }
 
+        let errorFound = false;
+        let numErrorsFound = 0;
         // 2) Validate regular params
         pixelSchemas.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
+        errorFound = this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
 
+        if (errorFound) {
+            numErrorsFound++;
+        }
         // 3) Validate suffixes if they exist
-        if (pixel.length === prefix.length) return;
+        if (pixel.length === prefix.length) {
+            if (numErrorsFound > 0) {
+                return PixelValidationResult.VALIDATION_FAILED;
+            } else {
+                return PixelValidationResult.VALIDATION_PASSED;
+            }
+        }
 
         const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
         const pixelNameStruct = {};
@@ -248,11 +321,22 @@ export class LivePixelsValidator {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);
-        this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
+        errorFound = this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
+
+        if (errorFound) {
+            numErrorsFound++;
+        }
+        if (numErrorsFound > 0) {
+            return PixelValidationResult.VALIDATION_FAILED;
+        }
+        return PixelValidationResult.VALIDATION_PASSED;
     }
 
+    // Reture true if errors were found
+    // Return false if errors were not found
     #saveErrors(prefix, example, errors) {
-        if (!errors.length) return;
+        // No errors found
+        if (!errors.length) return false;
 
         if (!this.pixelErrors[prefix]) {
             this.pixelErrors[prefix] = {};
@@ -264,5 +348,32 @@ export class LivePixelsValidator {
             }
             this.pixelErrors[prefix][error].add(example);
         }
+
+        // Errors were found
+        return true;
+    }
+
+    // numExamples is -1 if all errors should be returned
+    getSamplePixelErrors(prefix, numExamples) {
+        // return JSON.stringify(this.pixelErrors[prefix], null, 4);
+        if (!this.pixelErrors[prefix]) {
+            return [];
+        }
+        const errors = [];
+        for (const [errorType, examples] of Object.entries(this.pixelErrors[prefix])) {
+            if (numExamples === -1) {
+                errors.push({
+                    type: errorType,
+                    examples: Array.from(examples),
+                });
+            } else {
+                errors.push({
+                    type: errorType,
+                    examples: Array.from(examples).slice(0, numExamples),
+                });
+            }
+        }
+
+        return errors;
     }
 }
