@@ -12,7 +12,6 @@ const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');
 const invalidDefsPath = path.join('tests', 'test_data', 'invalid');
 const validUserMapPath = path.join('tests', 'test_data', 'valid', 'user_map.yml');
-const invalidUserMapPath = path.join('tests', 'test_data', 'invalid', 'user_map.yml');
 
 describe('Invalid defs without user map', () => {
     it('should output all required params', (done) => {
@@ -70,7 +69,7 @@ describe('Valid defs without user map', () => {
 
 describe('Valid defs with user map', () => {
     it('should exit normally', (done) => {
-        exec(`npm run validate-ddg-pixel-defs ${validDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
+        exec(`npm run validate-ddg-pixel-defs -- ${validDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
             expect(stderr.length).to.equal(0);
             expect(error).to.equal(null);
 
@@ -81,7 +80,7 @@ describe('Valid defs with user map', () => {
 
 describe('Owners not in user map', () => {
     it('should fail', (done) => {
-        exec(`npm run validate-ddg-pixel-defs ${validDefsPath} -g ${invalidUserMapPath}`, (error, _, stderr) => {
+        exec(`npm run validate-ddg-pixel-defs -- ${validDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
             expect(stderr.length).to.equal(0);
             expect(error).to.equal(null);
 
