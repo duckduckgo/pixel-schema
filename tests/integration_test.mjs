@@ -11,7 +11,10 @@ const validDefsPath = path.join('tests', 'test_data', 'valid');
 const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_results');
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');
 const invalidDefsPath = path.join('tests', 'test_data', 'invalid');
-describe('Invalid defs', () => {
+const validUserMapPath = path.join('tests', 'test_data', 'valid', 'user_map.yml');
+const invalidUserMapPath = path.join('tests', 'test_data', 'invalid', 'user_map.yml');
+
+describe('Invalid defs without user map', () => {
     it('should output all required params', (done) => {
         exec(`npm run validate-ddg-pixel-defs ${invalidDefsPath}`, (error, _, stderr) => {
             const pixelPath = path.join(invalidDefsPath, 'pixels', 'pixels.json');
@@ -34,9 +37,51 @@ describe('Invalid defs', () => {
     }).timeout(timeout);
 });
 
-describe('Valid defs', () => {
+describe('Invalid owner with user map', () => {
+    it('should output error for invalid owner', (done) => {
+        // Careful: We need the -- to pass the -g flag to the script
+        exec(`npm run validate-ddg-pixel-defs -- ${invalidDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
+            const pixelPath = path.join(invalidDefsPath, 'pixels', 'invalid_owner.json');
+
+            // All of these should be present in the output
+            const expectedErrors = [
+                `ERROR in ${pixelPath}: Owner username_not_in_user_map for pixel pixel_with_invalid_owner not in list of acceptable github user names`,
+            ];
+
+            const errors = stderr.trim().split('\n');
+            expect(errors).to.include.members(expectedErrors);
+            expect(error.code).to.equal(1);
+
+            done();
+        });
+    }).timeout(timeout);
+});
+
+describe('Valid defs without user map', () => {
     it('should exit normally', (done) => {
         exec(`npm run validate-ddg-pixel-defs ${validDefsPath}`, (error, _, stderr) => {
+            expect(stderr.length).to.equal(0);
+            expect(error).to.equal(null);
+
+            done();
+        });
+    }).timeout(timeout);
+});
+
+describe('Valid defs with user map', () => {
+    it('should exit normally', (done) => {
+        exec(`npm run validate-ddg-pixel-defs ${validDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
+            expect(stderr.length).to.equal(0);
+            expect(error).to.equal(null);
+
+            done();
+        });
+    }).timeout(timeout);
+});
+
+describe('Owners not in user map', () => {
+    it('should fail', (done) => {
+        exec(`npm run validate-ddg-pixel-defs ${validDefsPath} -g ${invalidUserMapPath}`, (error, _, stderr) => {
             expect(stderr.length).to.equal(0);
             expect(error).to.equal(null);
 

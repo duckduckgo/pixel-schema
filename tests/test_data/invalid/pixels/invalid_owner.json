@@ -1,0 +1,7 @@
+{
+    "pixel_with_invalid_owner": {
+        "description": "Test pixel with invalid owner.",
+        "owners": ["username_not_in_user_map"],
+        "triggers": ["other"]
+    }
+}

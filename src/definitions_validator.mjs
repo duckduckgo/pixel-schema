@@ -106,7 +106,7 @@ export class DefinitionsValidator {
             if (userMap) {
                 for (const owner of pixelDef.owners) {
                     if (!userMap[owner]) {
-                        errors.push(`${pixelName} ${owner}--> Owner not in list of acceptable github user names!`);
+                        errors.push(`Owner ${owner} for pixel ${pixelName} not in list of acceptable github user names`);
                     }
                 }
             }
