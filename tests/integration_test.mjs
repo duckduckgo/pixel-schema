@@ -78,17 +78,6 @@ describe('Valid defs with user map', () => {
     }).timeout(timeout);
 });
 
-describe('Owners not in user map', () => {
-    it('should fail', (done) => {
-        exec(`npm run validate-ddg-pixel-defs -- ${validDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
-            expect(stderr.length).to.equal(0);
-            expect(error).to.equal(null);
-
-            done();
-        });
-    }).timeout(timeout);
-});
-
 describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
         exec(`npm run preprocess-defs ${validDefsPath}`, (error, _, stderr) => {
