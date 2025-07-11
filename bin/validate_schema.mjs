@@ -4,6 +4,7 @@ import fs from 'fs';
 import JSON5 from 'json5';
 import path from 'path';
 import yargs from 'yargs';
+import yaml from 'js-yaml';
 
 import { DefinitionsValidator } from '../src/definitions_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
@@ -24,6 +25,12 @@ const argv = yargs(hideBin(process.argv))
                 return dirPath;
             },
         });
+    })
+    .option('githubUserMap', {
+        alias: 'g',
+        describe: 'Path to the GitHub user map YAML file',
+        type: 'string',
+        demandOption: false,
     })
     .option('file', {
         alias: 'f',
@@ -51,25 +58,38 @@ const experiments = fileUtils.readExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
 
 // 3) Validate pixels and params
-function validateFile(file) {
+function validateFile(file, userMap) {
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file));
-    logErrors(`ERROR in ${file}:`, validator.validatePixelsDefinition(pixelsDef));
+    logErrors(`ERROR in ${file}:`, validator.validatePixelsDefinition(pixelsDef, userMap));
 }
 
-function validateFolder(folder) {
+function validateFolder(folder, userMap) {
     fs.readdirSync(folder, { recursive: true }).forEach((file) => {
         const fullPath = path.join(folder, file);
         if (fs.statSync(fullPath).isDirectory()) {
             return;
         }
 
-        validateFile(fullPath);
+        validateFile(fullPath, userMap);
     });
+}
+let userMap = null;
+
+if (argv.githubUserMap) {
+    console.log(`Reading GitHub user map from: ${argv.githubUserMap}`);
+    try {
+        userMap = yaml.load(fs.readFileSync(argv.githubUserMap, 'utf8'));
+    } catch (error) {
+        console.error(`Error reading GitHub user map from ${argv.githubUserMap}:`, error.message);
+        process.exit(1);
+    }
+} else {
+    console.log('No GitHub user map provided, skipping owner validation.');
 }
 
 if (argv.file) {
-    validateFile(path.join(pixelsDir, argv.file));
+    validateFile(path.join(pixelsDir, argv.file), userMap);
 } else {
-    validateFolder(pixelsDir);
+    validateFolder(pixelsDir, userMap);
 }
