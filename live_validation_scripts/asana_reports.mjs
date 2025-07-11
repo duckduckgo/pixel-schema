@@ -85,7 +85,7 @@ function readAsanaNotifyFile(mainDir) {
         console.error('Error reading asana_notify.json:', error);
         return {};
     }
-}*/
+} */
 
 function getPixelOwners(pixelsDefs) {
     const owners = [];
@@ -463,7 +463,7 @@ async function main() {
     const userMap = readUserMap(argv.yamlFile);
 
    
-    let toNotify = {};
+    const toNotify = {};
     const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
     
     
@@ -493,6 +493,16 @@ async function main() {
     
     console.log(`Validating pixels from ${csvFile}...`);
     const validationResults = await validateLivePixels(argv.dirPath, csvFile);
+
+    // Add pixel owners with errors to the toNotify.followerGIDs list
+    // Not ready to notify pixel owners yet
+    /*
+    validationResults.pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach(pixelName => {
+        const pixel = pixelMap.get(pixelName);
+        if (pixel) {
+            pixel.owners.forEach(owner => {
+                toNotify.followerGIDs.push(owner);
+    */
 
     const validationSummary = generateValidationSummary(validationResults);
 
@@ -575,16 +585,20 @@ async function createAsanaTask(report, validationResults, toNotify) {
 
     const { pixelSets, accessCounts, totalAccesses, uniquePixels } = validationResults;
 
-    // Get the access token from environment variable
-    token.accessToken = process.env.ASANA_ACCESS_TOKEN;
+    try {
+        token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
+        console.log('Access Token: ' + token.accessToken);
+    } catch (error) {
+        console.error('Error reading access token from file:', error);
+        process.exit(1);
+    }
 
-    // Get these from environment variables too
-    const workspaceId = process.env.ASANA_DDG_WORKSPACE_ID;
-    const pixelValidationProject = process.env.ASANA_PIXEL_VALIDATION_PROJECT;
-
+    const DDG_ASANA_WORKSPACEID = '137249556945';
+    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = '1210584574754345';
+        
     console.log('Access Token: ' + token.accessToken);
-    console.log('Workspace ID: ' + workspaceId);
-    console.log('Pixel Validation Project: ' + pixelValidationProject);
+    console.log('Workspace ID: ' + DDG_ASANA_WORKSPACEID);
+    console.log('Pixel Validation Project: ' + DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
     const tasks = new asana.TasksApi();
 
@@ -676,7 +690,7 @@ async function createAsanaTask(report, validationResults, toNotify) {
 
     // ${undocumentedPixelTable}
 
-    //Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures. 
+    // Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures. 
 
     const taskNotes = `<body>
                     <h1>Pixel Validation Report for ${argv.dirPath}</h1>
@@ -759,16 +773,17 @@ async function createAsanaTask(report, validationResults, toNotify) {
         return;     
     }
 
+    const DAYS_UNTIL_DUE = 7;
+    const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     try {
         const taskData = {
-            workspace: workspaceId,
+            workspace: DDG_ASANA_WORKSPACEID,
             name: taskName,
-            due_on: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+            due_on: dueDate, 
             html_notes: taskNotes,
             text: 'TEST',
-            //               attachments: [fileUtils.getPixelErrorsPath(argv.dirPath)],
-            projects: [pixelValidationProject],
+            projects: [DDG_ASANA_PIXEL_VALIDATION_PROJECT],
         };
 
         // Only set assignee if toNotify.assigneeGID exists and is not empty
