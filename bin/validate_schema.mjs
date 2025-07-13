@@ -12,6 +12,8 @@ import { hideBin } from 'yargs/helpers';
 
 import * as fileUtils from '../src/file_utils.mjs';
 
+// Example: node ./bin/validate_schema.mjs ../windows-browser/PixelDefinitions -g ../internal-github-asana-utils/user_map.yml
+
 const argv = yargs(hideBin(process.argv))
     .command('$0 [dirPath]', 'validate pixel definitions', (yargs) => {
         return yargs.positional('dirPath', {
@@ -59,6 +61,11 @@ logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefi
 
 // 3) Validate pixels and params
 function validateFile(file, userMap) {
+    if (file.includes('TEMPLATE')) {
+        console.log(`Skipping template file: ${file}`);
+        return;
+    }
+
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file));
     logErrors(`ERROR in ${file}:`, validator.validatePixelsDefinition(pixelsDef, userMap));
