@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "journeys.schema.json",
-    "title": "Journeys",
-    "description": "A schema for defining journeys (aka wide pixels) which encapsulate a set of traditional pixels for a single round-trip user interaction, API call, etc",
+    "$id": "wide_events.schema.json",
+    "title": "Wide events",
+    "description": "A schema for defining wide events (aka wide pixels) which encapsulate a set of traditional pixels for a single round-trip user interaction, API call, etc",
     "type": "object",
     "properties": {
         "defaultSuffixes": {
@@ -12,44 +12,44 @@
                 "$ref": "suffix.schema.json#/$defs/suffix"
             }
         },
-        "journeys": {
+        "wideEvents": {
             "type": "object",
-            "description": "List of journeys",
+            "description": "List of wide events",
             "additionalProperties": {
-                "$ref": "#/$defs/journey"
+                "$ref": "#/$defs/wideEvent"
             }
         }
     },
     "$defs": {
         "global" : {
             "type": "object",
-            "description": "Global properties for a journey",
-            "required": ["id", "platform", "type", "sample_rate"], // are all of these required?
+            "description": "Global properties for a wide event",
+            "required": ["id", "platform", "type", "sample_rate"],
             "additionalProperties": false,
             "properties": {
                 "id": {
                     "type": "string",
-                    "description": "Unique identifier for the journey"
+                    "description": "Client generated UUID for the wide event"
                 },
                 "platform": {
                     "type": "string",
                     "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"],
-                    "description": "Platform for which the journey is defined"
+                    "description": "Platform for which the wide event is defined"
                 },
                 "type": {
                     "type": "string",
                     "enum": ["app", "web", "mobile"],
-                    "description": "Type of the journey, e.g., app, web, or mobile"
+                    "description": "Type of the wide event, e.g., app, web, or mobile"
                 },
                 "sample_rate": {
                     "type": "number",
-                    "description": "Sample rate for the journey, indicating how often it should be recorded"
+                    "description": "Sample rate for the wide event, indicating how often it should be recorded"
                 }
             },
         },
         "app": {
             "type": "object",
-            "description": "Application information for the journey",
+            "description": "Application information for the wide event",
             "required": ["name", "version"],
             "additionalProperties": false,
             "properties": {
@@ -65,7 +65,7 @@
         },
         "feature": {
             "type": "object",
-            "description": "Feature being tracked within the journey",
+            "description": "Feature being tracked within the wide event",
             "required": ["name", "status", "data"],
             "additionalProperties": false,
             "properties": {
@@ -78,13 +78,6 @@
                     "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"],
                     "description": "Status of the feature interaction"
                 },
-                "experiment_ids": {
-                    "type": "array",
-                    "description": "List of experiment IDs associated with this feature",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "data": {
                     "type": "object",
                     "description": "Additional data associated with the feature",
@@ -94,7 +87,7 @@
         },
         "data": {
             "type": "object",
-            "description": "Data collected for the journey",
+            "description": "Data collected for the wide event",
             "required": ["ext"],
             "additionalProperties": false,
             "properties": {
@@ -103,6 +96,13 @@
                     "description": "List of errors for this operation (if any)",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "total_errors_bucketed": {
+                    "type": "array",
+                    "description": "Count of errors for this operation (if any), bucketed",
+                    "items": {
+                        "type": "integer"
                     }
                 },
                 "latency_ms_bucketed": {
@@ -114,7 +114,7 @@
                 },
                 "ext": {
                     "type": "object",
-                    "description": "Custom data points for the journey",
+                    "description": "Custom data points for the wide event, as defined in product schemas",
                     "additionalProperties": true
                 }
             }
@@ -131,7 +131,7 @@
                 },
                 "id": {
                     "type": "string",
-                    "description": "Unique identifier for the context"
+                    "description": "Client generated UUID for the context"
                 },
                 "data": {
                     "type": "object",
@@ -140,9 +140,9 @@
                 }
             }
         },
-        "journey": {
+        "wideEvent": {
             "type": "object",
-            "description": "A specific journey that encapsulates a set of traditional pixels for a single round-trip user interaction, API call, etc",
+            "description": "A specific wide event that encapsulates a set of traditional pixels for a single round-trip user interaction, API call, etc",
             "required": ["global", "app", "feature"],
             "additionalProperties": false,
             "properties": {
@@ -152,17 +152,17 @@
                 },
                 "global": {
                     "type": "object",
-                    "description": "Global properties for the journey",
+                    "description": "Global properties for the wide event",
                     "$ref": "#/$defs/global"
                 },
                 "app": {
                     "type": "object",
-                    "description": "Application information for the journey",
+                    "description": "Application information for the wide event",
                     "$ref": "#/$defs/app"
                 },
                 "feature": {
                     "type": "object",
-                    "description": "Feature being tracked within the journey",
+                    "description": "Feature being tracked within the wide event",
                     "$ref": "#/$defs/feature"
                 },
                 "context": {
