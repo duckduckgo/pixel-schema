@@ -28,6 +28,8 @@ const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
 const USER_MAP_YAML = 'user_map.yml';
 
 const ownerMap = new Map();
+const allPixelOwners = new Set;
+const pixelOwnersWithErrors = new Set();
 const pixelMap = new Map();
 let numPixelDefinitions = 0;
 let numPixelDefinitionFiles = 0;
@@ -130,7 +132,7 @@ function readPixelDefs(mainDir, userMap) {
 
         for (const [name, def] of Object.entries(pixelsDefs)) {
             pixelMap.set(name, {
-                owners: [def.owners],
+                owners: def.owners || [],
                 documented: true,
                 numPasses: 0,
                 numFailures: 0,
@@ -142,6 +144,8 @@ function readPixelDefs(mainDir, userMap) {
 
         getPixelOwners(pixelsDefs).forEach((pixel) => {
             if (userMap[pixel.owner]) {
+                allPixelOwners.add(pixel.owner);
+                
                 if (ownerMap.has(pixel.owner)) {
                     const existingEntry = ownerMap.get(pixel.owner);
                     if (!existingEntry.pixels.includes(pixel.name)) {
@@ -205,7 +209,7 @@ async function validateLivePixels(mainDir, csvFile) {
         [PixelValidationResult.VALIDATION_PASSED]: new Set(),
     };
 
-    const accessCounts = {
+    const referenceCounts = {
         [PixelValidationResult.UNDOCUMENTED]: 0,
         [PixelValidationResult.OLD_APP_VERSION]: 0,
         [PixelValidationResult.VALIDATION_FAILED]: 0,
@@ -254,7 +258,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
                     process.exit(1);
                 }
-                accessCounts[ret]++;
+                referenceCounts[ret]++;
                 pixelSets[ret].add(pixelName);
 
                 // Track validation results for each pixel
@@ -339,7 +343,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                     const numUnique = pixelSets[i].size;
-                    const numAccesses = accessCounts[i];
+                    const numAccesses = referenceCounts[i];
                     const percentUnique = (numUnique / uniquePixels.size) * 100;
                     const percentAccessed = (numAccesses / totalAccesses) * 100;
                     console.log(
@@ -394,7 +398,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 resolve({
                     pixelSets,
-                    accessCounts,
+                    accessCounts: referenceCounts,
                     totalAccesses,
                     uniquePixels: uniquePixels.size,
                     liveValidator,
@@ -496,15 +500,18 @@ async function main() {
 
     // Add pixel owners with errors to the toNotify.followerGIDs list
     // Not ready to notify pixel owners yet
-    /*
     validationResults.pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach(pixelName => {
         const pixel = pixelMap.get(pixelName);
         if (pixel) {
-            pixel.owners.forEach(owner => {
-                toNotify.followerGIDs.push(owner);
-    */
-
-    const validationSummary = generateValidationSummary(validationResults);
+            if (pixel && Array.isArray(pixel.owners)) {
+                pixel.owners.forEach(owner => {
+                    //console.log(`...Adding pixel owner ${owner} to notification list`);
+                    //toNotify.followerGIDs = toNotify.followerGIDs || [];
+                    pixelOwnersWithErrors.add(owner);
+                });
+            }
+        }
+    });
 
     const report = generateValidationSummary(validationResults);
 
@@ -701,6 +708,9 @@ async function createAsanaTask(report, validationResults, toNotify) {
                     <li> This task summarizes pixel mismatches for ${argv.dirPath}.</li>
                     <li> Processed ${numPixelDefinitions} pixel definitions in ${numPixelDefinitionFiles} files.</li>
                     <li> Audited ${totalAccesses} pixel accesses over the last 7 days. </li>
+                    <li> There are ${allPixelOwners.size} owners of pixels: ${Array.from(new Set(allPixelOwners)).join(', ')}</li>
+                    <li> There are ${pixelOwnersWithErrors.size} owners of pixels with errors: ${Array.from(new Set(pixelOwnersWithErrors)).join(', ')}</li>
+                    <li> See the attachment for detailed error messages. </li>
                     </ul>
 
                     <h2>Summary</h2>
@@ -726,7 +736,7 @@ async function createAsanaTask(report, validationResults, toNotify) {
                         <table>
                         <tr>
                             <td></td>
-                            <td> <strong>Accesses</strong></td>
+                            <td> <strong>References</strong></td>
                             <td> <strong>Unique Pixels </strong></td>
                         </tr>
                         <tr>
