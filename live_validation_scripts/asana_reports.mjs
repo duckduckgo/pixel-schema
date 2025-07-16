@@ -707,10 +707,10 @@ async function createAsanaTask(report, validationResults, toNotify) {
                     <ul>
                     <li> This task summarizes pixel mismatches for ${argv.dirPath}.</li>
                     <li> Processed ${numPixelDefinitions} pixel definitions in ${numPixelDefinitionFiles} files.</li>
-                    <li> Audited ${totalAccesses} pixel accesses over the last 7 days. </li>
+                    <li> Audited ${uniquePixels} unique pixels and ${totalAccesses} pixel-parameter variants over the last 7 days. </li>
                     <li> There are ${allPixelOwners.size} owners of pixels: ${Array.from(new Set(allPixelOwners)).join(', ')}</li>
                     <li> There are ${pixelOwnersWithErrors.size} owners of pixels with errors: ${Array.from(new Set(pixelOwnersWithErrors)).join(', ')}</li>
-                    <li> See the attachment for detailed error messages. </li>
+                    <li> Search for Github username in the attachment to find detailed error messages for each pixel owner. </li>
                     </ul>
 
                     <h2>Summary</h2>
@@ -736,33 +736,38 @@ async function createAsanaTask(report, validationResults, toNotify) {
                         <table>
                         <tr>
                             <td></td>
-                            <td> <strong>References</strong></td>
                             <td> <strong>Unique Pixels </strong></td>
+                            <td> <strong>Unique Pixel-Param Variants</strong></td>
+                            
                         </tr>
                         <tr>
                             <td><strong>Total</strong></td>
-                            <td>${totalAccesses}</td>
                             <td>${uniquePixels}</td>
+                            <td>${totalAccesses}</td>
+                            
                         </tr>
                         <tr>
                             <td> Undocumented (Not Validated)</td>
-                            <td>${accessCounts[PixelValidationResult.UNDOCUMENTED]}</td>
                             <td>${pixelSets[PixelValidationResult.UNDOCUMENTED].size}</td>
-                        </tr>
+                            <td>${accessCounts[PixelValidationResult.UNDOCUMENTED]}</td>
+                                   </tr>
                          <tr>
                             <td>Old App Version (Not Validated)</td>
-                            <td>${accessCounts[PixelValidationResult.OLD_APP_VERSION]}</td>
                             <td>${pixelSets[PixelValidationResult.OLD_APP_VERSION].size}</td>
+                            <td>${accessCounts[PixelValidationResult.OLD_APP_VERSION]}</td>
+                            
                         </tr>
                         <tr>
                             <td><strong>Passes</strong></td>
-                            <td>${accessCounts[PixelValidationResult.VALIDATION_PASSED]} </td>
                             <td> ${pixelSets[PixelValidationResult.VALIDATION_PASSED].size}</td>
+                            <td>${accessCounts[PixelValidationResult.VALIDATION_PASSED]} </td>
+                            
                         </tr>
                         <tr>
                             <td><strong>Failures</strong></td>
-                            <td>${accessCounts[PixelValidationResult.VALIDATION_FAILED]} </td>
                             <td> ${pixelSets[PixelValidationResult.VALIDATION_FAILED].size}</td>
+                            <td>${accessCounts[PixelValidationResult.VALIDATION_FAILED]} </td>
+                            
                         </tr>
                        
                     </table>
