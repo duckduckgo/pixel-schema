@@ -674,7 +674,7 @@ async function createAsanaTask(report, validationResults, toNotify) {
     const pixelsWithErrors = new Set();
     pixelMap.forEach((pixelData, pixelName) => {
         if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-            pixelsWithErrors.add(pixelData, pixelName);
+            pixelsWithErrors.add({ pixelName, pixelData });
         }
     });
 
