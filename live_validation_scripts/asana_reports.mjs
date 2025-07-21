@@ -21,8 +21,9 @@ import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 // npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml
 
 // TODO: pass in repo name and start/end dates
-// TODO: move details into an attachment - too big for the html and also better to delete
 // TODO: run tokenizer
+// TODO: threshold below which we don't report?
+// TODO: what if no live pixels? Do we still create a task?
 
 const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
 const USER_MAP_YAML = 'user_map.yml';
@@ -673,7 +674,7 @@ async function createAsanaTask(report, validationResults, toNotify) {
     const pixelsWithErrors = new Set();
     pixelMap.forEach((pixelData, pixelName) => {
         if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-            pixelsWithErrors.add(pixelData);
+            pixelsWithErrors.add(pixelData, pixelName);
         }
     });
 
