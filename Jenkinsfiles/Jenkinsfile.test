@@ -30,7 +30,7 @@ pipeline {
         stage('clone windows-browser repo with credentials') {
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-4"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-5"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
@@ -75,10 +75,10 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: duckduckgo-privacy-extension ${DATE}" \
+                            --description "V1 Pixel validation report: duckduckgo-privacy-extension ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: duckduckgo-privacy-extension ${DATE}"
+                            "V1 Pixel validation report: duckduckgo-privacy-extension ${DATE}"
                     rm /tmp/${DATE}.txt 
                     rm /tmp/live_pixels.csv 
                     
@@ -107,10 +107,10 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: apple-browsers/macOS ${DATE}" \
+                            --description "V1 Pixel validation report: apple-browsers/macOS ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: apple-browsers/macOS  ${DATE}"
+                            "V1 Pixel validation report: apple-browsers/macOS  ${DATE}"
                     rm /tmp/${DATE}.txt 
                     rm /tmp/live_pixels.csv 
                     
@@ -139,10 +139,10 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: apple-browsers/iOS ${DATE}" \
+                            --description "V1 Pixel validation report: apple-browsers/iOS ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: apple-browsers/iOS  ${DATE}"
+                            "V1 Pixel validation report: apple-browsers/iOS  ${DATE}"
                     rm /tmp/${DATE}.txt 
                     rm /tmp/live_pixels.csv 
                     
@@ -173,10 +173,10 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --attachment /tmp/${DATE}.txt \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Pixel validation report: windows-browser ${DATE}" \
+                            --description "V1 Pixel validation report: windows-browser ${DATE}" \
                             --project_id 1210584574754345 \
                             --no_duplicates \
-                            "Pixel validation report: windows-browser ${DATE}"
+                            "V1 Pixel validation report: windows-browser ${DATE}"
                     rm /tmp/${DATE}.txt
                     rm /tmp/live_pixels.csv 
                     

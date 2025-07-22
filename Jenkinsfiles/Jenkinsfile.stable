@@ -14,7 +14,7 @@ pipeline {
         stage('clone duckduckgo-privacy-extension repo ') {
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-3"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
@@ -23,7 +23,7 @@ pipeline {
         stage('clone windows-browser repo with credentials') {
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-4"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
