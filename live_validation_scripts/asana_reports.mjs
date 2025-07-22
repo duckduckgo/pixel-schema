@@ -18,7 +18,7 @@ import * as fileUtils from '../src/file_utils.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
-// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml
+// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 1210856607616307
 
 // TODO: pass in repo name and start/end dates
 // TODO: run tokenizer
@@ -27,6 +27,9 @@ import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
 const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
 const USER_MAP_YAML = 'user_map.yml';
+const DEFAULT_ASANA_PROJECT_ID = '1210584574754345';
+//Test Pixel Validation Project: 1210584574754345
+//Pixel Validation Project:      1210856607616307
 
 const ownerMap = new Map();
 const allPixelOwners = new Set;
@@ -40,7 +43,7 @@ const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number
 
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
-        .command('$0 dirPath yamlFile', description, (yargs) => {
+        .command('$0 dirPath yamlFile asanaProjectID', description, (yargs) => {
             return yargs
                 .positional('dirPath', {
                     describe: 'path to directory containing the pixels folder and common_[params/suffixes].json in the root',
@@ -58,6 +61,12 @@ function getArgParserWithYaml(description, yamlFileDescription) {
                     type: 'string',
                     demandOption: true,
                     default: USER_MAP_YAML,
+                })
+                .positional('asanaProjectID', {
+                    describe: 'ID of the Asana project to create the task in',
+                    type: 'string',
+                    demandOption: true,
+                    default: DEFAULT_ASANA_PROJECT_ID,
                 })
                 .option('validate', {
                     describe: 'Whether to fetch and validate live pixel data',
@@ -185,17 +194,52 @@ async function validateLivePixels(mainDir, csvFile) {
     console.log(`pixelMap size at start of validation: ${pixelMap.size}`);
     // console.log(`First few pixelMap entries:`, Array.from(pixelMap.entries()).slice(0, 3));
 
-    const productDef = fileUtils.readProductDef(mainDir);
-    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
-    const commonParams = fileUtils.readCommonParams(mainDir);
-    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
-    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
+    let productDef = {};
+    let experimentsDef = {};
+    let commonParams = {};
+    let commonSuffixes = {};
+    let pixelIgnoreParams = {};
+    let globalIgnoreParams = {};
 
-    const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
-    const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+    try {
+
+        productDef = fileUtils.readProductDef(mainDir);
+        experimentsDef = fileUtils.readExperimentsDef(mainDir);
+        commonParams = fileUtils.readCommonParams(mainDir);
+        commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
+       
+        pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+
+        globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+
+    } catch (error) {
+        console.error('Error reading input files:', error);
+        process.exit(1);
+    }
+    
     const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
+
+
+    if (!fileUtils.tokenizedPixelsFileExists(mainDir)) {    
+        console.log(`Error: Tokenized pixels file does not exist`);
+        process.exit(1);
+    } 
+
+
+    let tokenizedPixels = {};
+
+    try {
+
+        tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
+
+    } catch (error) {
+        console.error('Error reading tokenixed pixels file:', error);
+        process.exit(1);
+    }
+
+    
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     const uniquePixels = new Set();
@@ -223,6 +267,12 @@ async function validateLivePixels(mainDir, csvFile) {
     const pixelValidationResults = new Map();
 
     return new Promise((resolve, reject) => {
+
+        // Check if file exists before trying to read it
+        if (!fs.existsSync(csvFile)) {
+            reject(new Error(`CSV file does not exist: ${csvFile}`));
+            return;
+        }
         fs.createReadStream(csvFile)
             .pipe(csv())
             .on('data', (row) => {
@@ -471,6 +521,8 @@ async function main() {
     const toNotify = {};
     const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
     
+    console.log("Asana Project ID: ", argv.asanaProjectID);
+
     
     // Build the maps of pixel owners and pixels from the Pixel definition files
     readPixelDefs(argv.dirPath, userMap);
@@ -478,7 +530,10 @@ async function main() {
     console.log(`Number of pixel definitions found: ${pixelMap.size}`);
 
     // TODO: Run the tokenizer
-
+    if (!fileUtils.tokenizedPixelsFileExists(argv.dirPath)) {
+        console.log(`Error: Tokenized pixels file does not exist`);
+        process.exit(1);
+    } 
 
     let csvFile = PIXELS_TMP_CSV;
 
@@ -492,7 +547,13 @@ async function main() {
         console.log(`Don't fetch from ClickHouse, using pixel accessdata from${csvFile}...`);
     } else {
         console.log(`Fetching live pixel data from ClickHouse into ${csvFile}...`);
-        await preparePixelsCSV(argv.dirPath);
+
+        try{
+            await preparePixelsCSV(argv.dirPath);
+        } catch (error) {
+            console.error('Error preparing pixels CSV:', error);
+            process.exit(1);
+        }
     }
 
     
@@ -516,7 +577,7 @@ async function main() {
 
     const report = generateValidationSummary(validationResults);
 
-    await createAsanaTask(report, validationResults, toNotify);
+    await createAsanaTask(report, validationResults, toNotify, argv.asanaProjectID);
 }
 
 function generateValidationSummary(validationResults) {
@@ -587,7 +648,7 @@ function generateOwnerReports() {
 }
 */
 
-async function createAsanaTask(report, validationResults, toNotify) {
+async function createAsanaTask(report, validationResults, toNotify, asanaProjectID) {
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
 
@@ -595,16 +656,15 @@ async function createAsanaTask(report, validationResults, toNotify) {
 
     try {
         token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
-        console.log('Access Token: ' + token.accessToken);
     } catch (error) {
         console.error('Error reading access token from file:', error);
         process.exit(1);
     }
 
     const DDG_ASANA_WORKSPACEID = '137249556945';
-    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = '1210584574754345';
+    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = asanaProjectID;
         
-    console.log('Access Token: ' + token.accessToken);
+    //console.log('Access Token: ' + token.accessToken);
     console.log('Workspace ID: ' + DDG_ASANA_WORKSPACEID);
     console.log('Pixel Validation Project: ' + DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 

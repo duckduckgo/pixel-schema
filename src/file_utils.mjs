@@ -11,6 +11,23 @@ import { fileURLToPath } from 'url';
 const RESULTS_DIR = 'pixel_processing_results';
 export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
+
+function checkFileExists(filePath) {
+    let resolvedPath = filePath;
+    if (!fs.existsSync(resolvedPath)) {
+        // Try the '.json5' fallback
+        const { dir, name } = path.parse(filePath);
+        const altPath = path.join(dir, `${name}.json5`);
+        if (fs.existsSync(altPath)) {
+            resolvedPath = altPath;
+            return true
+        } else {
+            return false;
+        }
+    } 
+    return true;
+}
+
 /**
  * Attempt to read and parse a file using JSON5. Tries .json
  * first but will try to json5 if missing.
@@ -179,4 +196,9 @@ export function getTokenizedPixelsPath(mainPixelDir) {
  */
 export function readTokenizedPixels(mainPixelDir) {
     return parseFile(getTokenizedPixelsPath(mainPixelDir));
+}
+
+
+export function tokenizedPixelsFileExists(mainPixelDir) {
+    return checkFileExists(getTokenizedPixelsPath(mainPixelDir));
 }

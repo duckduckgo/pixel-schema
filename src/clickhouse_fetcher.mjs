@@ -8,9 +8,22 @@ const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 // TODO Better to pass in start day and end day as parameters
+
+
+// Audit DAYS_TO_FETCH full days in chunks, not including the current day
+// Will get more repeatable results run to run if we don't include current day
+// because the current day is still changing
 const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
 
+
+// Process each day in chunks
+// A full day exceed the memory limit of clickhouse in some cases\
+//recommend an even divisor of 24 - 1,2, 3, 4, 6, 8, 12, 24
+const HOURS_IN_BATCH = 24;
+
 function createTempTable() {
+    //TODO: if table exists already, drop it
+    
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
         (
             \`pixel\` String,
@@ -51,32 +64,44 @@ function populateTempTable(tokenizedPixels, productDef) {
     console.log(`Current date ${currentDate.toISOString().split('T')[0]}`);
 
     const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
+    // Ensure pastDate starts at exactly 0:00:00.000
+    pastDate.setHours(0, 0, 0, 0);
     /* eslint-disable no-unmodified-loop-condition */
 
-    // Audit DAYS_TO_FETCH full days, not including the current day
-    // Will get more repeatable results run to run if we don't include current day
-    // because the current day is still changing
-
+   
     while (pastDate < currentDate) {
-        const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
-            WITH extractURLParameters(request) AS params
-            SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+=?$'), params) AS filtered_params
-            FROM metrics.pixels
-            WHERE (${pixelIDsWhereClause}) 
-            AND (${agentWhereClause})
-            AND request NOT ILIKE '%test=1%'
-            AND date = {pDate:Date}
-            GROUP BY filtered_params;`;
-        const params = `--param_pDate=${pastDate.toISOString().split('T')[0]}`;
+        
+       for (let hour = 0; hour < 24; hour += HOURS_IN_BATCH) {
+            const startTime = new Date(pastDate);
+            startTime.setHours(hour, 0, 0, 0);
+            
+            const endTime = new Date(pastDate);
+            endTime.setHours(hour + HOURS_IN_BATCH, 0, 0, 0);
 
-        console.log(`...Executing query ${queryString}`);
-        console.log(`\t...With params ${params}`);
-        console.log(`\t...With date ${pastDate.toISOString().split('T')[0]}`);
+            const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
+                WITH extractURLParameters(request) AS params
+                SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+=?$'), params) AS filtered_params
+                FROM metrics.pixels
+                WHERE (${pixelIDsWhereClause}) 
+                AND (${agentWhereClause})
+                AND request NOT ILIKE '%test=1%'
+                AND timestamp >= {startTime:DateTime}
+                AND timestamp < {endTime:DateTime}
+                GROUP BY filtered_params;`;
+            
+            const params = [
+                `--param_startTime=${startTime.toISOString().replace('T', ' ').replace('.000Z', '')}`,
+                `--param_endTime=${endTime.toISOString().replace('T', ' ').replace('.000Z', '')}`
+            ];
 
-        const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString, params]));
-        const resultErr = clickhouseQuery.stderr.toString();
-        if (resultErr) {
-            throw new Error(`Error creating table:\n ${resultErr}`);
+            console.log(`...Executing query for ${HOURS_IN_BATCH}-hour chunk: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+            console.log(`\t...With params ${params.join(' ')}`);
+
+            const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString]).concat(params));
+            const resultErr = clickhouseQuery.stderr.toString();
+            if (resultErr) {
+                throw new Error(`Error inserting data for time range ${startTime.toISOString()} to ${endTime.toISOString()}:\n ${resultErr}`);
+            }
         }
 
         pastDate.setDate(pastDate.getDate() + 1);
@@ -86,7 +111,17 @@ function populateTempTable(tokenizedPixels, productDef) {
 
 async function outputTableToCSV() {
     console.log('Preparing CSV');
-
+    
+    // First check if there's any data in the temp table
+    const countQuery = `SELECT COUNT(*) FROM ${TMP_TABLE_NAME};`;
+    const countResult = spawnSync('clickhouse-client', CH_ARGS.concat([countQuery]));
+    const rowCount = parseInt(countResult.stdout.toString().trim());
+    
+    if (rowCount === 0) {
+        console.warn(`Warning: No pixel data found for the specified date range (${DAYS_TO_FETCH} days)`);
+        // Still create the CSV with headers for consistency
+    }
+    
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
         const queryString = `SELECT DISTINCT pixel, params FROM ${TMP_TABLE_NAME};`;
@@ -135,6 +170,7 @@ export async function preparePixelsCSV(mainPixelDir) {
         await outputTableToCSV();
     } catch (err) {
         console.error(err);
+        throw new Error('Error preparing pixels CSV.');
     } finally {
         deleteTempTable();
     }
