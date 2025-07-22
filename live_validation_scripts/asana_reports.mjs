@@ -677,7 +677,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
     const followers = [userGID1];
 
     // Create tasks for owners with validation issues
-    const taskName = `NEW Pixel Validation Report for ${argv.dirPath}`;
+    const taskName = `Pixel Validation Report for ${argv.dirPath}`;
 
     // Generate HTML table for all documented pixels in pixelMap
     const documentedPixelTableRows = [];
