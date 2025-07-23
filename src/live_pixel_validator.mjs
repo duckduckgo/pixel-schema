@@ -35,7 +35,7 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    //TODO: MOVE pixelErrors out to the caller?
+    // TODO: MOVE pixelErrors out to the caller?
     pixelErrors = {};
     currentPixelState = {};
 

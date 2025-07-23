@@ -37,7 +37,7 @@ const pixelOwnersWithErrors = new Set();
 const pixelMap = new Map();
 let numPixelDefinitions = 0;
 let numPixelDefinitionFiles = 0;
-let savedPixelErrors = {};
+const savedPixelErrors = {};
 
 const KEEP_ALL_ERRORS = false;
 const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
@@ -282,19 +282,19 @@ async function validateLivePixels(mainDir, csvFile) {
                     console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
                     process.exit(1);
                 }
-               
+
                 const lastPixelState = liveValidator.getLastPixelState();
-                if (ret != lastPixelState.status) {
+                if (ret !== lastPixelState.status) {
                     console.error(`Return ${ret} should match last pixel status ${lastPixelState.status}`);
                     process.exit(1);
                 }
 
-                if (lastPixelState.status == PixelValidationResult.VALIDATION_FAILED) {
+                if (lastPixelState.status === PixelValidationResult.VALIDATION_FAILED) {
                     if (!savedPixelErrors[lastPixelState.prefix]) {
                         savedPixelErrors[lastPixelState.prefix] = {};
                     }
 
-                    if (!lastPixelState.prefix || lastPixelState.prefix == "") {
+                    if (!lastPixelState.prefix || lastPixelState.prefix === '') {
                         console.error(`Unexpected empty prefix`);
                         process.exit(1);
                     }
@@ -302,7 +302,6 @@ async function validateLivePixels(mainDir, csvFile) {
                         savedPixelErrors[lastPixelState.prefix][lastPixelState.error] = new Set();
                     }
                     savedPixelErrors[lastPixelState.prefix][lastPixelState.error].add(lastPixelState.example);
-
                 }
 
                 referenceCounts[ret]++;
@@ -390,7 +389,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     `Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${((pixelDefinitionsUnused / documentedPixels) * 100).toFixed(2)}%)`,
                 );
 
-                //skip PixelValidationResult.UNDEFINED at 0
+                // skip PixelValidationResult.UNDEFINED at 0
                 for (let i = 1; i < Object.keys(PixelValidationResult).length; i++) {
                     console.log(`PixelValidationResult[${i}]: ${PixelValidationResultString[i]}`);
 
