@@ -853,11 +853,10 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
     console.log(`taskNotes size: ${taskNotesBytes} bytes (${(taskNotesBytes / 1024).toFixed(2)} KB)`);
 
     // Asana docs are not clear on the limit and neither are the error messages
-    // From experience I am guesing the linit is around 35000 bytes, perhaps
+    // From experience I am guesing the limit is around 35000 bytes, perhaps
     // 32000 bytes to be on the safe side.
     if (taskNotesBytes > 32000) {
-        console.error('Details are too large to send to Asana in the task description itself.');
-        return;
+        console.error('Details may be too large to send to Asana in the task description itself.');
     }
 
     // Due date set to when we want to delete any attachments
@@ -903,28 +902,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                 const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
                 fs.writeFileSync(tempFilePath, reportData);
 
-                // Try different attachment methods
-                try {
-                    // Method 1: Try AttachmentsApi with correct method name
-                    const attachmentsApi = new asana.AttachmentsApi();
-
-                    const attachmentData = {
-                        parent: result.data.gid,
-                        name: `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`,
-                    };
-
-                    const fileStream = fs.createReadStream(tempFilePath);
-
-                    // Try the attachment creation
-                    const attachmentResult = await attachmentsApi.createAttachmentForObject(attachmentData, fileStream);
-
-                    console.log(`Attachment created successfully: ${attachmentResult.data.gid}`);
-                } catch (method1Error) {
-                    console.log('Method 1 failed, trying method 2...');
-                    console.log('Method 1 error:', method1Error.message);
-
-                    // Method 2: Try using superagent directly (what Asana client uses under the hood)
-                    const superagent = await import('superagent');
+                const superagent = await import('superagent');
 
                     const attachmentResult = await superagent.default
                         .post('https://app.asana.com/api/1.0/attachments')
@@ -933,16 +911,16 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                         .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
                         .attach('file', tempFilePath);
 
-                    console.log(`Attachment created via method 2: ${attachmentResult.body.data.gid}`);
-                }
-
+                console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+               
                 // Clean up temp file
                 fs.unlinkSync(tempFilePath);
-                console.log(`Attachment added to task for ${argv.dirPath}`);
+               
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
 
+                /*
                 // Fallback: Save locally
                 try {
                     const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
@@ -952,6 +930,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                 } catch (saveError) {
                     console.error(`Error saving pixel errors to file:`, saveError);
                 }
+                */
             }
         }
     } catch (error) {
