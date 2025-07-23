@@ -11,7 +11,6 @@ import { fileURLToPath } from 'url';
 const RESULTS_DIR = 'pixel_processing_results';
 export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
-
 function checkFileExists(filePath) {
     let resolvedPath = filePath;
     if (!fs.existsSync(resolvedPath)) {
@@ -20,11 +19,11 @@ function checkFileExists(filePath) {
         const altPath = path.join(dir, `${name}.json5`);
         if (fs.existsSync(altPath)) {
             resolvedPath = altPath;
-            return true
+            return true;
         } else {
             return false;
         }
-    } 
+    }
     return true;
 }
 
@@ -197,7 +196,6 @@ export function getTokenizedPixelsPath(mainPixelDir) {
 export function readTokenizedPixels(mainPixelDir) {
     return parseFile(getTokenizedPixelsPath(mainPixelDir));
 }
-
 
 export function tokenizedPixelsFileExists(mainPixelDir) {
     return checkFileExists(getTokenizedPixelsPath(mainPixelDir));

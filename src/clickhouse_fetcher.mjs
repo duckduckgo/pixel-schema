@@ -9,8 +9,6 @@ const TMP_TABLE_NAME = 'temp.pixel_validation';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 // TODO Better to pass in start day and end day as parameters
 
-
-
 // Process each day in chunks
 // A full day exceed the memory limit of clickhouse in some cases\
 // recommend an even divisor of 24 - 1,2, 3, 4, 6, 8, 12, 24
@@ -18,7 +16,7 @@ const HOURS_IN_BATCH = 24;
 
 function createTempTable() {
     // TODO: if table exists already, drop it
-    
+
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
         (
             \`pixel\` String,
@@ -43,10 +41,8 @@ function createTempTable() {
  * See tests/test_data/valid/product.json for an example.
  */
 function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
-
     if (startDate > endDate) {
         throw new Error('Start date must be before end date');
-        return;
     }
 
     console.log('Populating table');
@@ -56,14 +52,14 @@ function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
-    let currentDate = startDate;
+    const currentDate = new Date(startDate);
 
+    /* eslint-disable no-unmodified-loop-condition */
     while (currentDate < endDate) {
-        
-       for (let hour = 0; hour < 24; hour += HOURS_IN_BATCH) {
+        for (let hour = 0; hour < 24; hour += HOURS_IN_BATCH) {
             const startTime = new Date(currentDate);
-            //startTime.setHours(hour, 0, 0, 0);
-            
+            startTime.setHours(hour, 0, 0, 0);
+
             const endTime = new Date(currentDate);
             endTime.setHours(hour + HOURS_IN_BATCH, 0, 0, 0);
 
@@ -77,10 +73,10 @@ function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
                 AND timestamp >= {startTime:DateTime}
                 AND timestamp < {endTime:DateTime}
                 GROUP BY filtered_params;`;
-            
+
             const params = [
                 `--param_startTime=${startTime.toISOString().replace('T', ' ').replace('.000Z', '')}`,
-                `--param_endTime=${endTime.toISOString().replace('T', ' ').replace('.000Z', '')}`
+                `--param_endTime=${endTime.toISOString().replace('T', ' ').replace('.000Z', '')}`,
             ];
 
             console.log(`...Executing query for ${HOURS_IN_BATCH}-hour chunk: ${startTime.toISOString()} to ${endTime.toISOString()}`);
@@ -89,11 +85,13 @@ function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
             const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString]).concat(params));
             const resultErr = clickhouseQuery.stderr.toString();
             if (resultErr) {
-                throw new Error(`Error inserting data for time range ${startTime.toISOString()} to ${endTime.toISOString()}:\n ${resultErr}`);
+                throw new Error(
+                    `Error inserting data for time range ${startTime.toISOString()} to ${endTime.toISOString()}:\n ${resultErr}`,
+                );
             }
         }
 
-        //Move to next day
+        // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
     }
     /* eslint-enable no-unmodified-loop-condition */
@@ -101,17 +99,17 @@ function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
 
 async function outputTableToCSV() {
     console.log('Preparing CSV');
-    
+
     // First check if there's any data in the temp table
     const countQuery = `SELECT COUNT(*) FROM ${TMP_TABLE_NAME};`;
     const countResult = spawnSync('clickhouse-client', CH_ARGS.concat([countQuery]));
     const rowCount = parseInt(countResult.stdout.toString().trim());
-    
+
     if (rowCount === 0) {
-        console.warn(`Warning: No pixel data found for the specified date range (${DAYS_TO_FETCH} days)`);
+        console.warn(`Warning: No pixel data found for the specified date range)`);
         // Still create the CSV with headers for consistency
     }
-    
+
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
         const queryString = `SELECT DISTINCT pixel, params FROM ${TMP_TABLE_NAME};`;
@@ -154,7 +152,6 @@ function deleteTempTable() {
 }
 
 export async function preparePixelsCSV(mainPixelDir, startDate, endDate) {
-
     try {
         createTempTable();
         populateTempTable(readTokenizedPixels(mainPixelDir), readProductDef(mainPixelDir), startDate, endDate);

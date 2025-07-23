@@ -75,7 +75,9 @@ function main(mainDir, csvFile) {
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels-param variants: ${totalPixelVariants.toLocaleString('en-US')}`);
-            console.log(`Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} variants ${totalPixelVariants.toLocaleString('en-US')}`);
+            console.log(
+                `Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} variants ${totalPixelVariants.toLocaleString('en-US')}`,
+            );
 
             for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                 const numUnique = pixelSets[i].size;
