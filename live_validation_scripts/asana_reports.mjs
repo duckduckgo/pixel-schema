@@ -281,7 +281,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
                     process.exit(1);
                 }
-                
+
                 referenceCounts[ret]++;
                 pixelSets[ret].add(pixelName);
 
@@ -357,7 +357,7 @@ async function validateLivePixels(mainDir, csvFile) {
                         }
                     }
 
-                    //TOOD 
+                    // TOOD
                     if (pixelData.numFailures > 0) {
                         // pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                         pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, 1);
@@ -904,18 +904,17 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
 
                 const superagent = await import('superagent');
 
-                    const attachmentResult = await superagent.default
-                        .post('https://app.asana.com/api/1.0/attachments')
-                        .set('Authorization', `Bearer ${token.accessToken}`)
-                        .field('parent', result.data.gid)
-                        .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
-                        .attach('file', tempFilePath);
+                const attachmentResult = await superagent.default
+                    .post('https://app.asana.com/api/1.0/attachments')
+                    .set('Authorization', `Bearer ${token.accessToken}`)
+                    .field('parent', result.data.gid)
+                    .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
+                    .attach('file', tempFilePath);
 
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-               
+
                 // Clean up temp file
                 fs.unlinkSync(tempFilePath);
-               
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
