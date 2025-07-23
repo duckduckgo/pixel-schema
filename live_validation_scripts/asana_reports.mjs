@@ -16,7 +16,7 @@ import * as fileUtils from '../src/file_utils.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
-// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 1210856607616307
+// npm run asana-reports ../duckduckgo-privacy-extension/pixel-definitions/ ../internal-github-asana-utils/user_map.yml 1210584574754345
 
 // TODO: pass in repo name and start/end dates
 // TODO: run tokenizer
@@ -82,22 +82,6 @@ function getArgParserWithYaml(description, yamlFileDescription) {
 }
 
 const argv = getArgParserWithYaml('Validate live pixels and generate reports ').parse();
-
-/*
-function readAsanaNotifyFile(mainDir) {
-    try {
-        const asanaNotifyPath = path.join(mainDir, 'asana_notify.json');
-        if (fs.existsSync(asanaNotifyPath)) {
-            return JSON.parse(fs.readFileSync(asanaNotifyPath, 'utf8'));
-        } else {
-            console.log(`asana_notify.json not found at ${asanaNotifyPath}`);
-            return {};
-        }
-    } catch (error) {
-        console.error('Error reading asana_notify.json:', error);
-        return {};
-    }
-} */
 
 function getPixelOwners(pixelsDefs) {
     const owners = [];
@@ -184,11 +168,9 @@ function readPixelDefs(mainDir, userMap) {
     console.log(JSON.stringify(Array.from(pixelMap), null, 4));
 }
 
-// Add validation function
 async function validateLivePixels(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-    // Debug: Check what's in pixelMap at the start
     console.log('mainDir:', mainDir);
     console.log(`pixelMap size at start of validation: ${pixelMap.size}`);
     // console.log(`First few pixelMap entries:`, Array.from(pixelMap.entries()).slice(0, 3));
@@ -299,6 +281,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
                     process.exit(1);
                 }
+                
                 referenceCounts[ret]++;
                 pixelSets[ret].add(pixelName);
 
@@ -373,6 +356,8 @@ async function validateLivePixels(mainDir, csvFile) {
                             unusedPixelDefintions.add(pixelName);
                         }
                     }
+
+                    //TOOD 
                     if (pixelData.numFailures > 0) {
                         // pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                         pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, 1);
@@ -496,12 +481,11 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
     }
 
     if (notify.tagPixelOwners) {
-        // toNotify.tagPixelOwners = notify.tagPixelOwners;
-        console.log(`...JUST TESTING tagPixelOwners specified as true in notify file ${notifyFile}; but still setting to false`);
-        toNotify.tagPixelOwners = false;
+        toNotify.tagPixelOwners = notify.tagPixelOwners;
+        console.log(`...Add pixel owners as followers to Asana task`);
     } else {
-        console.log(`...tagPixelOwners not specified in notify file ${notifyFile}; default to false`);
         toNotify.tagPixelOwners = false;
+        console.log(`...Do not add pixel owners as followers to Asana task`);
     }
 
     return true;
@@ -684,13 +668,11 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
 
     const DDG_ASANA_PIXEL_VALIDATION_PROJECT = asanaProjectID;
 
-    // console.log('Access Token: ' + token.accessToken);
     console.log('Workspace ID: ' + DDG_ASANA_WORKSPACEID);
     console.log('Pixel Validation Project: ' + DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
     const tasks = new asana.TasksApi();
 
-    // Create tasks for owners with validation issues
     const taskName = `Pixel Validation Report for ${argv.dirPath}`;
 
     // Generate HTML table for all documented pixels in pixelMap
