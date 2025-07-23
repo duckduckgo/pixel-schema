@@ -27,9 +27,10 @@ import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
 const PIXELS_TMP_CSV = '/tmp/live_pixels.csv';
 const USER_MAP_YAML = 'user_map.yml';
+const DDG_ASANA_WORKSPACEID = '137249556945';
 const DEFAULT_ASANA_PROJECT_ID = '1210584574754345';
-//Test Pixel Validation Project: 1210584574754345
-//Pixel Validation Project:      1210856607616307
+// Test Pixel Validation Project: 1210584574754345
+// Pixel Validation Project:      1210856607616307
 
 const ownerMap = new Map();
 const allPixelOwners = new Set;
@@ -506,6 +507,15 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
           console.log(`...No followers specified in notify file ${notifyFile}`);
       }
    
+    if (notify.tagPixelOwners){
+        //toNotify.tagPixelOwners = notify.tagPixelOwners;
+        console.log(`...JUST TESTING tagPixelOwners specified as true in notify file ${notifyFile}; but still setting to false`);
+        toNotify.tagPixelOwners = false;
+    } else {
+        console.log(`...tagPixelOwners not specified in notify file ${notifyFile}; default to false`);
+        toNotify.tagPixelOwners = false;
+    }
+
     return true;
 }
 
@@ -513,7 +523,30 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
 // Main execution
 async function main() {
 
-    
+    // Audit DAYS_TO_FETCH full days in chunks, not including the current day
+    const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
+
+
+    let endDate = new Date();
+    // Will get more repeatable results run to run if we don't include current day
+    // because the current day is still changing
+    endDate.setDate(endDate.getDate() - 1);
+
+    // This sets the time to midnight so we get full days starting at midnight
+    //endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    endDate.setHours(0, 0, 0, 0);
+
+    console.log(`End date ${endDate.toISOString().split('T')[0]}`);
+
+    // Will this work ok across year and month boundaries
+    const startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    startDate.setDate(startDate.getDate() - DAYS_TO_FETCH);
+    // Ensure pastDate starts at exactly 0:00:00.000
+    startDate.setHours(0, 0, 0, 0);
+
+    console.log(`Start date ${startDate.toISOString().split('T')[0]}`);
+
+
 
     const userMap = readUserMap(argv.yamlFile);
 
@@ -549,7 +582,7 @@ async function main() {
         console.log(`Fetching live pixel data from ClickHouse into ${csvFile}...`);
 
         try{
-            await preparePixelsCSV(argv.dirPath);
+            await preparePixelsCSV(argv.dirPath, startDate, endDate);
         } catch (error) {
             console.error('Error preparing pixels CSV:', error);
             process.exit(1);
@@ -560,15 +593,18 @@ async function main() {
     console.log(`Validating pixels from ${csvFile}...`);
     const validationResults = await validateLivePixels(argv.dirPath, csvFile);
 
-    // Add pixel owners with errors to the toNotify.followerGIDs list
-    // Not ready to notify pixel owners yet
     validationResults.pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach(pixelName => {
         const pixel = pixelMap.get(pixelName);
         if (pixel) {
             if (pixel && Array.isArray(pixel.owners)) {
                 pixel.owners.forEach(owner => {
-                    //console.log(`...Adding pixel owner ${owner} to notification list`);
-                    //toNotify.followerGIDs = toNotify.followerGIDs || [];
+                    if (toNotify.tagPixelOwners) {
+                        //look up this owner's asana id
+                        const ownerGID = userMap[owner];
+                        console.log(`...Adding pixel owner ${owner} to notificatin list, found in userMap, GID: ${ownerGID}`);
+
+                        toNotify.followerGIDs.push(userMap[ownerMap]);
+                    }
                     pixelOwnersWithErrors.add(owner);
                 });
             }
@@ -661,20 +697,13 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
         process.exit(1);
     }
 
-    const DDG_ASANA_WORKSPACEID = '137249556945';
     const DDG_ASANA_PIXEL_VALIDATION_PROJECT = asanaProjectID;
         
-    //console.log('Access Token: ' + token.accessToken);
+    // console.log('Access Token: ' + token.accessToken);
     console.log('Workspace ID: ' + DDG_ASANA_WORKSPACEID);
     console.log('Pixel Validation Project: ' + DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
     const tasks = new asana.TasksApi();
-
-    // TODO: Read asana_notify.json file to get the list of users who want to be notified of pixel errors
-    const userGID1 = '1202818073638528';
-    // const userGID2 = '1202096681718068';
-    // const followers = [userGID1, userGID2];
-    const followers = [userGID1];
 
     // Create tasks for owners with validation issues
     const taskName = `Pixel Validation Report for ${argv.dirPath}`;
@@ -754,26 +783,38 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
 
 //   TODO:      ${ documentedPixelTable }
 
-    // TODO: ${pixelsWithErrors.size > 0 ? JSON.stringify(Array.from(pixelsWithErrors), null, 4) : 'No errors'}
+    let header = "";
+    if (pixelsWithErrors.size > 0) {
+        header = `
+                    <h1>TLDR: Pixels you own have errors. Search for your Github username in the attachment for details.  </h1>
+                    <ul>
+                    <li>Fixes typically involve changes to either the pixel definition or the pixel implementation or both. </li>
+                    <li>For changes to the pixel definition, consult the privacy engineering team/ open a privacy triage. </li>
+                    <li>Simple changes (e.g. adding a new value to an existing enum, adding a common parameter like appVersion or channel) can be approved quickly and may not require a full privacy triage. </li>
+                    <li>More complex changes (e.g. adding a parameter, especially a non-enum parameter) likely will require a privacy triage. </li>
+                    </ul>
+                    `;
+    } else {
+        header = `
+                    <h1>No errors found. </h1>
+                    `
+    }
 
     // ${undocumentedPixelTable}
 
     // Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures. 
 
     const taskNotes = `<body>
-                    <h1>Pixel Validation Report for ${argv.dirPath}</h1>
-                    
+                    ${header}
                     <h2>Background</h2>
-
                     <ul>
-                    <li> This task summarizes pixel mismatches for ${argv.dirPath}.</li>
-                    <li> Processed ${numPixelDefinitions} pixel definitions in ${numPixelDefinitionFiles} files.</li>
-                    <li> Audited ${uniquePixels} unique pixels and ${totalAccesses} pixel-parameter variants over the last 7 days. </li>
-                    <li> There are ${allPixelOwners.size} owners of pixels: ${Array.from(new Set(allPixelOwners)).join(', ')}</li>
-                    <li> There are ${pixelOwnersWithErrors.size} owners of pixels with errors: ${Array.from(new Set(pixelOwnersWithErrors)).join(', ')}</li>
-                    <li> Search for Github username in the attachment to find detailed error messages for each pixel owner. </li>
+                    <li>This task summarizes pixel mismatches for ${argv.dirPath}.</li>
+                    <li>Processed ${numPixelDefinitions} pixel definitions in ${numPixelDefinitionFiles} files.</li>
+                    <li>Audited ${uniquePixels} unique pixels and ${totalAccesses} pixel-parameter variants over the last 7 days. </li>
+                    <li>There are ${allPixelOwners.size} owners of pixels: ${Array.from(new Set(allPixelOwners)).join(', ')}</li>
+                    <li>There are ${pixelOwnersWithErrors.size} owners of pixels with errors: ${Array.from(new Set(pixelOwnersWithErrors)).join(', ')}</li>
+                    <li>Note: The attachment will be deleted after 28 days. </li>
                     </ul>
-
                     <h2>Summary</h2>
                     <table>
                         <tr>
@@ -849,7 +890,8 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
         return;     
     }
 
-    const DAYS_UNTIL_DUE = 7;
+    // Due date set to when we want to delete any attachments
+    const DAYS_UNTIL_DUE = 28;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     try {

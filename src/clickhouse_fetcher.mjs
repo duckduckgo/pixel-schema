@@ -10,19 +10,14 @@ const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--quer
 // TODO Better to pass in start day and end day as parameters
 
 
-// Audit DAYS_TO_FETCH full days in chunks, not including the current day
-// Will get more repeatable results run to run if we don't include current day
-// because the current day is still changing
-const DAYS_TO_FETCH = 7; // Number of days to fetch pixels for; Reduce this (e.g. to 7) if hit limit on JSON size in validate_live_pixel.mjs
-
 
 // Process each day in chunks
 // A full day exceed the memory limit of clickhouse in some cases\
-//recommend an even divisor of 24 - 1,2, 3, 4, 6, 8, 12, 24
+// recommend an even divisor of 24 - 1,2, 3, 4, 6, 8, 12, 24
 const HOURS_IN_BATCH = 24;
 
 function createTempTable() {
-    //TODO: if table exists already, drop it
+    // TODO: if table exists already, drop it
     
     const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
         (
@@ -47,7 +42,13 @@ function createTempTable() {
  * @param {object} productDef schema is a TODO.
  * See tests/test_data/valid/product.json for an example.
  */
-function populateTempTable(tokenizedPixels, productDef) {
+function populateTempTable(tokenizedPixels, productDef, startDate, endDate) {
+
+    if (startDate > endDate) {
+        throw new Error('Start date must be before end date');
+        return;
+    }
+
     console.log('Populating table');
 
     const pixelIDs = Object.keys(tokenizedPixels);
@@ -55,27 +56,15 @@ function populateTempTable(tokenizedPixels, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
-    // This will get the current time as well
-    let currentDate = new Date();
+    let currentDate = startDate;
 
-    // This sets the time to midnight so we get full days starting at midnight
-    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-
-    console.log(`Current date ${currentDate.toISOString().split('T')[0]}`);
-
-    const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - DAYS_TO_FETCH);
-    // Ensure pastDate starts at exactly 0:00:00.000
-    pastDate.setHours(0, 0, 0, 0);
-    /* eslint-disable no-unmodified-loop-condition */
-
-   
-    while (pastDate < currentDate) {
+    while (currentDate < endDate) {
         
        for (let hour = 0; hour < 24; hour += HOURS_IN_BATCH) {
-            const startTime = new Date(pastDate);
-            startTime.setHours(hour, 0, 0, 0);
+            const startTime = new Date(currentDate);
+            //startTime.setHours(hour, 0, 0, 0);
             
-            const endTime = new Date(pastDate);
+            const endTime = new Date(currentDate);
             endTime.setHours(hour + HOURS_IN_BATCH, 0, 0, 0);
 
             const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
@@ -104,7 +93,8 @@ function populateTempTable(tokenizedPixels, productDef) {
             }
         }
 
-        pastDate.setDate(pastDate.getDate() + 1);
+        //Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
     }
     /* eslint-enable no-unmodified-loop-condition */
 }
@@ -163,10 +153,11 @@ function deleteTempTable() {
     }
 }
 
-export async function preparePixelsCSV(mainPixelDir) {
+export async function preparePixelsCSV(mainPixelDir, startDate, endDate) {
+
     try {
         createTempTable();
-        populateTempTable(readTokenizedPixels(mainPixelDir), readProductDef(mainPixelDir));
+        populateTempTable(readTokenizedPixels(mainPixelDir), readProductDef(mainPixelDir), startDate, endDate);
         await outputTableToCSV();
     } catch (err) {
         console.error(err);
