@@ -76,19 +76,24 @@ function main(mainDir, csvFile) {
             variantCounts[status]++;
             pixelSets[status].add(pixelRequestFormat);
 
+            // Collect errors when validation fails
             if (status === PixelValidationResult.VALIDATION_FAILED) {
-                if (!savedPixelErrors[lastPixelState.prefix]) {
-                    savedPixelErrors[lastPixelState.prefix] = {};
+                const prefix = lastPixelState.prefix;
+                
+                if (!savedPixelErrors[prefix]) {
+                    savedPixelErrors[prefix] = {};
                 }
-
-                if (!lastPixelState.prefix || lastPixelState.prefix === '') {
-                    console.error(`Unexpected empty prefix`);
-                    process.exit(1);
+                
+                // Collect errors from currentPixelState.errors
+                if (lastPixelState.errors) {
+                    for (const [errorMessage, examples] of Object.entries(lastPixelState.errors)) {
+                        if (!savedPixelErrors[prefix][errorMessage]) {
+                            savedPixelErrors[prefix][errorMessage] = new Set();
+                        }
+                        // Add all examples from this validation
+                        examples.forEach(example => savedPixelErrors[prefix][errorMessage].add(example));
+                    }
                 }
-                if (!savedPixelErrors[lastPixelState.prefix][lastPixelState.error]) {
-                    savedPixelErrors[lastPixelState.prefix][lastPixelState.error] = new Set();
-                }
-                savedPixelErrors[lastPixelState.prefix][lastPixelState.error].add(lastPixelState.example);
             }
         })
         .on('end', async () => {
@@ -99,8 +104,6 @@ function main(mainDir, csvFile) {
 
             // Start at 1 to skip the first value (0).Undefined
             for (let i = 1; i < Object.keys(PixelValidationResult).length; i++) {
-                console.log(`${i} ${PixelValidationResultString[i]}`);
-
                 const numUnique = pixelSets[i].size;
                 const numVariants = variantCounts[i];
                 const percentUnique = (numUnique / uniquePixels.size) * 100;
@@ -116,7 +119,6 @@ function main(mainDir, csvFile) {
             try {
                 fs.writeFileSync(
                     fileUtils.getUniqueErrorPixelPath(mainDir),
-                    //        JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
                     JSON.stringify(Array.from(pixelSets[PixelValidationResult.VALIDATION_FAILED]), null, 4),
                 );
             } catch (err) {
@@ -133,7 +135,6 @@ function main(mainDir, csvFile) {
             try {
                 fs.writeFileSync(
                     fileUtils.getUndocumentedPixelsPath(mainDir),
-                    //        JSON.stringify(Array.from(liveValidator.undocumentedPixels), null, 4),
                     JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
                 );
             } catch (err) {
@@ -155,8 +156,7 @@ function main(mainDir, csvFile) {
 
             */
             try {
-                // fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
-                fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+                fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
             } catch (err) {
                 if (err instanceof RangeError) {
                     console.error(

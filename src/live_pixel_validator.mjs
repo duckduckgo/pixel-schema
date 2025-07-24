@@ -35,8 +35,6 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    // TODO: MOVE pixelErrors out to the caller?
-    pixelErrors = {};
     currentPixelState = {};
 
     /**
@@ -265,7 +263,7 @@ export class LivePixelsValidator {
         this.currentPixelState = {};
         this.currentPixelState.prefix = 'undefined';
         this.currentPixelState.status = PixelValidationResult.UNDEFINED;
-        this.currentPixelState.errors = new Set();
+        this.currentPixelState.errors = {};
 
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateExperimentPixel(pixel, params);
@@ -357,22 +355,19 @@ export class LivePixelsValidator {
     // Return false if errors were not found
     #saveErrors(prefix, example, errors) {
         // No errors found
-        if (!errors.length) return false;
-
-        if (!this.pixelErrors[prefix]) {
-            this.pixelErrors[prefix] = {};
-        }
+        if (!errors || !errors.length) return false;
 
         this.currentPixelState.prefix = prefix;
         this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
         this.currentPixelState.example = example;
 
         for (const error of errors) {
-            if (!this.pixelErrors[prefix][error]) {
-                this.pixelErrors[prefix][error] = new Set();
+            // Skip undefined, null, or empty errors
+            if (!error || error.trim() === '') {
+                console.warn(`Warning: Skipping invalid error: "${error}"`);
+                continue;
             }
-            this.pixelErrors[prefix][error].add(example);
-
+            
             if (!this.currentPixelState.errors[error]) {
                 this.currentPixelState.errors[error] = new Set();
             }

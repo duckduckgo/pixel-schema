@@ -85,7 +85,6 @@ function getArgParserWithYaml(description, yamlFileDescription) {
 const argv = getArgParserWithYaml('Validate live pixels and generate reports ').parse();
 
 function getSamplePixelErrors(prefix, numExamples) {
-    // return JSON.stringify(this.pixelErrors[prefix], null, 4);
     if (!savedPixelErrors[prefix]) {
         return [];
     }
@@ -310,19 +309,24 @@ async function validateLivePixels(mainDir, csvFile) {
                     process.exit(1);
                 }
 
+                // Collect errors when validation fails
                 if (status === PixelValidationResult.VALIDATION_FAILED) {
-                    if (!savedPixelErrors[lastPixelState.prefix]) {
-                        savedPixelErrors[lastPixelState.prefix] = {};
+                    const prefix = lastPixelState.prefix;
+                    
+                    if (!savedPixelErrors[prefix]) {
+                        savedPixelErrors[prefix] = {};
                     }
-
-                    if (!lastPixelState.prefix || lastPixelState.prefix === '') {
-                        console.error(`Unexpected empty prefix`);
-                        process.exit(1);
+                    
+                    // Collect errors from currentPixelState.errors
+                    if (lastPixelState.errors) {
+                        for (const [errorMessage, examples] of Object.entries(lastPixelState.errors)) {
+                            if (!savedPixelErrors[prefix][errorMessage]) {
+                                savedPixelErrors[prefix][errorMessage] = new Set();
+                            }
+                            // Add all examples from this validation
+                            examples.forEach(example => savedPixelErrors[prefix][errorMessage].add(example));
+                        }
                     }
-                    if (!savedPixelErrors[lastPixelState.prefix][lastPixelState.error]) {
-                        savedPixelErrors[lastPixelState.prefix][lastPixelState.error] = new Set();
-                    }
-                    savedPixelErrors[lastPixelState.prefix][lastPixelState.error].add(lastPixelState.example);
                 }
 
                 referenceCounts[status]++;
@@ -400,7 +404,6 @@ async function validateLivePixels(mainDir, csvFile) {
                         }
                     }
 
-                    // TOOD
                     if (pixelData.numFailures > 0) {
                         pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                     }
