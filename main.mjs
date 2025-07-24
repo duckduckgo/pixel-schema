@@ -49,7 +49,7 @@ export function validateSinglePixel(validator, url) {
     const pixel = parsedUrl.pathname.slice(3);
     // validator expects URL params after cache buster
     const params = parsedUrl.search.slice(1).replace(/^\d+=?&/, '');
-    
+
     const pixelStatus = validator.validatePixel(pixel, params);
     if (pixelStatus.status === PixelValidationResult.UNDOCUMENTED) {
         throw new Error(`Undocumented Pixel: ${JSON.stringify(pixel)}`);

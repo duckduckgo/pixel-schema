@@ -198,7 +198,7 @@ export class LivePixelsValidator {
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
                 if (this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`])) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED
+                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
                 } else if (errorFound) {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
                 } else {
@@ -382,5 +382,4 @@ export class LivePixelsValidator {
         // Errors were found
         return true;
     }
-
 }

@@ -37,7 +37,7 @@ const pixelOwnersWithErrors = new Set();
 const pixelMap = new Map();
 let numPixelDefinitions = 0;
 let numPixelDefinitionFiles = 0;
-let savedPixelErrors = {};
+const savedPixelErrors = {};
 
 const KEEP_ALL_ERRORS = false;
 const NUM_EXAMPLE_ERRORS = 3; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
@@ -734,7 +734,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                         <td>${pixelData.numAppVersionOutOfDate}</td>
                         <td>${pixelData.numPasses}</td>
                         <td>${pixelData.numFailures}</td>
-                        <td>${pixelData.<sample>Errors ? pixelData.sampleErrors.length : 0}</td>
+                        <td>${pixelData.sampleErrors ? pixelData.sampleErrors.length : 0}</td>
                     </tr>`;
             documentedPixelTableRows.push(row);
         }

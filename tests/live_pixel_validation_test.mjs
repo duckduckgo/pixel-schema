@@ -139,7 +139,7 @@ describe('Common suffixes', () => {
 
     it('unexpected value should fail', () => {
         const pixel = `${prefix}${PIXEL_DELIMITER}wrongkey${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}1`;
-        const pixelStatus =  liveValidator.validatePixel(pixel, params);
+        const pixelStatus = liveValidator.validatePixel(pixel, params);
 
         const expectedErrors = ["Suffix 'wrongkey' must be equal to one of the allowed values"];
         expect(Object.keys(pixelStatus.errors)).to.have.members(expectedErrors);
