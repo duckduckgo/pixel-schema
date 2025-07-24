@@ -312,11 +312,11 @@ async function validateLivePixels(mainDir, csvFile) {
                 // Collect errors when validation fails
                 if (status === PixelValidationResult.VALIDATION_FAILED) {
                     const prefix = lastPixelState.prefix;
-                    
+
                     if (!savedPixelErrors[prefix]) {
                         savedPixelErrors[prefix] = {};
                     }
-                    
+
                     // Collect errors from currentPixelState.errors
                     if (lastPixelState.errors) {
                         for (const [errorMessage, examples] of Object.entries(lastPixelState.errors)) {
@@ -324,7 +324,7 @@ async function validateLivePixels(mainDir, csvFile) {
                                 savedPixelErrors[prefix][errorMessage] = new Set();
                             }
                             // Add all examples from this validation
-                            examples.forEach(example => savedPixelErrors[prefix][errorMessage].add(example));
+                            examples.forEach((example) => savedPixelErrors[prefix][errorMessage].add(example));
                         }
                     }
                 }

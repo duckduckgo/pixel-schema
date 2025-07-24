@@ -367,7 +367,7 @@ export class LivePixelsValidator {
                 console.warn(`Warning: Skipping invalid error: "${error}"`);
                 continue;
             }
-            
+
             if (!this.currentPixelState.errors[error]) {
                 this.currentPixelState.errors[error] = new Set();
             }
