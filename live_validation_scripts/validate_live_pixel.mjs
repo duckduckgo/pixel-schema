@@ -79,7 +79,11 @@ function main(mainDir, csvFile) {
                 `Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} variants ${totalPixelVariants.toLocaleString('en-US')}`,
             );
 
-            for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
+            //Start at 1 to skip the first value (0).Undefined
+            for (let i = 1; i < Object.keys(PixelValidationResult).length; i++) {
+                console.log(
+                    `${i} ${PixelValidationResultString[i]}`);
+
                 const numUnique = pixelSets[i].size;
                 const numVariants = variantCounts[i];
                 const percentUnique = (numUnique / uniquePixels.size) * 100;

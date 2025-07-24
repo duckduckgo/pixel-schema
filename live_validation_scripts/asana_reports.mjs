@@ -39,8 +39,9 @@ let numPixelDefinitions = 0;
 let numPixelDefinitionFiles = 0;
 const savedPixelErrors = {};
 
+
 const KEEP_ALL_ERRORS = false;
-const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
+const NUM_EXAMPLE_ERRORS = 3; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 
 function getArgParserWithYaml(description, yamlFileDescription) {
     return yargs(hideBin(process.argv))
@@ -84,6 +85,30 @@ function getArgParserWithYaml(description, yamlFileDescription) {
 
 const argv = getArgParserWithYaml('Validate live pixels and generate reports ').parse();
 
+
+
+function getSamplePixelErrors(prefix, numExamples) {
+    // return JSON.stringify(this.pixelErrors[prefix], null, 4);
+    if (!savedPixelErrors[prefix]) {
+        return [];
+    }
+    const errors = [];
+    for (const [errorType, examples] of Object.entries(savedPixelErrors[prefix])) {
+        if (numExamples === -1) {
+            errors.push({
+                type: errorType,
+                examples: Array.from(examples),
+            });
+        } else {
+            errors.push({
+                type: errorType,
+                examples: Array.from(examples).slice(0, numExamples),
+            });
+        }
+    }
+
+    return errors;
+}
 function getPixelOwners(pixelsDefs) {
     const owners = [];
     for (const [name, def] of Object.entries(pixelsDefs)) {
@@ -381,8 +406,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                     // TOOD
                     if (pixelData.numFailures > 0) {
-                        // pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
-                        pixelData.sampleErrors = liveValidator.getSamplePixelErrors(pixelName, 1);
+                       pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                     }
                 });
                 console.log(
@@ -787,6 +811,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                     <li>For changes to the pixel definition, consult the privacy engineering team/ open a privacy triage. </li>
                     <li>Simple changes (e.g. adding a new value to an existing enum, adding a common parameter like appVersion or channel) can be approved quickly and may not require a full privacy triage. </li>
                     <li>More complex changes (e.g. adding a parameter, especially a non-enum parameter) likely will require a privacy triage. </li>
+                    <li>If you would like more examples of errors, ask in AOR Pixel Registry for help generating a custom report. </li>
                     <li>Note: The attachment with samples of detailed errors should be deleted after ${DAYS_TO_DELETE_ATTACHMENT} days. </li>
                     </ul>
                     `;
