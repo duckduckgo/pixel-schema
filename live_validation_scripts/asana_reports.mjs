@@ -37,8 +37,7 @@ const pixelOwnersWithErrors = new Set();
 const pixelMap = new Map();
 let numPixelDefinitions = 0;
 let numPixelDefinitionFiles = 0;
-const savedPixelErrors = {};
-
+let savedPixelErrors = {};
 
 const KEEP_ALL_ERRORS = false;
 const NUM_EXAMPLE_ERRORS = 3; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
@@ -84,8 +83,6 @@ function getArgParserWithYaml(description, yamlFileDescription) {
 }
 
 const argv = getArgParserWithYaml('Validate live pixels and generate reports ').parse();
-
-
 
 function getSamplePixelErrors(prefix, numExamples) {
     // return JSON.stringify(this.pixelErrors[prefix], null, 4);
@@ -296,25 +293,24 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
                 uniquePixels.add(pixelName);
 
-                const ret = liveValidator.validatePixel(pixelName, paramsUrlFormat);
-
+                const lastPixelState = liveValidator.validatePixel(pixelName, paramsUrlFormat);
+                const status = lastPixelState.status;
                 if (
-                    ret !== PixelValidationResult.VALIDATION_PASSED &&
-                    ret !== PixelValidationResult.OLD_APP_VERSION &&
-                    ret !== PixelValidationResult.UNDOCUMENTED &&
-                    ret !== PixelValidationResult.VALIDATION_FAILED
+                    status !== PixelValidationResult.VALIDATION_PASSED &&
+                    status !== PixelValidationResult.OLD_APP_VERSION &&
+                    status !== PixelValidationResult.UNDOCUMENTED &&
+                    status !== PixelValidationResult.VALIDATION_FAILED
                 ) {
-                    console.error(`Unexpected validation result: ${ret} for pixel ${pixelName} with params ${paramsUrlFormat}`);
+                    console.error(`Unexpected validation result: ${status} for pixel ${pixelName} with params ${paramsUrlFormat}`);
                     process.exit(1);
                 }
 
-                const lastPixelState = liveValidator.getLastPixelState();
-                if (ret !== lastPixelState.status) {
-                    console.error(`Return ${ret} should match last pixel status ${lastPixelState.status}`);
+                if (status !== lastPixelState.status) {
+                    console.error(`Return ${status} should match last pixel status ${lastPixelState.status}`);
                     process.exit(1);
                 }
 
-                if (lastPixelState.status === PixelValidationResult.VALIDATION_FAILED) {
+                if (status === PixelValidationResult.VALIDATION_FAILED) {
                     if (!savedPixelErrors[lastPixelState.prefix]) {
                         savedPixelErrors[lastPixelState.prefix] = {};
                     }
@@ -329,8 +325,8 @@ async function validateLivePixels(mainDir, csvFile) {
                     savedPixelErrors[lastPixelState.prefix][lastPixelState.error].add(lastPixelState.example);
                 }
 
-                referenceCounts[ret]++;
-                pixelSets[ret].add(pixelName);
+                referenceCounts[status]++;
+                pixelSets[status].add(pixelName);
 
                 // Track validation results for each pixel
                 if (!pixelValidationResults.has(pixelName)) {
@@ -366,21 +362,21 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 // console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
 
-                if (ret === PixelValidationResult.VALIDATION_PASSED) {
+                if (status === PixelValidationResult.VALIDATION_PASSED) {
                     pixelResult.passes++;
                     pixel.numPasses++;
-                } else if (ret === PixelValidationResult.VALIDATION_FAILED) {
+                } else if (status === PixelValidationResult.VALIDATION_FAILED) {
                     pixelResult.failures++;
                     pixel.numFailures++;
-                } else if (ret === PixelValidationResult.OLD_APP_VERSION) {
+                } else if (status === PixelValidationResult.OLD_APP_VERSION) {
                     pixelResult.oldAppVersion++;
                     pixel.numAppVersionOutOfDate++;
-                } else if (ret === PixelValidationResult.UNDOCUMENTED) {
+                } else if (status === PixelValidationResult.UNDOCUMENTED) {
                     pixelResult.undocumented++;
                     pixel.numUndocumented++;
                 } else {
                     // console.log(liveValidator.getPixelPrefix(pixelName));
-                    console.error(`UNEXPECTED return ${ret} for ${pixelName}`);
+                    console.error(`UNEXPECTED return ${status} for ${pixelName}`);
                     process.exit(1);
                 }
             })
@@ -406,7 +402,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                     // TOOD
                     if (pixelData.numFailures > 0) {
-                       pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
+                        pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                     }
                 });
                 console.log(
@@ -458,7 +454,7 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
 
                 try {
-                    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
+                    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
                 } catch (err) {
                     if (err instanceof RangeError) {
                         console.error(
@@ -738,7 +734,7 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                         <td>${pixelData.numAppVersionOutOfDate}</td>
                         <td>${pixelData.numPasses}</td>
                         <td>${pixelData.numFailures}</td>
-                        <td>${pixelData.sampleErrors ? pixelData.sampleErrors.length : 0}</td>
+                        <td>${pixelData.<sample>Errors ? pixelData.sampleErrors.length : 0}</td>
                     </tr>`;
             documentedPixelTableRows.push(row);
         }

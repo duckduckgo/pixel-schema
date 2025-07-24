@@ -15,6 +15,8 @@ const KEEP_ALL_ERRORS = false;
 const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
 
+let savedPixelErrors = {};
+
 function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
@@ -59,19 +61,35 @@ function main(mainDir, csvFile) {
             const paramsUrlFormat = JSON5.parse(row.params).join('&');
             uniquePixels.add(pixelRequestFormat);
 
-            const ret = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const lastPixelState = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const status = lastPixelState.status;
 
             if (
-                ret !== PixelValidationResult.VALIDATION_PASSED &&
-                ret !== PixelValidationResult.OLD_APP_VERSION &&
-                ret !== PixelValidationResult.UNDOCUMENTED &&
-                ret !== PixelValidationResult.VALIDATION_FAILED
+                status !== PixelValidationResult.VALIDATION_PASSED &&
+                status !== PixelValidationResult.OLD_APP_VERSION &&
+                status !== PixelValidationResult.UNDOCUMENTED &&
+                status !== PixelValidationResult.VALIDATION_FAILED
             ) {
-                console.error(`Unexpected validation result: ${ret} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
+                console.error(`Unexpected validation result: ${status} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
                 process.exit(1);
             }
-            variantCounts[ret]++;
-            pixelSets[ret].add(pixelRequestFormat);
+            variantCounts[status]++;
+            pixelSets[status].add(pixelRequestFormat);
+
+            if (status === PixelValidationResult.VALIDATION_FAILED) {
+                if (!savedPixelErrors[lastPixelState.prefix]) {
+                    savedPixelErrors[lastPixelState.prefix] = {};
+                }
+
+                if (!lastPixelState.prefix || lastPixelState.prefix === '') {
+                    console.error(`Unexpected empty prefix`);
+                    process.exit(1);
+                }
+                if (!savedPixelErrors[lastPixelState.prefix][lastPixelState.error]) {
+                    savedPixelErrors[lastPixelState.prefix][lastPixelState.error] = new Set();
+                }
+                savedPixelErrors[lastPixelState.prefix][lastPixelState.error].add(lastPixelState.example);
+            }
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels-param variants: ${totalPixelVariants.toLocaleString('en-US')}`);
@@ -79,10 +97,9 @@ function main(mainDir, csvFile) {
                 `Unique pixels\t${uniquePixels.size.toLocaleString('en-US')} variants ${totalPixelVariants.toLocaleString('en-US')}`,
             );
 
-            //Start at 1 to skip the first value (0).Undefined
+            // Start at 1 to skip the first value (0).Undefined
             for (let i = 1; i < Object.keys(PixelValidationResult).length; i++) {
-                console.log(
-                    `${i} ${PixelValidationResultString[i]}`);
+                console.log(`${i} ${PixelValidationResultString[i]}`);
 
                 const numUnique = pixelSets[i].size;
                 const numVariants = variantCounts[i];
@@ -138,6 +155,7 @@ function main(mainDir, csvFile) {
 
             */
             try {
+                // fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
                 fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(liveValidator.pixelErrors, setReplacer, 4));
             } catch (err) {
                 if (err instanceof RangeError) {

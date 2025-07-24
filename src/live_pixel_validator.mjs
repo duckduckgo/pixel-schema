@@ -140,14 +140,14 @@ export class LivePixelsValidator {
         if (pixelParts.length < pixelPrefixLen) {
             // Invalid experiment pixel
             this.currentPixelState.status = PixelValidationResult.UNDOCUMENTED;
-            return PixelValidationResult.UNDOCUMENTED;
+            return this.currentPixelState;
         }
 
         const pixelType = pixelParts[0];
         if (pixelType !== 'enroll' && pixelType !== 'metrics') {
             // Invalid experiment pixel type
             this.currentPixelState.status = PixelValidationResult.UNDOCUMENTED;
-            return PixelValidationResult.UNDOCUMENTED;
+            return this.currentPixelState;
         }
 
         const experimentName = pixelParts[1];
@@ -155,7 +155,7 @@ export class LivePixelsValidator {
         if (!this.#compiledExperiments[experimentName]) {
             this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
             this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-            return PixelValidationResult.VALIDATION_FAILED;
+            return this.currentPixelState;
         }
 
         // Check cohort
@@ -163,7 +163,7 @@ export class LivePixelsValidator {
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
             this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
             this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-            return PixelValidationResult.VALIDATION_FAILED;
+            return this.currentPixelState;
         }
 
         // Check suffixes if they exist
@@ -187,28 +187,24 @@ export class LivePixelsValidator {
             if (!metric || !metricValue) {
                 if (this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`])) {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                    return PixelValidationResult.VALIDATION_FAILED;
                 } else if (errorFound) {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                    return PixelValidationResult.VALIDATION_FAILED;
                 } else {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-                    return PixelValidationResult.VALIDATION_PASSED;
                 }
+                return this.currentPixelState;
             }
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
                 if (this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`])) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                    return PixelValidationResult.VALIDATION_FAILED;
+                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED
                 } else if (errorFound) {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                    return PixelValidationResult.VALIDATION_FAILED;
                 } else {
                     this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-                    return PixelValidationResult.VALIDATION_PASSED;
                 }
+                return this.currentPixelState;
             }
 
             metricSchema(metricValue);
@@ -229,11 +225,10 @@ export class LivePixelsValidator {
 
         if (errorFound) {
             this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-            return PixelValidationResult.VALIDATION_FAILED;
+        } else {
+            this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
         }
-
-        this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-        return PixelValidationResult.VALIDATION_PASSED;
+        return this.currentPixelState;
     }
 
     /**
@@ -267,8 +262,10 @@ export class LivePixelsValidator {
      * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
     validatePixel(pixel, params) {
+        this.currentPixelState = {};
         this.currentPixelState.prefix = 'undefined';
         this.currentPixelState.status = PixelValidationResult.UNDEFINED;
+        this.currentPixelState.errors = new Set();
 
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateExperimentPixel(pixel, params);
@@ -290,7 +287,7 @@ export class LivePixelsValidator {
 
         if (!pixelMatch[ROOT_PREFIX]) {
             this.currentPixelState.status = PixelValidationResult.UNDOCUMENTED;
-            return PixelValidationResult.UNDOCUMENTED;
+            return this.currentPixelState;
         }
 
         const prefix = matchedParts.slice(0, -1);
@@ -314,7 +311,7 @@ export class LivePixelsValidator {
                     Err on side of not flagging this as a failed validation
                     */
                 this.currentPixelState.status = PixelValidationResult.OLD_APP_VERSION;
-                return PixelValidationResult.OLD_APP_VERSION;
+                return this.currentPixelState;
             }
         }
 
@@ -331,11 +328,10 @@ export class LivePixelsValidator {
         if (pixel.length === prefix.length) {
             if (numErrorsFound > 0) {
                 this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                return PixelValidationResult.VALIDATION_FAILED;
             } else {
                 this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-                return PixelValidationResult.VALIDATION_PASSED;
             }
+            return this.currentPixelState;
         }
 
         const pixelSuffix = pixel.split(`${prefix}${PIXEL_DELIMITER}`)[1];
@@ -351,10 +347,10 @@ export class LivePixelsValidator {
         }
         if (numErrorsFound > 0) {
             this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-            return PixelValidationResult.VALIDATION_FAILED;
+        } else {
+            this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
         }
-        this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-        return PixelValidationResult.VALIDATION_PASSED;
+        return this.currentPixelState;
     }
 
     // Reture true if errors were found
@@ -377,18 +373,14 @@ export class LivePixelsValidator {
             }
             this.pixelErrors[prefix][error].add(example);
 
-            if (!this.currentPixelState.errors) {
-                this.currentPixelState.errors = new Set();
+            if (!this.currentPixelState.errors[error]) {
+                this.currentPixelState.errors[error] = new Set();
             }
-            this.currentPixelState.errors.add(error);
+            this.currentPixelState.errors[error].add(example);
         }
 
         // Errors were found
         return true;
     }
 
-    //COULD JUST RETURN THIS FROM THE VALIDATE PIXEL FUNCTION 
-    getLastPixelState() {
-        return this.currentPixelState;
-    }
 }
