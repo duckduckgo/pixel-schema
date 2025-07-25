@@ -412,8 +412,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     `Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${((pixelDefinitionsUnused / documentedPixels) * 100).toFixed(2)}%)`,
                 );
 
-                // skip PixelValidationResult.UNDEFINED at 0
-                for (let i = 1; i < Object.keys(PixelValidationResult).length; i++) {
+                for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
                     console.log(`PixelValidationResult[${i}]: ${PixelValidationResultString[i]}`);
 
                     const numUnique = pixelSets[i].size;

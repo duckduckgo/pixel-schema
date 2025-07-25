@@ -10,15 +10,13 @@ import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
  */
 
 export const PixelValidationResult = Object.freeze({
-    UNDEFINED: 0,
-    UNDOCUMENTED: 1,
-    OLD_APP_VERSION: 2,
-    VALIDATION_FAILED: 3,
-    VALIDATION_PASSED: 4,
+    UNDOCUMENTED: 0,
+    OLD_APP_VERSION: 1      ,
+    VALIDATION_FAILED: 2,
+    VALIDATION_PASSED: 3,
 });
 
 export const PixelValidationResultString = {
-    [PixelValidationResult.UNDEFINED]: 'Undefined',
     [PixelValidationResult.UNDOCUMENTED]: 'Undocumented',
     [PixelValidationResult.OLD_APP_VERSION]: 'DDG App Version Outdated',
     [PixelValidationResult.VALIDATION_FAILED]: 'Validation Failed',
@@ -151,8 +149,7 @@ export class LivePixelsValidator {
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
-            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
+            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`])
             return this.currentPixelState;
         }
 
@@ -160,7 +157,6 @@ export class LivePixelsValidator {
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
             this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
             return this.currentPixelState;
         }
 
@@ -183,32 +179,18 @@ export class LivePixelsValidator {
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
             if (!metric || !metricValue) {
-                if (this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`])) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                } else if (errorFound) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                } else {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-                }
+                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
                 return this.currentPixelState;
             }
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
-                if (this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`])) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                } else if (errorFound) {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-                } else {
-                    this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-                }
+                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
                 return this.currentPixelState;
             }
 
             metricSchema(metricValue);
-            if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors))) {
-                errorFound = true;
-            }
+            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
 
             // Remove metric and value from params for further validation
             delete rawParamsStruct.metric;
@@ -217,15 +199,7 @@ export class LivePixelsValidator {
 
         // Validate enrollmentDate and conversionWindow
         this.#commonExperimentParamsSchema(rawParamsStruct);
-        if (this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors))) {
-            errorFound = true;
-        }
-
-        if (errorFound) {
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-        } else {
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-        }
+        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors)); 
         return this.currentPixelState;
     }
 
@@ -261,9 +235,10 @@ export class LivePixelsValidator {
      */
     validatePixel(pixel, params) {
         this.currentPixelState = {};
+        // Start by assuming this passes and update if errors are found
+        this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
         this.currentPixelState.prefix = 'undefined';
-        this.currentPixelState.status = PixelValidationResult.UNDEFINED;
-        this.currentPixelState.errors = {};
+        this.currentPixelState.errors = new Set();
 
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateExperimentPixel(pixel, params);
@@ -324,11 +299,6 @@ export class LivePixelsValidator {
         }
         // 3) Validate suffixes if they exist
         if (pixel.length === prefix.length) {
-            if (numErrorsFound > 0) {
-                this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-            } else {
-                this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-            }
             return this.currentPixelState;
         }
 
@@ -340,14 +310,6 @@ export class LivePixelsValidator {
         pixelSchemas.suffixesSchema(pixelNameStruct);
         errorFound = this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
 
-        if (errorFound) {
-            numErrorsFound++;
-        }
-        if (numErrorsFound > 0) {
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_FAILED;
-        } else {
-            this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
-        }
         return this.currentPixelState;
     }
 
@@ -362,12 +324,6 @@ export class LivePixelsValidator {
         this.currentPixelState.example = example;
 
         for (const error of errors) {
-            // Skip undefined, null, or empty errors
-            if (!error || error.trim() === '') {
-                console.warn(`Warning: Skipping invalid error: "${error}"`);
-                continue;
-            }
-
             if (!this.currentPixelState.errors[error]) {
                 this.currentPixelState.errors[error] = new Set();
             }
