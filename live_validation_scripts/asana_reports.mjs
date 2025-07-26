@@ -277,7 +277,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
                 const paramsUrlFormat = JSON5.parse(row.params).join('&');
-                let pixelName = liveValidator.getPixelPrefix(pixelRequestFormat);
+                let pixelName = liveValidator.getPixelInfo(pixelRequestFormat).prefix;
                 if (pixelName === '') {
                     // Get tons of pixels with the wrong delimiter
                     // Example: "email-unsubscribe-mailto"
@@ -294,20 +294,6 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 const lastPixelState = liveValidator.validatePixel(pixelName, paramsUrlFormat);
                 const status = lastPixelState.status;
-                if (
-                    status !== PixelValidationResult.VALIDATION_PASSED &&
-                    status !== PixelValidationResult.OLD_APP_VERSION &&
-                    status !== PixelValidationResult.UNDOCUMENTED &&
-                    status !== PixelValidationResult.VALIDATION_FAILED
-                ) {
-                    console.error(`Unexpected validation result: ${status} for pixel ${pixelName} with params ${paramsUrlFormat}`);
-                    process.exit(1);
-                }
-
-                if (status !== lastPixelState.status) {
-                    console.error(`Return ${status} should match last pixel status ${lastPixelState.status}`);
-                    process.exit(1);
-                }
 
                 // Collect errors when validation fails
                 if (status === PixelValidationResult.VALIDATION_FAILED) {
@@ -379,7 +365,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     pixelResult.undocumented++;
                     pixel.numUndocumented++;
                 } else {
-                    // console.log(liveValidator.getPixelPrefix(pixelName));
+                    // console.log(liveValidator.getPixelInfo(pixelName).prefix);
                     console.error(`UNEXPECTED return ${status} for ${pixelName}`);
                     process.exit(1);
                 }

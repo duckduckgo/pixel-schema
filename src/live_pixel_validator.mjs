@@ -201,12 +201,17 @@ export class LivePixelsValidator {
 
     /**
      * @param {String} pixel
-     * @returns {String} prefix of pixel
+     * @returns {Object} object containing prefix and schema
      */
-    getPixelPrefix(pixel) {
+    getPixelInfo(pixel) {
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
-            return pixelParts[0] + PIXEL_DELIMITER + pixelParts[1] + PIXEL_DELIMITER + pixelParts[2];
+            const prefix = pixelParts[0] + PIXEL_DELIMITER + pixelParts[1] + PIXEL_DELIMITER + pixelParts[2];
+            // For experiment pixels, we don't have a traditional schema in the same format
+            return {
+                prefix,
+                schema: null,
+            };
         }
         const pixelParts = pixel.split(PIXEL_DELIMITER);
         let pixelMatch = this.#compiledPixels;
@@ -220,8 +225,12 @@ export class LivePixelsValidator {
                 break;
             }
         }
-        return matchedParts.slice(0, -1);
-        // return pixelParts.slice(0, -1).join(PIXEL_DELIMITER);
+        const prefix = matchedParts.slice(0, -1);
+        const schema = pixelMatch[ROOT_PREFIX] || null;
+        return {
+            prefix,
+            schema,
+        };
     }
 
     /**
@@ -240,27 +249,15 @@ export class LivePixelsValidator {
             return this.validateExperimentPixel(pixel, params);
         }
 
-        // Match longest prefix:
-        const pixelParts = pixel.split(PIXEL_DELIMITER);
-        let pixelMatch = this.#compiledPixels;
-        let matchedParts = '';
-        for (let i = 0; i < pixelParts.length; i++) {
-            const part = pixelParts[i];
-            if (pixelMatch[part]) {
-                pixelMatch = pixelMatch[part];
-                matchedParts += part + PIXEL_DELIMITER;
-            } else {
-                break;
-            }
-        }
+        const pixelInfo = this.getPixelInfo(pixel);
+        const { prefix, schema: pixelSchemas } = pixelInfo;
 
-        if (!pixelMatch[ROOT_PREFIX]) {
+        if (!pixelSchemas) {
             this.currentPixelState.status = PixelValidationResult.UNDOCUMENTED;
             return this.currentPixelState;
         }
 
-        const prefix = matchedParts.slice(0, -1);
-        return this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        return this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelSchemas);
     }
 
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
