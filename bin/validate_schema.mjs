@@ -42,9 +42,13 @@ const argv = yargs(hideBin(process.argv))
 // 1) Validate common params and suffixes
 const mainDir = argv.dirPath;
 const pixelsDir = path.join(mainDir, 'pixels');
+console.log(`Reading common params ...`);
 const commonParams = fileUtils.readCommonParams(mainDir);
+console.log(`Reading common suffixes ...`);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
+console.log(`Reading ignore params ...`);
 const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+console.log(`Reading global ignore params ...`);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
 const ignoreParams = { ...pixelIgnoreParams, ...globalIgnoreParams };
 

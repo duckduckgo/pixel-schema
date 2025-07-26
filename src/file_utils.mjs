@@ -11,6 +11,22 @@ import { fileURLToPath } from 'url';
 const RESULTS_DIR = 'pixel_processing_results';
 export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
+function checkFileExists(filePath) {
+    let resolvedPath = filePath;
+    if (!fs.existsSync(resolvedPath)) {
+        // Try the '.json5' fallback
+        const { dir, name } = path.parse(filePath);
+        const altPath = path.join(dir, `${name}.json5`);
+        if (fs.existsSync(altPath)) {
+            resolvedPath = altPath;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * Attempt to read and parse a file using JSON5. Tries .json
  * first but will try to json5 if missing.
@@ -118,6 +134,15 @@ function getResultsFilePath(mainPixelDir, filename) {
 }
 
 /**
+ * Get path to the list of pixels with errors encountered during live validation
+ * @param { string } mainPixelDir - path to the main pixels directory
+ * @returns { string } pixel errors path
+ */
+export function getUniqueErrorPixelPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'unique_error_pixels.json');
+}
+
+/**
  * Get path to pixel errors encountered during live validation
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} pixel errors path
@@ -136,6 +161,25 @@ export function getUndocumentedPixelsPath(mainPixelDir) {
 }
 
 /**
+ * Get path to the list of pixel owners with errors
+ * This is a list of all the errors - pairs of invalid owner names and pixel names
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} pixel owner errors path
+ */
+export function getPixelOwnerErrorsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'pixel_owner_errors.json');
+}
+
+/**
+ * Get path to the list of unique owner names not in the map if github usernames to Asana user IDs
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} invalid owners path
+ */
+export function getInvalidOwnersPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'invalid_owner_errors.json');
+}
+
+/**
  * Get tokenized pixels path
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} tokenized pixels path
@@ -151,4 +195,8 @@ export function getTokenizedPixelsPath(mainPixelDir) {
  */
 export function readTokenizedPixels(mainPixelDir) {
     return parseFile(getTokenizedPixelsPath(mainPixelDir));
+}
+
+export function tokenizedPixelsFileExists(mainPixelDir) {
+    return checkFileExists(getTokenizedPixelsPath(mainPixelDir));
 }
