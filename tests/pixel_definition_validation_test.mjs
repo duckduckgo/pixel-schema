@@ -37,7 +37,7 @@ describe('Pixel with no owner', () => {
         };
 
         const errors = validator.validatePixelsDefinition({ pixel });
-        const expectedErrors = ['Pixel pixel must have at least 1 owner'];
+        const expectedErrors = ['/pixel/owners must NOT have fewer than 1 items'];
         expect(errors).to.have.members(expectedErrors);
     });
 });
