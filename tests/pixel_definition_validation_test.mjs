@@ -26,6 +26,22 @@ describe('Validating commons', () => {
     });
 });
 
+describe('Pixel with no owner', () => {
+    const validator = new DefinitionsValidator({}, {}, {});
+
+    it('no owner', () => {
+        const pixel = {
+            description: 'Pixel with owners field but no owner',
+            owners: [],
+            triggers: ['other'],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel });
+        const expectedErrors = ['Pixel pixel must have at least 1 owner'];
+        expect(errors).to.have.members(expectedErrors);
+    });
+});
+
 describe('Pixel with no params and no suffixes', () => {
     const validator = new DefinitionsValidator({}, {}, {});
 
