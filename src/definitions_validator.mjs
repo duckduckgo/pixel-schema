@@ -102,8 +102,10 @@ export class DefinitionsValidator {
                 return;
             }
 
-            // If a github user map is provided, check if all owners are valid
-            if (userMap) {
+            // There should be at least 1 owner
+            if (pixelDef.owners.length === 0) {
+                errors.push(`Pixel ${pixelName} must have at least 1 owner`);
+            } else if (userMap) {
                 for (const owner of pixelDef.owners) {
                     if (!userMap[owner]) {
                         errors.push(`Owner ${owner} for pixel ${pixelName} not in list of acceptable github user names`);
