@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import { tokenizePixelDefs } from '../src/tokenizer.mjs';
-import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
+import { LivePixelsValidator, PixelValidationResult } from '../src/live_pixel_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
@@ -286,6 +286,72 @@ describe('Base64 simple param', () => {
 
     it('valid param', () => {
         const pixelStatus = liveValidator.validatePixel(prefix, `base64SimpleParam=${Buffer.from('false').toString('base64')}`);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+});
+
+describe('DDG App Version Outdated', () => {
+    const productDefWithVersion = {
+        target: {
+            key: 'appVersion',
+            version: '2.0.0',
+        },
+        forceLowerCase: false,
+    };
+
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const pixelDefs = {
+        versionedPixel: {
+            parameters: [
+                {
+                    key: 'appVersion',
+                    type: 'string',
+                },
+                {
+                    key: 'param1',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDefWithVersion, {}, paramsValidator);
+
+    it('older app version should return OLD_APP_VERSION status', () => {
+        const prefix = 'versionedPixel';
+        const params = 'appVersion=1.5.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        
+        expect(pixelStatus.status).to.equal(PixelValidationResult.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('current app version should pass validation', () => {
+        const prefix = 'versionedPixel';
+        const params = 'appVersion=2.0.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        
+        expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('newer app version should pass validation', () => {
+        const prefix = 'versionedPixel';
+        const params = 'appVersion=2.1.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        
+        expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('invalid version format should continue with normal validation', () => {
+        const prefix = 'versionedPixel';
+        const params = 'appVersion=invalid&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        
+        // Should not trigger OLD_APP_VERSION since version is invalid
+        expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
         expect(pixelStatus.errors).to.be.empty;
     });
 });

@@ -1,0 +1,21 @@
+{
+    "appVersion": {
+        "key": "appVersion",
+        "type": "string",
+        "description": "",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]$",
+        "examples": ["0.89.3"]
+    },
+    "channel": {
+        "key": "channel",
+        "type": "string",
+        "description": "The channel the user is on.",
+        "enum": ["stable", "beta", "unpackaged"]
+    },
+    "ud": {
+        "keyPattern": "^ud[0-9]$",
+        "type": "string",
+        "description": "Underlying domain error - without exception message",
+        "examples": ["NetworkProtection.WireGuardAdapterError"]
+    }
+}

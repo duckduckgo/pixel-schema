@@ -1,0 +1,6 @@
+pixel,params
+m.my.first.pixel,['color=blue']
+m.my.first.pixel,['color=blue']
+m.my.first.pixel,['color=yellow']
+m.my.first.pixel,['color=blue&appVersion=0.98.0']
+m.undocumented.pixel,['color=red']

@@ -1,0 +1,13 @@
+{
+    "first_daily_count": {
+        "type": "string",
+        "description": "Pixel schedule type.",
+        "enum": ["first", "daily", "count"]
+    },
+    "device_type": {
+        "key": "android",
+        "type": "string",
+        "description": "The type of device used by the user.",
+        "enum": ["phone", "tablet"]
+    }
+}
