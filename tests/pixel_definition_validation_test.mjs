@@ -41,6 +41,7 @@ describe('Pixel with no owner', () => {
         expect(errors).to.have.members(expectedErrors);
     });
 });
+
 describe('Pixel with no params and no suffixes', () => {
     const validator = new DefinitionsValidator({}, {}, {});
 
@@ -213,6 +214,19 @@ describe('Pixel with params', () => {
                 },
             ],
             ["pixel --> duplicate key 'common_param' found!"],
+        );
+    });
+
+    it('valid pixel with both custom and common params', () => {
+        validateErrors(
+            [
+                'common_param',
+                {
+                    key: 'custom_param',
+                    description: 'custom parameter',
+                },
+            ],
+            [],
         );
     });
 });
