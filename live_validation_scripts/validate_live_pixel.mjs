@@ -64,15 +64,6 @@ function main(mainDir, csvFile) {
             const lastPixelState = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             const status = lastPixelState.status;
 
-            if (
-                status !== PixelValidationResult.VALIDATION_PASSED &&
-                status !== PixelValidationResult.OLD_APP_VERSION &&
-                status !== PixelValidationResult.UNDOCUMENTED &&
-                status !== PixelValidationResult.VALIDATION_FAILED
-            ) {
-                console.error(`Unexpected validation result: ${status} for pixel ${pixelRequestFormat} with params ${paramsUrlFormat}`);
-                process.exit(1);
-            }
             variantCounts[status]++;
             pixelSets[status].add(pixelRequestFormat);
 

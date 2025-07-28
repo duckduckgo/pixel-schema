@@ -748,6 +748,13 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
             : 'No pixels found.';
     */
 
+    const pixelsWithErrors = new Set();
+    pixelMap.forEach((pixelData, pixelName) => {
+        if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
+            pixelsWithErrors.add({ pixelName, pixelData });
+        }
+    });
+
     const undocumentedPixelTableRows = [];
     let undocumentedPixelCount = 0;
     pixelMap.forEach((pixelData, pixelName) => {
@@ -761,30 +768,19 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
             undocumentedPixelTableRows.push(row);
         }
     });
-
-    const pixelsWithErrors = new Set();
-    pixelMap.forEach((pixelData, pixelName) => {
-        if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-            pixelsWithErrors.add({ pixelName, pixelData });
-        }
-    });
-
-    /*
-    const undocumentedPixelTable =
+    /* const undocumentedPixelTable =
         undocumentedPixelTableRows.length > 0
             ? `
-                <h2>Undocumented Pixels</h2>
-                <table>
-                        <tr>
-                            <td><strong>Pixel Name</strong></td>
-                            <td><strong>Accesses</strong></td>
-                        </tr>
-             ${undocumentedPixelTableRows.join('')}
-                </table>`
-            : 'No pixels found.';
+            <h2>Undocumented Pixels</h2>
+            <table>
+                    <tr>
+                        <td><strong>Pixel Name</strong></td>
+                        <td><strong>Accesses</strong></td>
+                    </tr>
+         ${undocumentedPixelTableRows.join('')}
+            </table>`
+            : 'No undocumentedpixels found.';
 */
-
-    //   TODO:      ${ documentedPixelTable }
 
     let header = '';
     if (pixelsWithErrors.size > 0) {
@@ -804,8 +800,6 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
                     <h1>No errors found. </h1>
                     `;
     }
-
-    // ${undocumentedPixelTable}
 
     // Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures.
 
@@ -952,18 +946,34 @@ async function createAsanaTask(report, validationResults, toNotify, asanaProject
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
+            }
+        }
 
-                /*
-                // Fallback: Save locally
-                try {
-                    const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
-                    const outputPath = `pixel-errors-${Date.now()}.json`;
-                    fs.writeFileSync(outputPath, reportData);
-                    console.log(`Attachment failed, pixel errors saved to ${outputPath} for manual review`);
-                } catch (saveError) {
-                    console.error(`Error saving pixel errors to file:`, saveError);
-                }
-                */
+        if (undocumentedPixelTableRows.length > 0) {
+            try {
+                console.log(`Attempting to attach ${undocumentedPixelTableRows.length} undocumented pixels`);
+
+                // Create a temporary file with the pixel error data
+                const reportData = JSON.stringify(Array.from(undocumentedPixelTableRows), null, 4);
+                const tempFilePath = `/tmp/undocumented-pixels-${Date.now()}.json`;
+                fs.writeFileSync(tempFilePath, reportData);
+
+                const superagent = await import('superagent');
+
+                const attachmentResult = await superagent.default
+                    .post('https://app.asana.com/api/1.0/attachments')
+                    .set('Authorization', `Bearer ${token.accessToken}`)
+                    .field('parent', result.data.gid)
+                    .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
+                    .attach('file', tempFilePath);
+
+                console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+
+                // Clean up temp file
+                fs.unlinkSync(tempFilePath);
+            } catch (attachmentError) {
+                console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
+                console.error('Full error:', attachmentError);
             }
         }
     } catch (error) {
