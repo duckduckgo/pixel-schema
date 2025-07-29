@@ -1,0 +1,44 @@
+[
+    {
+        "pixelName": "pixel_error_only",
+        "pixelData": {
+            "owners": [
+                "jeannamatthews"
+            ],
+            "documented": true,
+            "numPasses": 0,
+            "numFailures": 1,
+            "numAppVersionOutOfDate": 1,
+            "numAccesses": 2,
+            "sampleErrors": [
+                {
+                    "type": "/color must be equal to one of the allowed values",
+                    "examples": [
+                        "color=red"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "pixel_mix_pass_fail",
+        "pixelData": {
+            "owners": [
+                "jeannamatthews"
+            ],
+            "documented": true,
+            "numPasses": 1,
+            "numFailures": 1,
+            "numAppVersionOutOfDate": 0,
+            "numAccesses": 2,
+            "sampleErrors": [
+                {
+                    "type": "/color must be equal to one of the allowed values",
+                    "examples": [
+                        "color=red"
+                    ]
+                }
+            ]
+        }
+    }
+]

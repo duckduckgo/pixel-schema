@@ -89,7 +89,7 @@ describe('Validate live pixels', () => {
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
 
-        exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`, (error, _, stderr) => {
+        exec(`npm run validate-live-pixels ${validDefsPath}/test_live_pixels.csv ${validDefsPath} ${validUserMapPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
 
             // Check output files
@@ -111,8 +111,9 @@ describe('Validate live pixels', () => {
         });
 
         exec(
-            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/test_live_pixels.csv`,
+            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath}/test_live_pixels.csv ${validCaseInsensitiveDefsPath} ${validUserMapPath}`,
             (error, _, stderr) => {
+                
                 expect(error).to.equal(null);
 
                 // Check output files
@@ -135,9 +136,11 @@ describe('Validate live pixels', () => {
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
 
-        exec(`npm run validate-live-pixels ${testStatsPath} ${testStatsPath}/test_live_pixels.csv`, (error, _, stderr) => {
+        exec(`npm run validate-live-pixels ${testStatsPath}/test_live_pixels.csv ${testStatsPath} ${validUserMapPath}`, (error, _, stderr) => {
+            
             expect(error).to.equal(null);
 
+            console.log('error', error);
             // Check output files
             const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(testStatsPath)));
             const expectedErrors = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'pixel_errors.json')));
@@ -147,8 +150,30 @@ describe('Validate live pixels', () => {
             const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'undocumented_pixels.json')));
             expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
+            //TODO: fix this
+            //const ownersWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(testStatsPath)));
+            //const expectedOwnersWithErrors = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'owners_with_errors.json')));
+            //expect(ownersWithErrors).to.deep.equal(expectedOwnersWithErrors);
+            
+            // check owners
+            const owners = JSON5.parse(fs.readFileSync(fileUtils.getAllOwnersPath(testStatsPath)));
+            const expectedOwners = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'owners.json')));
+            expect(owners).to.deep.equal(expectedOwners);
+            
+            //  check pixelsWithErrors
+            const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(testStatsPath)));
+            const expectedPixelsWithErrors = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'pixels_with_errors.json')));
+            expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
+            
+
+            // check static stats
+            const staticStats = JSON5.parse(fs.readFileSync(fileUtils.getStaticStatsPath(testStatsPath)));
+            const expectedStaticStats = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'static_stats.json')));
+            expect(staticStats).to.deep.equal(expectedStaticStats);
+
             done();
         });
+
     }).timeout(timeout);
     
 });

@@ -1,0 +1,85 @@
+{
+    "pixel": {
+        "pass": {
+            "only": {
+                "__root_prefix__": {
+                    "parameters": [
+                        {
+                            "key": "color",
+                            "description": "",
+                            "enum": [
+                                "blue",
+                                "yellow"
+                            ]
+                        },
+                        {
+                            "key": "appVersion",
+                            "description": "App version for testing version validation",
+                            "type": "string"
+                        }
+                    ]
+                }
+            }
+        },
+        "error": {
+            "only": {
+                "__root_prefix__": {
+                    "parameters": [
+                        {
+                            "key": "color",
+                            "description": "",
+                            "enum": [
+                                "blue",
+                                "yellow"
+                            ]
+                        },
+                        {
+                            "key": "appVersion",
+                            "description": "App version for testing version validation",
+                            "type": "string"
+                        }
+                    ]
+                }
+            }
+        },
+        "mix": {
+            "pass": {
+                "fail": {
+                    "__root_prefix__": {
+                        "parameters": [
+                            {
+                                "key": "color",
+                                "description": "",
+                                "enum": [
+                                    "blue",
+                                    "yellow"
+                                ]
+                            },
+                            {
+                                "key": "appVersion",
+                                "description": "App version for testing version validation",
+                                "type": "string"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "unaccessed": {
+        "pixel": {
+            "__root_prefix__": {
+                "parameters": [
+                    {
+                        "key": "color",
+                        "description": "",
+                        "enum": [
+                            "blue",
+                            "yellow"
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

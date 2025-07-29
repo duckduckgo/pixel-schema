@@ -152,6 +152,42 @@ export function getPixelErrorsPath(mainPixelDir) {
 }
 
 /**
+ * Get path to static stats encountered during live validation
+ * @param { string } mainPixelDir - path to the main pixels directory
+ * @returns { string } static stats path
+ */
+export function getStaticStatsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'static_stats.json');
+}
+/**
+ * Get path to pixel errors encountered during live validation
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} pixel errors path
+ */
+export function getPixelsWithErrorsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'pixels_with_errors.json');
+}
+
+/**
+ * Get path to all owners encountered during live validation
+ * This is a list of all the owners - pairs of owner names and pixel names
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} all owners path
+ */
+export function getAllOwnersPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'owners.json');
+}
+
+/**
+* Get path to all owners with errors encountered during live validation
+ * This is a list of all the owners with errors - pairs of owner names and pixel names
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} all owners path
+ */
+export function getOwnersWithErrorsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'owners_with_errors.json');
+}
+/**
  * Get path to undocumented pixels encountered during live validation
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} undocumented pixels path

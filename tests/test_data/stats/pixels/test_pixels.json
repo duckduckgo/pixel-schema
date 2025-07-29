@@ -1,7 +1,7 @@
 {
-    "m_my_first_pixel": {
+    "pixel_pass_only": {
         "description": "Fires when my cool feature is used.",
-        "owners": ["ddg_username"],
+        "owners": ["nshuba"],
         "triggers": ["exception"],
         "parameters": [
             {
@@ -17,9 +17,59 @@
         ]
     },
 
+    "pixel_error_only": {
+        "description": "Fires when my cool feature is used.",
+        "owners": [
+            "jeannamatthews"
+        ],
+        "triggers": [
+            "exception"
+        ],
+        "parameters": [
+            {
+                "key": "color",
+                "description": "",
+                "enum": [
+                    "blue",
+                    "yellow"
+                ]
+            },
+            {
+                "key": "appVersion",
+                "description": "App version for testing version validation",
+                "type": "string"
+            }
+        ]
+    },
+
+    "pixel_mix_pass_fail": {
+        "description": "Fires when my cool feature is used.",
+        "owners": [
+            "jeannamatthews"
+        ],
+        "triggers": [
+            "exception"
+        ],
+        "parameters": [
+            {
+                "key": "color",
+                "description": "",
+                "enum": [
+                    "blue",
+                    "yellow"
+                ]
+            },
+            {
+                "key": "appVersion",
+                "description": "App version for testing version validation",
+                "type": "string"
+            }
+        ]
+    },
+
     "unaccessed_pixel": {
         "description": "Fires when my cool feature is used.",
-        "owners": ["ddg_username"],
+        "owners": ["nshuba"],
         "triggers": ["exception"],
         "parameters": [
             {
