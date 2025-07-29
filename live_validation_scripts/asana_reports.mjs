@@ -9,7 +9,6 @@ import asana from 'asana';
 import csv from 'csv-parser';
 import yaml from 'js-yaml';
 
-// Add imports for validation functionality
 import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator, PixelValidationResult, PixelValidationResultString } from '../src/live_pixel_validator.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
@@ -138,11 +137,7 @@ async function main() {
     try {
         const statsData = fs.readFileSync(statsFilePath, 'utf8');
         staticStats = JSON.parse(statsData);
-        //console.log(`statsData: ${statsData}`);
-        //console.log(`stats.numPixelDefinitionFiles : ${staticStats.numPixelDefinitionFiles}`);
-        //console.log(`stats.numPixelDefinitions: ${staticStats.numPixelDefinitions}`);
-        //console.log(`stats.numValidOwners: ${staticStats.numValidOwners}`);
-
+    
     } catch (error) {
         console.error(`Error reading or parsing stats file ${statsFilePath}:`, error);
         process.exit(1);
@@ -153,11 +148,6 @@ async function main() {
     const pixelsWithErrorsPath = fileUtils.getPixelsWithErrorsPath(argv.dirPath);
     console.log(`Pixel with errors path from fileUtils: ${pixelsWithErrorsPath}`);
 
-
-    // The fileUtils function already returns the complete path, no need to join
-    console.log(`Using path directly: ${pixelsWithErrorsPath}`);
-
-    // Try the path directly from fileUtils
     if (fs.existsSync(pixelsWithErrorsPath)) {
         try {
             const pixelsWithErrorsData = fs.readFileSync(pixelsWithErrorsPath, 'utf8');
@@ -199,8 +189,7 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
 
-    //const { pixelSets, accessCounts, totalAccesses, uniquePixels } = validationResults;
-
+   
     try {
         token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
     } catch (error) {
