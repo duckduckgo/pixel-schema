@@ -55,7 +55,6 @@ function getArgParser(description) {
 const argv = getArgParser('Generate Pixel Validation reports in Asana').parse();
 
 
-// Produces userMap
 function readUserMap(userMapFile) {
     console.log(`...Reading user map: ${userMapFile}`);
     if (!fs.existsSync(userMapFile)) {
@@ -111,7 +110,6 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
     return true;
 }
 
-// Main execution
 async function main() {
 
     const userMap = readUserMap(argv.userMapFile);
@@ -140,46 +138,16 @@ async function main() {
     try {
         const statsData = fs.readFileSync(statsFilePath, 'utf8');
         staticStats = JSON.parse(statsData);
-        console.log(`statsData: ${statsData}`);
-        console.log(`stats.numPixelDefinitionFiles : ${staticStats.numPixelDefinitionFiles}`);
-        console.log(`stats.numPixelDefinitions: ${staticStats.numPixelDefinitions}`);
-        console.log(`stats.numValidOwners: ${staticStats.numValidOwners}`);
+        //console.log(`statsData: ${statsData}`);
+        //console.log(`stats.numPixelDefinitionFiles : ${staticStats.numPixelDefinitionFiles}`);
+        //console.log(`stats.numPixelDefinitions: ${staticStats.numPixelDefinitions}`);
+        //console.log(`stats.numValidOwners: ${staticStats.numValidOwners}`);
 
     } catch (error) {
         console.error(`Error reading or parsing stats file ${statsFilePath}:`, error);
         process.exit(1);
     }
 
-    /*
-    // read pixel error attachment from file
-    let pixelErrors = [];
-    
-    const pixelErrorsPath = fileUtils.getPixelErrorsPath(argv.dirPath);
-    console.log(`Pixel errors path from fileUtils: ${pixelErrorsPath}`);
-    
-    
-    // The fileUtils function already returns the complete path, no need to join
-    console.log(`Using path directly: ${pixelErrorsPath}`);
-    
-    // Try the path directly from fileUtils
-    if (fs.existsSync(pixelErrorsPath)) {
-        try {
-            const pixelErrorsData = fs.readFileSync(pixelErrorsPath, 'utf8');
-            pixelErrors = JSON.parse(pixelErrorsData);
-            
-            
-            const pixelNames = Object.keys(pixelErrors);
-            console.log(`Successfully loaded pixel errors object with ${pixelNames.length} pixels`);
-            
-        } catch (error) {
-            console.error(`Error parsing pixel errors JSON:`, error);
-        }
-    } else {
-        console.log(`Pixel errors file not found at: ${pixelErrorsPath}`);
-    }
-    */
-
-    // read pixel error attachment from file
     let pixelsWithErrors = [];
 
     const pixelsWithErrorsPath = fileUtils.getPixelsWithErrorsPath(argv.dirPath);
@@ -250,86 +218,7 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
     const taskName = `Pixel Validation Report for ${argv.dirPath}`;
 
     console.log(taskName);
-    console.log(`stats.numPixelDefinitionFiles : ${staticStats.numPixelDefinitionFiles}`);
-    console.log(`stats.numPixelDefinitions: ${staticStats.numPixelDefinitions}`);
-    console.log(`stats.numValidOwners: ${staticStats.numValidOwners}`);
-
-    // Generate HTML table for all documented pixels in pixelMap
-    /* const documentedPixelTableRows = [];
-    let documentedPixelCount = 0;
-    pixelMap.forEach((pixelData, pixelName) => {
-        if (pixelData.documented) {
-            documentedPixelCount++;
-            const row = `
-                    <tr>
-                        <td>${pixelName}</td>
-                        <td>${pixelData.owners ? pixelData.owners.join(', ') : 'No Owner'}</td>
-                        <td>${pixelData.numAccesses}</td>
-                        <td>${pixelData.numAppVersionOutOfDate}</td>
-                        <td>${pixelData.numPasses}</td>
-                        <td>${pixelData.numFailures}</td>
-                        <td>${pixelData.sampleErrors ? pixelData.sampleErrors.length : 0}</td>
-                    </tr>`;
-            documentedPixelTableRows.push(row);
-        }
-    });
-    */
-
-    /*
-    const documentedPixelTable =
-        documentedPixelTableRows.length > 0
-            ? `
-                <h2>Documented Pixels</h2>
-                <table>
-                        <tr>
-                            <td><strong>Pixel Name</strong></td>
-                            <td><strong>Owners</strong></td>
-                            <td><strong>Accesses</strong></td>
-                            <td><strong>Old App Version (Unvalidated)</strong></td>
-                            <td><strong>Passes</strong></td>
-                            <td><strong>Failures</strong></td>
-                            <td><strong>Failure Types (See Examples of Each Below)</strong></td>
-                        </tr>
-             ${documentedPixelTableRows.join('')}
-                </table>`
-            : 'No pixels found.';
-    */
-
-   /* const pixelsWithErrors = new Set();
-    pixelMap.forEach((pixelData, pixelName) => {
-        if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-            pixelsWithErrors.add({ pixelName, pixelData });
-        }
-    });
-
-    const undocumentedPixelTableRows = [];
-    let undocumentedPixelCount = 0;
-    pixelMap.forEach((pixelData, pixelName) => {
-        if (!pixelData.documented) {
-            undocumentedPixelCount++;
-            const row = `
-                    <tr>
-                        <td>${pixelName}</td>
-                        <td>${pixelData.numAccesses}</td>
-                        </tr>`;
-            undocumentedPixelTableRows.push(row);
-        }
-    });
-    */
-    /* const undocumentedPixelTable =
-        undocumentedPixelTableRows.length > 0
-            ? `
-            <h2>Undocumented Pixels</h2>
-            <table>
-                    <tr>
-                        <td><strong>Pixel Name</strong></td>
-                        <td><strong>Accesses</strong></td>
-                    </tr>
-         ${undocumentedPixelTableRows.join('')}
-            </table>`
-            : 'No undocumentedpixels found.';
-*/
-
+   
     let header = '';
 
     const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
@@ -436,17 +325,6 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
                     </body>
                     `;
 
-    // Check the size of taskNotes
-    const taskNotesBytes = Buffer.byteLength(taskNotes, 'utf8');
-    console.log(`taskNotes size: ${taskNotesBytes} bytes (${(taskNotesBytes / 1024).toFixed(2)} KB)`);
-
-    // Asana docs are not clear on the limit and neither are the error messages
-    // From experience I am guesing the limit is around 35000 bytes, perhaps
-    // 32000 bytes to be on the safe side.
-    if (taskNotesBytes > 32000) {
-        console.error('Details may be too large to send to Asana in the task description itself.');
-    }
-
     // Due date set to when we want to delete any attachments
     const DAYS_UNTIL_DUE = DAYS_TO_DELETE_ATTACHMENT;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -486,6 +364,7 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
                 console.log(`Attempting to attach ${numPixelsWithErrors} pixels with errors`);
 
                 // Create a temporary file with the pixel error data
+                // TODO: just attach existing pixel_with_errors.json file - no need to create a new one
                 const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
                 const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
                 fs.writeFileSync(tempFilePath, reportData);
@@ -509,35 +388,6 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
             }
         }
 
-        /*
-        if (undocumentedPixelTableRows.length > 0) {
-            try {
-                console.log(`Attempting to attach ${undocumentedPixelTableRows.length} undocumented pixels`);
-
-                // Create a temporary file with the pixel error data
-                const reportData = JSON.stringify(Array.from(undocumentedPixelTableRows), null, 4);
-                const tempFilePath = `/tmp/undocumented-pixels-${Date.now()}.json`;
-                fs.writeFileSync(tempFilePath, reportData);
-
-                const superagent = await import('superagent');
-
-                const attachmentResult = await superagent.default
-                    .post('https://app.asana.com/api/1.0/attachments')
-                    .set('Authorization', `Bearer ${token.accessToken}`)
-                    .field('parent', result.data.gid)
-                    .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
-                    .attach('file', tempFilePath);
-
-                console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-
-                // Clean up temp file
-                fs.unlinkSync(tempFilePath);
-            } catch (attachmentError) {
-                console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
-                console.error('Full error:', attachmentError);
-            }
-        }
-        */
     } catch (error) {
         console.error(`Error creating task for ${argv.dirPath}:`, error);
     }
