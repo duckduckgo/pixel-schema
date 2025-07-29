@@ -111,7 +111,12 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
 
 async function main() {
 
+    console.log('AsanaWorkspace ID: ' + DDG_ASANA_WORKSPACEID);
+    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = argv.asanaProjectID;
+    console.log('Asana Pixel Validation Project: ', DDG_ASANA_PIXEL_VALIDATION_PROJECT);
+
     const userMap = readUserMap(argv.userMapFile);
+
 
     const toNotify = {};
     const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
@@ -121,8 +126,7 @@ async function main() {
         process.exit(1);
     }
 
-    console.log('Asana Project ID: ', argv.asanaProjectID);
-
+    
 
     //read stats from file
     const statsFilePath = fileUtils.getStaticStatsPath(argv.dirPath);
@@ -181,11 +185,6 @@ async function main() {
     }
                
     
-    await createAsanaTask(argv.dirPath, staticStats, toNotify, argv.asanaProjectID, pixelsWithErrors);
-}
-
-
-async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, pixelsWithErrors) {
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
 
@@ -197,11 +196,8 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
         process.exit(1);
     }
 
-    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = asanaProjectID;
 
-    console.log('Workspace ID: ' + DDG_ASANA_WORKSPACEID);
-    console.log('Pixel Validation Project: ' + DDG_ASANA_PIXEL_VALIDATION_PROJECT);
-
+   
     const tasks = new asana.TasksApi();
 
     const taskName = `Pixel Validation Report for ${argv.dirPath}`;
@@ -220,7 +216,6 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
                     <li>For changes to the pixel definition, consult the privacy engineering team/ open a privacy triage. </li>
                     <li>Simple changes (e.g. adding a new value to an existing enum, adding a common parameter like appVersion or channel) can be approved quickly and may not require a full privacy triage. </li>
                     <li>More complex changes (e.g. adding a parameter, especially a non-enum parameter) likely will require a privacy triage. </li>
-                    <li>If you would like more examples of errors, ask in AOR Pixel Registry for help generating a custom report. </li>
                     <li>Note: The attachment with samples of detailed errors should be deleted after ${DAYS_TO_DELETE_ATTACHMENT} days. </li>
                     </ul>
                     `;
@@ -353,10 +348,10 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
                 console.log(`Attempting to attach ${numPixelsWithErrors} pixels with errors`);
 
                 // Create a temporary file with the pixel error data
-                // TODO: just attach existing pixel_with_errors.json file - no need to create a new one
-                const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
-                const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
-                fs.writeFileSync(tempFilePath, reportData);
+                // OPTION: could also just attach existing pixel_with_errors.json file - no need to create a new one
+                //const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
+                //const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
+                //fs.writeFileSync(tempFilePath, reportData);
 
                 const superagent = await import('superagent');
 
@@ -364,13 +359,13 @@ async function createAsanaTask(mainDir, staticStats, toNotify, asanaProjectID, p
                     .post('https://app.asana.com/api/1.0/attachments')
                     .set('Authorization', `Bearer ${token.accessToken}`)
                     .field('parent', result.data.gid)
-                    .field('name', `pixel-errors-${argv.dirPath.replace(/[^a-zA-Z0-9]/g, '-')}.json`)
-                    .attach('file', tempFilePath);
+                    .field('name', `pixel_with_errors.json`)
+                    .attach('file', pixelsWithErrorsPath);
 
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
 
                 // Clean up temp file
-                fs.unlinkSync(tempFilePath);
+                //fs.unlinkSync(tempFilePath);
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
