@@ -24,7 +24,6 @@ describe('Invalid defs without user map', () => {
                 `ERROR in ${pixelPath}: Invalid property name 'experiment.invalid'. If this is a pixel:`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'description'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
-                `ERROR in ${pixelPath}: /invalid_pixel must have required property 'triggers'`,
             ];
 
             const errors = stderr.trim().split('\n');
