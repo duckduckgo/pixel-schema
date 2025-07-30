@@ -331,12 +331,6 @@ async function main() {
             try {
                 console.log(`Attempting to attach ${numPixelsWithErrors} pixels with errors`);
 
-                // Create a temporary file with the pixel error data
-                // OPTION: could also just attach existing pixel_with_errors.json file - no need to create a new one
-                // const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
-                // const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
-                // fs.writeFileSync(tempFilePath, reportData);
-
                 const superagent = await import('superagent');
 
                 const attachmentResult = await superagent.default
@@ -348,8 +342,6 @@ async function main() {
 
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
 
-                // Clean up temp file
-                // fs.unlinkSync(tempFilePath);
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
@@ -360,5 +352,4 @@ async function main() {
     }
 }
 
-// Run the main function
 main().catch(console.error);
