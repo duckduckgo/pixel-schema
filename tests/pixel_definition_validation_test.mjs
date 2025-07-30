@@ -48,10 +48,7 @@ describe('Pixel with no params and no suffixes', () => {
     // We no longer require a trigger, if one is not specified, it defaults to 'other'
     it('must have required properties', () => {
         const errors = validator.validatePixelsDefinition({ pixel: {} });
-        const expectedErrors = [
-            "/pixel must have required property 'description'",
-            "/pixel must have required property 'owners'",
-        ];
+        const expectedErrors = ["/pixel must have required property 'description'", "/pixel must have required property 'owners'"];
 
         expect(errors).to.have.members(expectedErrors);
     });
