@@ -279,7 +279,11 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
                 const paramsUrlFormat = JSON5.parse(row.params).join('&');
-                let pixelName = liveValidator.getPixelInfo(pixelRequestFormat).prefix;
+                const lastPixelState = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+                let pixelName;
+
+                //let pixelName = liveValidator.getPixelInfo(pixelRequestFormat).prefix;
+                /*
                 if (pixelName === '') {
                     // Get tons of pixels with the wrong delimiter
                     // Example: "email-unsubscribe-mailto"
@@ -289,15 +293,23 @@ async function validateLivePixels(mainDir, csvFile) {
 
                     // The case I see the post is email-*
                     // Worth tracking that special case specifically
-                    /*if (pixelRequestFormat.startsWith('email')) {
-                        pixelName = 'email';
-                    } else {
-                        pixelName = pixelRequestFormat;
-                    }*/
+                    //f (pixelRequestFormat.startsWith('email')) {
+                    //    pixelName = 'email';
+                    //} else {
+                    //    pixelName = pixelRequestFormat;
+                    //}
+                }
+                */
+                if (lastPixelState.status === PixelValidationResult.UNDOCUMENTED) {
+                    // For undocumented pixels, use the full name                                                                                          
+                    pixelName = pixelRequestFormat;
+                } else {
+                    // For documented pixels (including validation failed), use the prefix                                                                 
+                    pixelName = lastPixelState.prefix || pixelRequestFormat;
                 }
                 uniquePixelsAccessed.add(pixelName);
 
-                const lastPixelState = liveValidator.validatePixel(pixelName, paramsUrlFormat);
+                //const lastPixelState = liveValidator.validatePixel(pixelName, paramsUrlFormat);
                 const status = lastPixelState.status;
 
                 // Collect errors when validation fails

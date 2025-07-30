@@ -243,7 +243,7 @@ export class LivePixelsValidator {
         // Start by assuming this passes and update if errors are found
         this.currentPixelState.status = PixelValidationResult.VALIDATION_PASSED;
         this.currentPixelState.prefix = 'undefined';
-        this.currentPixelState.errors = new Set();
+        this.currentPixelState.errors = {};
 
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateExperimentPixel(pixel, params);
@@ -251,6 +251,9 @@ export class LivePixelsValidator {
 
         const pixelInfo = this.getPixelInfo(pixel);
         const { prefix, schema: pixelSchemas } = pixelInfo;
+        
+        // Set the prefix in currentPixelState
+        this.currentPixelState.prefix = prefix;
 
         if (!pixelSchemas) {
             this.currentPixelState.status = PixelValidationResult.UNDOCUMENTED;
