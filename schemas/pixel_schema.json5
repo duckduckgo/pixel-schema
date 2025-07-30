@@ -24,7 +24,7 @@
     "$defs": {
         "pixel": {
             "type": "object",
-            "required": ["description", "owners", "triggers"],
+            "required": ["description", "owners"],
             "additionalProperties": false,
             "properties": {
                 "description": {
@@ -41,7 +41,9 @@
                 },
                 "triggers": {
                     "type": "array",
+                    "minItems": 1,
                     "description": "What triggers this pixel",
+                    "default": ["other"],
                     "items": {
                         "type": "string",
                         "enum": [

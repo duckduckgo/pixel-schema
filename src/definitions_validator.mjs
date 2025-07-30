@@ -102,12 +102,6 @@ export class DefinitionsValidator {
                 return;
             }
 
-            // There should be at least 1 owner
-            if (!pixelDef.owners || pixelDef.owners.length === 0) {
-                errors.push(`Pixel ${pixelName} must have at least 1 owner`);
-                return;
-            }
-
             // All owners should be valid github user names in the approved DDG list
             if (userMap) {
                 for (const owner of pixelDef.owners) {
