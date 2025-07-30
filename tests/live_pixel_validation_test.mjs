@@ -322,7 +322,7 @@ describe('DDG App Version Outdated', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=1.5.0&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
-        
+
         expect(pixelStatus.status).to.equal(PixelValidationResult.OLD_APP_VERSION);
         expect(pixelStatus.errors).to.be.empty;
     });
@@ -331,7 +331,7 @@ describe('DDG App Version Outdated', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=2.0.0&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
-        
+
         expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
         expect(pixelStatus.errors).to.be.empty;
     });
@@ -340,7 +340,7 @@ describe('DDG App Version Outdated', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=2.1.0&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
-        
+
         expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
         expect(pixelStatus.errors).to.be.empty;
     });
@@ -349,7 +349,7 @@ describe('DDG App Version Outdated', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=invalid&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
-        
+
         // Should not trigger OLD_APP_VERSION since version is invalid
         expect(pixelStatus.status).to.equal(PixelValidationResult.VALIDATION_PASSED);
         expect(pixelStatus.errors).to.be.empty;

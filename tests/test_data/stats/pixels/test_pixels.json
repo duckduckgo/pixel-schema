@@ -19,20 +19,13 @@
 
     "pixel_error_only": {
         "description": "Fires when my cool feature is used.",
-        "owners": [
-            "jeannamatthews"
-        ],
-        "triggers": [
-            "exception"
-        ],
+        "owners": ["jeannamatthews"],
+        "triggers": ["exception"],
         "parameters": [
             {
                 "key": "color",
                 "description": "",
-                "enum": [
-                    "blue",
-                    "yellow"
-                ]
+                "enum": ["blue", "yellow"]
             },
             {
                 "key": "appVersion",
@@ -44,20 +37,13 @@
 
     "pixel_mix_pass_fail": {
         "description": "Fires when my cool feature is used.",
-        "owners": [
-            "jeannamatthews"
-        ],
-        "triggers": [
-            "exception"
-        ],
+        "owners": ["jeannamatthews"],
+        "triggers": ["exception"],
         "parameters": [
             {
                 "key": "color",
                 "description": "",
-                "enum": [
-                    "blue",
-                    "yellow"
-                ]
+                "enum": ["blue", "yellow"]
             },
             {
                 "key": "appVersion",

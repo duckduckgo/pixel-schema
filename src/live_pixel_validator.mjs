@@ -251,7 +251,7 @@ export class LivePixelsValidator {
 
         const pixelInfo = this.getPixelInfo(pixel);
         const { prefix, schema: pixelSchemas } = pixelInfo;
-        
+
         // Set the prefix in currentPixelState
         this.currentPixelState.prefix = prefix;
 

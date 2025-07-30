@@ -1,19 +1,13 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
-import JSON5 from 'json5';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import asana from 'asana';
-import csv from 'csv-parser';
 import yaml from 'js-yaml';
 
-import { ParamsValidator } from '../src/params_validator.mjs';
-import { LivePixelsValidator, PixelValidationResult, PixelValidationResultString } from '../src/live_pixel_validator.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
-import { PIXEL_DELIMITER } from '../src/constants.mjs';
-import { preparePixelsCSV } from '../src/clickhouse_fetcher.mjs';
 
 // npm run asana-reports tests/test_data/stats ../internal-github-asana-utils/user_map.yml  1210584574754345
 // Test Pixel Validation Project: 1210584574754345
@@ -46,13 +40,12 @@ function getArgParser(description) {
                     describe: 'ID of the Asana project to create the task in',
                     type: 'string',
                     demandOption: true,
-                })
+                });
         })
         .demandOption('dirPath');
 }
 
 const argv = getArgParser('Generate Pixel Validation reports in Asana').parse();
-
 
 function readUserMap(userMapFile) {
     console.log(`...Reading user map: ${userMapFile}`);
@@ -62,7 +55,6 @@ function readUserMap(userMapFile) {
     }
     return yaml.load(fs.readFileSync(userMapFile, 'utf8'));
 }
-
 
 function readAsanaNotifyFile(dirPath, userMap, toNotify) {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
@@ -110,13 +102,11 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
 }
 
 async function main() {
-
     console.log('AsanaWorkspace ID: ' + DDG_ASANA_WORKSPACEID);
     const DDG_ASANA_PIXEL_VALIDATION_PROJECT = argv.asanaProjectID;
     console.log('Asana Pixel Validation Project: ', DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
     const userMap = readUserMap(argv.userMapFile);
-
 
     const toNotify = {};
     const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
@@ -126,22 +116,19 @@ async function main() {
         process.exit(1);
     }
 
-    
-
-    //read stats from file
+    // read stats from file
     const statsFilePath = fileUtils.getStaticStatsPath(argv.dirPath);
     console.log(`Reading stats from: ${statsFilePath}`);
-    
+
     if (!fs.existsSync(statsFilePath)) {
         console.error(`Stats file ${statsFilePath} does not exist!`);
         process.exit(1);
     }
-    
+
     let staticStats;
     try {
         const statsData = fs.readFileSync(statsFilePath, 'utf8');
         staticStats = JSON.parse(statsData);
-    
     } catch (error) {
         console.error(`Error reading or parsing stats file ${statsFilePath}:`, error);
         process.exit(1);
@@ -157,10 +144,8 @@ async function main() {
             const pixelsWithErrorsData = fs.readFileSync(pixelsWithErrorsPath, 'utf8');
             pixelsWithErrors = JSON.parse(pixelsWithErrorsData);
 
-
             const pixelNames = Object.keys(pixelsWithErrors);
             console.log(`Successfully loaded pixel with errors object with ${pixelNames.length} pixels`);
-
         } catch (error) {
             console.error(`Error parsing pixel with errors JSON:`, error);
         }
@@ -168,12 +153,11 @@ async function main() {
         console.log(`Pixel errors file not found at: ${pixelsWithErrorsPath}`);
     }
 
- 
-    console.log("Final number of pixel with errors keys (object):", Object.keys(pixelsWithErrors).length);
-    
-    //read owners to notify from a file 
+    console.log('Final number of pixel with errors keys (object):', Object.keys(pixelsWithErrors).length);
+
+    // read owners to notify from a file
     if (toNotify.tagPixelOwners) {
-        //read owners to notify from owners_with_errors.json
+        // read owners to notify from owners_with_errors.json
         const ownersWithErrors = JSON.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(argv.dirPath)));
         console.log(`...Owners with errors: ${ownersWithErrors}`);
         for (const owner of ownersWithErrors) {
@@ -183,12 +167,10 @@ async function main() {
             toNotify.followerGIDs.push(ownerGID);
         }
     }
-               
-    
+
     const client = asana.ApiClient.instance;
     const token = client.authentications.token;
 
-   
     try {
         token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
     } catch (error) {
@@ -196,20 +178,18 @@ async function main() {
         process.exit(1);
     }
 
-
-   
     const tasks = new asana.TasksApi();
 
     const taskName = `Pixel Validation Report for ${argv.dirPath}`;
 
     console.log(taskName);
-   
-    let header = '';
+
+    let topLevelStatement = '';
 
     const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
 
     if (numPixelsWithErrors > 0) {
-        header = `
+        topLevelStatement = `
                     <h1>TLDR: Pixels you own have errors. Search for your Github username in the attachment for details.  </h1>
                     <ul>
                     <li>Fixes typically involve changes to either the pixel definition or the pixel implementation or both. </li>
@@ -220,12 +200,11 @@ async function main() {
                     </ul>
                     `;
     } else {
-        header = `
+        topLevelStatement = `
                     <h1>No errors found. </h1>
                     `;
     }
-    
-   
+
     // Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures.
 
     /*
@@ -303,9 +282,14 @@ async function main() {
                 `;
 
                 */
-    
+
     const taskNotes = `<body>
-                    ${header}
+                    ${topLevelStatement}
+                    <h2>Background</h2>
+                    <ul>
+                    <li>This task summarizes pixel mismatches for ${argv.dirPath}.</li>
+                    <li>Processed ${staticStats.numPixelDefinitions} pixel definitions in ${staticStats.numPixelDefinitionFiles} files.</li>
+                    
                     </body>
                     `;
 
@@ -349,9 +333,9 @@ async function main() {
 
                 // Create a temporary file with the pixel error data
                 // OPTION: could also just attach existing pixel_with_errors.json file - no need to create a new one
-                //const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
-                //const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
-                //fs.writeFileSync(tempFilePath, reportData);
+                // const reportData = JSON.stringify(Array.from(pixelsWithErrors), null, 4);
+                // const tempFilePath = `/tmp/pixel-errors-${Date.now()}.json`;
+                // fs.writeFileSync(tempFilePath, reportData);
 
                 const superagent = await import('superagent');
 
@@ -365,13 +349,12 @@ async function main() {
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
 
                 // Clean up temp file
-                //fs.unlinkSync(tempFilePath);
+                // fs.unlinkSync(tempFilePath);
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
             }
         }
-
     } catch (error) {
         console.error(`Error creating task for ${argv.dirPath}:`, error);
     }
