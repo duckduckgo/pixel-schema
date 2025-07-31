@@ -116,7 +116,6 @@ async function main() {
         process.exit(1);
     }
 
-    // read stats from file
     const statsFilePath = fileUtils.getStaticStatsPath(argv.dirPath);
     console.log(`Reading stats from: ${statsFilePath}`);
 
@@ -341,7 +340,6 @@ async function main() {
                     .attach('file', pixelsWithErrorsPath);
 
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-
             } catch (attachmentError) {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);

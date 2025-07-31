@@ -151,22 +151,14 @@ export function getPixelErrorsPath(mainPixelDir) {
     return getResultsFilePath(mainPixelDir, 'pixel_errors.json');
 }
 
-/**
- * Get path to static stats encountered during live validation
- * @param { string } mainPixelDir - path to the main pixels directory
- * @returns { string } static stats path
- */
-export function getStaticStatsPath(mainPixelDir) {
-    return getResultsFilePath(mainPixelDir, 'static_stats.json');
-}
 
 /**
  * Get path to live stats encountered during live validation
  * @param { string } mainPixelDir - path to the main pixels directory
  * @returns { string } live stats path
  */
-export function getLiveStatsPath(mainPixelDir) {
-    return getResultsFilePath(mainPixelDir, 'live_stats.json');
+export function getStatsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'validation_stats.json');
 }
 
 /**

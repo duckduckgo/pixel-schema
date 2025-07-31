@@ -44,25 +44,52 @@ const pixelSets = {
 const unusedPixelDefintions = new Set();
 const pixelValidationResults = new Map();
 
-const staticStats = {
-    // We get these stats just from the static pixel definitions
+const stats = {
+   
     numPixelDefinitionFiles: 0,
     numPixelDefinitions: 0,
     numValidOwners: 0,
-};
 
-const liveStats = {
-    // We get these stats from live pixel validation
     totalRows: 0,
+
+    //totalRows = documentedRows + undocumentedRows
     documentedRows: 0,
     undocumentedRows: 0,
 
-    numUndocumentedPixels: 0,
-    numAppVersionOutOfDatePixels: 0,
-    numAccessedPixels: 0,
-    numValidationFailedPixels: 0,
-    numValidationPassedPixels: 0,
-    numPixelParamVariants: 0,
+    totalPixels: 0,
+
+    // totalPixels = documentedPixels + undocumentedPixels
+    undocumentedPixels: 0,
+    documentedPixels: 0,
+
+    // totalPixels = accessedPixels + unaccesssedPixels
+    accessedPixels: 0,
+    // unaccesssedPixels only occur when a documented pixel is not accessed in the validation process
+    // we only learn about undocumented pixels if they are accessed 
+    unaccesssedPixels: 0,
+
+    uniquePixelParamVariants: 0,
+
+    // While each pixel can have multiple validation results 
+    // Each row has a single validation result
+    // Sum over uniquePerSet does not need to equal totalPixels 
+    // Sum over referencesPerSet does need to equal totalRows
+    numSets: 0,
+    uniquePerSet: {
+        [PixelValidationResult.UNDOCUMENTED]: 0,
+        [PixelValidationResult.OLD_APP_VERSION]: 0,
+        [PixelValidationResult.VALIDATION_FAILED]: 0,
+        [PixelValidationResult.VALIDATION_PASSED]: 0,
+    },
+    referencesPerSet: {
+        [PixelValidationResult.UNDOCUMENTED]: 0,
+        [PixelValidationResult.OLD_APP_VERSION]: 0,
+        [PixelValidationResult.VALIDATION_FAILED]: 0,
+        [PixelValidationResult.VALIDATION_PASSED]: 0,
+    },
+
+    
+    
 };
 
 function getArgParser(description) {
@@ -153,7 +180,7 @@ function readPixelDefs(mainDir, userMap) {
         }
 
         console.log(`...Reading pixel def file: ${fullPath}`);
-        staticStats.numPixelDefinitionFiles++;
+        stats.numPixelDefinitionFiles++;
         const pixelsDefs = JSON5.parse(fs.readFileSync(fullPath).toString());
 
         for (const [name, def] of Object.entries(pixelsDefs)) {
@@ -166,7 +193,7 @@ function readPixelDefs(mainDir, userMap) {
                 numAccesses: 0,
                 sampleErrors: [],
             });
-            staticStats.numPixelDefinitions++;
+            stats.numPixelDefinitions++;
         }
 
         getPixelOwners(pixelsDefs).forEach((pixel) => {
@@ -193,17 +220,19 @@ function readPixelDefs(mainDir, userMap) {
     // numPixelDefinitions = stats.numPixelDefinitions;
     /// numPixelDefinitionFiles = stats.numPixelDefinitionFiles;
 
-    staticStats.numValidOwners = ownerMap.size;
+    stats.numValidOwners = ownerMap.size;
     console.log(
-        `Processed ${staticStats.numPixelDefinitionFiles} pixel definition files with a total of ${staticStats.numPixelDefinitions} pixel definitions.`,
+        `Processed ${stats.numPixelDefinitionFiles} pixel definition files with a total of ${stats.numPixelDefinitions} pixel definitions.`,
     );
-    console.log(`Found ${staticStats.numValidOwners} unique owners in pixel definitions.`);
+    console.log(`Found ${stats.numValidOwners} unique owners in pixel definitions.`);
 }
 
 async function validateLivePixels(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     console.log('mainDir:', mainDir);
+
+    // This will be equal to stats.documentedPixels at the end of validation
     console.log(`pixelMap size at start of validation/num documented pixels: ${pixelMap.size}`);
 
     let productDef = {};
@@ -246,12 +275,6 @@ async function validateLivePixels(mainDir, csvFile) {
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
-    const referenceCounts = {
-        [PixelValidationResult.UNDOCUMENTED]: 0,
-        [PixelValidationResult.OLD_APP_VERSION]: 0,
-        [PixelValidationResult.VALIDATION_FAILED]: 0,
-        [PixelValidationResult.VALIDATION_PASSED]: 0,
-    };
 
     return new Promise((resolve, reject) => {
         // Check if file exists before trying to read it
@@ -262,10 +285,10 @@ async function validateLivePixels(mainDir, csvFile) {
         fs.createReadStream(csvFile)
             .pipe(csv())
             .on('data', (row) => {
-                if (liveStats.totalRows % 100000 === 0) {
-                    console.log(`...Processing row ${liveStats.totalRows.toLocaleString('en-US')}...`);
+                if (stats.totalRows % 100000 === 0) {
+                    console.log(`...Processing row ${stats.totalRows.toLocaleString('en-US')}...`);
                 }
-                liveStats.totalRows++;
+                stats.totalRows++;
 
                 const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
                 const paramsUrlFormat = JSON5.parse(row.params).join('&');
@@ -304,7 +327,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 }
 
-                referenceCounts[status]++;
+                stats.referencesPerSet[status]++;
                 pixelSets[status].add(pixelName);
 
                 // Track validation results for each pixel
@@ -334,9 +357,9 @@ async function validateLivePixels(mainDir, csvFile) {
                 const pixel = pixelMap.get(pixelName);
                 pixel.numAccesses++;
                 if (pixel.documented) {
-                    liveStats.documentedRows++;
+                    stats.documentedRows++;
                 } else {
-                    liveStats.undocumentedRows++;
+                    stats.undocumentedRows++;
                 }
 
                 // console.log(`pixelName: ${pixelName} full ${pixelRequestFormat} ret: ${ret}`);
@@ -362,27 +385,24 @@ async function validateLivePixels(mainDir, csvFile) {
             .on('end', async () => {
                 console.log(`\nDone.\n`);
 
-                // Update liveStats with the collected statistics
-                liveStats.numUndocumentedPixels = pixelSets[PixelValidationResult.UNDOCUMENTED].size;
-                liveStats.numAppVersionOutOfDatePixels = pixelSets[PixelValidationResult.OLD_APP_VERSION].size;
-                liveStats.numValidationFailedPixels = pixelSets[PixelValidationResult.VALIDATION_FAILED].size;
-                liveStats.numValidationPassedPixels = pixelSets[PixelValidationResult.VALIDATION_PASSED].size;
-                liveStats.numAccessedPixels = uniquePixelsAccessed.size;
-                liveStats.numPixelParamVariants = pixelValidationResults.size; // Total unique pixel-param combinations
+                // At the end of validation, we have the total number of pixels including documented one and 
+                // also undocumented ones encountered in the validation process.
 
-                console.log('Total access counts:', liveStats.totalRows);
-                console.log('Documented accessed:', liveStats.documentedRows);
-                console.log('Undocumented accessed:', liveStats.undocumentedRows);
-                console.log('Total unique pixels accessed:', uniquePixelsAccessed.size);
-                console.log('Total pixelMap size (includes pixels not accessed):', pixelMap.size);
+                stats.totalPixels = pixelMap.size;
+               
+                stats.undocumentedPixels = pixelSets[PixelValidationResult.UNDOCUMENTED].size;
+                stats.numAppVersionOutOfDatePixels = pixelSets[PixelValidationResult.OLD_APP_VERSION].size;
+                stats.numValidationFailedPixels = pixelSets[PixelValidationResult.VALIDATION_FAILED].size;
+                stats.numValidationPassedPixels = pixelSets[PixelValidationResult.VALIDATION_PASSED].size;
+                stats.accessedPixels = uniquePixelsAccessed.size;
+                stats.uniquePixelParamVariants = pixelValidationResults.size; // Total unique pixel-param combinations
 
-                let pixelDefinitionsUnused = 0;
-                let documentedPixels = 0;
+                 
                 pixelMap.forEach((pixelData, pixelName) => {
                     if (pixelData.documented) {
-                        documentedPixels++;
+                        stats.documentedPixels++;
                         if (pixelData.numAccesses === 0) {
-                            pixelDefinitionsUnused++;
+                            stats.unaccesssedPixels++;
                             unusedPixelDefintions.add(pixelName);
                         }
                     }
@@ -391,22 +411,12 @@ async function validateLivePixels(mainDir, csvFile) {
                         pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                     }
                 });
-                console.log(
-                    `Unused pixel definitions: ${pixelDefinitionsUnused} of ${documentedPixels} percent (${((pixelDefinitionsUnused / documentedPixels) * 100).toFixed(2)}%)`,
-                );
 
+                stats.numSets = Object.keys(PixelValidationResult).length;
                 for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
-                    // console.log(`PixelValidationResult[${i}]: ${PixelValidationResultString[i]}`);
-
-                    const numUnique = pixelSets[i].size;
-                    const numAccesses = referenceCounts[i];
-                    const percentUnique = (numUnique / uniquePixelsAccessed.size) * 100;
-                    const percentAccessed = (numAccesses / liveStats.totalRows) * 100;
-                    console.log(
-                        `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percent (${percentUnique.toFixed(2)}%)\t accesses ${numAccesses.toLocaleString('en-US')}\t percentAccessed (${percentAccessed.toFixed(2)}%)`,
-                    );
+                    stats.uniquePerSet[i] = pixelSets[i].size;
                 }
-
+               
                 // Save validation results
                 try {
                     fs.writeFileSync(
@@ -454,10 +464,7 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
 
-                fs.writeFileSync(fileUtils.getStaticStatsPath(mainDir), JSON.stringify(staticStats, null, 4));
-
-                console.log('JEANNAliveStats:', liveStats);
-                fs.writeFileSync(fileUtils.getLiveStatsPath(mainDir), JSON.stringify(liveStats, null, 4));
+                fs.writeFileSync(fileUtils.getStatsPath(mainDir), JSON.stringify(stats, null, 4));
 
                 pixelMap.forEach((pixelData, pixelName) => {
                     if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
@@ -471,9 +478,9 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 resolve({
                     pixelSets,
-                    accessCounts: referenceCounts,
-                    totalAccesses: liveStats.totalRows,
-                    uniquePixels: uniquePixelsAccessed.size,
+                    accessCounts: stats.referencesPerSet,
+                    totalAccesses: stats.totalRows,
+                    uniquePixels: stats.accessedPixels,
                     liveValidator,
                 });
             })
@@ -492,6 +499,67 @@ function setReplacer(_, value) {
     return value;
 }
 
+
+function printStats(thisStats) {
+
+    console.log('Total access counts:', thisStats.totalRows);
+    console.log('Documented accessed:', thisStats.documentedRows);
+    console.log('Undocumented accessed:', thisStats.undocumentedRows);
+    console.log('Total unique pixels accessed:', thisStats.accessedPixels);
+    console.log('Total pixelMap size (includes pixels not accessed):', stats.totalPixels);
+
+    console.log(
+        `Unused pixel definitions: ${thisStats.unaccesssedPixels} of ${thisStats.documentedPixels} percent (${((thisStats.unaccesssedPixels / thisStats.documentedPixels) * 100).toFixed(2)}%)`,
+    );
+
+    for (let i = 0; i < Object.keys(PixelValidationResult).length; i++) {
+        // console.log(`PixelValidationResult[${i}]: ${PixelValidationResultString[i]}`);
+
+        const numUnique = thisStats.uniquePerSet[i];
+        const numReferences = thisStats.referencesPerSet[i];
+        const percentUnique = (numUnique / thisStats.accessedPixels) * 100;
+        const percentReferences = (numReferences / thisStats.totalRows) * 100;
+        console.log(
+            `${PixelValidationResultString[i]}\t unique ${numUnique.toLocaleString('en-US')}\t percent (${percentUnique.toFixed(2)}%)\t references ${numReferences.toLocaleString('en-US')}\t percent (${percentReferences.toFixed(2)}%)`,
+        );
+    }
+
+}
+function verifyStats(thisStats) {
+   
+    if (thisStats.totalRows !== thisStats.documentedRows + thisStats.undocumentedRows) {
+        console.error('Total rows is not equal to the sum of documented and undocumented rows');
+        return false;
+    }
+
+    if (thisStats.totalPixels !== thisStats.documentedPixels + thisStats.undocumentedPixels) {
+        console.error('Total pixels is not equal to the sum of documented and undocumented pixels');
+        return false;
+    }
+
+
+    if (thisStats.totalPixels !== thisStats.documentedPixels + thisStats.undocumentedPixels) {
+        console.error('Total pixels is not equal to the sum of documented and undocumentedpixels');
+        return false;    
+    }
+
+    let sum = 0;
+    for (const [result, count] of Object.entries(thisStats.referencesPerSet)) {  
+        sum += count;
+    }
+
+    if (sum !== thisStats.totalRows) {
+        console.error('Sum of reference counts is not equal to total rows');
+        return false;
+    }
+
+    if (thisStats.numSets !== Object.keys(PixelValidationResult).length) {
+        console.error('Number of sets is not equal to the number of pixel validation results');
+        return false;
+    }
+
+    return true;
+}
 async function main(csvFile, mainDir, userMapFile) {
     console.log('Reading user map...');
     const userMap = readUserMap(userMapFile);
@@ -499,14 +567,18 @@ async function main(csvFile, mainDir, userMapFile) {
     console.log(`Reading pixel definitions from ${mainDir}...`);
     readPixelDefs(mainDir, userMap);
 
-    console.log('STATIC STATS');
-    console.log(staticStats);
 
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
     await validateLivePixels(mainDir, csvFile);
 
-    console.log('LIVE STATS');
-    console.log(liveStats);
+    if (!verifyStats(stats)) {
+        console.error('ERROR: stats verification failed');
+    }
+
+    console.log('STATS');
+    console.log(stats);
+
+    printStats(stats);
 }
 
 main(argv.csvFile, argv.dirPath, argv.userMapFile);
