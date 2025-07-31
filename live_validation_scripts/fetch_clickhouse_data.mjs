@@ -27,4 +27,5 @@ startDate.setHours(0, 0, 0, 0);
 // console.log(`Start date ${startDate.toISOString().split('T')[0]}`);
 console.log(`Start date ${startDate.toISOString()}`);
 
+// TODO: better to pass in filename for CSV file and DAYS_TO_FETCH as parameters
 preparePixelsCSV(argv.dirPath, startDate, endDate);
