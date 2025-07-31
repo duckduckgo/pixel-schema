@@ -537,7 +537,7 @@ function verifyStats(thisStats) {
     }
 
     let sum = 0;
-    for (const count of Object.entries(thisStats.referencesPerSet)) {
+    for (const count of Object.values(thisStats.referencesPerSet)) {
         sum += count;
     }
 
