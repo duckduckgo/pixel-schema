@@ -116,7 +116,7 @@ async function main() {
         process.exit(1);
     }
 
-    const statsFilePath = fileUtils.getStaticStatsPath(argv.dirPath);
+    const statsFilePath = fileUtils.getStatsPath(argv.dirPath);
     console.log(`Reading stats from: ${statsFilePath}`);
 
     if (!fs.existsSync(statsFilePath)) {
@@ -124,10 +124,10 @@ async function main() {
         process.exit(1);
     }
 
-    let staticStats;
+    let validationStats;
     try {
         const statsData = fs.readFileSync(statsFilePath, 'utf8');
-        staticStats = JSON.parse(statsData);
+        validationStats = JSON.parse(statsData);
     } catch (error) {
         console.error(`Error reading or parsing stats file ${statsFilePath}:`, error);
         process.exit(1);
@@ -287,8 +287,10 @@ async function main() {
                     <h2>Background</h2>
                     <ul>
                     <li>This task summarizes pixel mismatches for ${argv.dirPath}.</li>
-                    <li>Processed ${staticStats.numPixelDefinitions} pixel definitions in ${staticStats.numPixelDefinitionFiles} files.</li>
-                    
+                    <li>Processed ${validationStats.numPixelDefinitions} pixel definitions in ${validationStats.numPixelDefinitionFiles} files.</li>
+                    <li>Audited ${validationStats.uniquePixels} unique pixels and ${validationStats.totalAccesses} pixel-parameter variants over the last 7 days. </li>
+                    <li>There are ${validationStats.numPixelOwners} owners of pixels</li>
+                    </ul>
                     </body>
                     `;
 

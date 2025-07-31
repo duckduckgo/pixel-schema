@@ -25,7 +25,6 @@ const pixelMap = new Map();
 const uniquePixelsAccessed = new Set();
 
 // ownerMap is a map of owner names to a set of pixel names
-// Set vs Map
 const ownerMap = new Map();
 const allPixelOwners = new Set();
 
@@ -47,7 +46,9 @@ const pixelValidationResults = new Map();
 const stats = {
     numPixelDefinitionFiles: 0,
     numPixelDefinitions: 0,
+
     numValidOwners: 0,
+    numPixelOwnersWithErrors: 0,
 
     totalRows: 0,
 
@@ -159,13 +160,12 @@ function getPixelOwners(pixelsDefs) {
                 owners.push({ name, owner });
             });
         } else {
-            owners.push({ name, owner: 'NO OWNER' });
+            owners.push({ name, owner: 'NO_VALID_OWNER' });
         }
     }
     return owners;
 }
 
-// Produces pixelMap and ownerMap and allPixelOwners and stats
 function readPixelDefs(mainDir, userMap) {
     const pixelDir = path.join(mainDir, 'pixels');
 
@@ -212,9 +212,6 @@ function readPixelDefs(mainDir, userMap) {
             }
         });
     });
-
-    // numPixelDefinitions = stats.numPixelDefinitions;
-    /// numPixelDefinitionFiles = stats.numPixelDefinitionFiles;
 
     stats.numValidOwners = ownerMap.size;
     console.log(
@@ -372,16 +369,12 @@ async function validateLivePixels(mainDir, csvFile) {
                     pixelResult.undocumented++;
                     pixel.numUndocumented++;
                 } else {
-                    // console.log(liveValidator.getPixelInfo(pixelName).prefix);
                     console.error(`UNEXPECTED return ${status} for ${pixelName}`);
                     process.exit(1);
                 }
             })
             .on('end', async () => {
                 console.log(`\nDone.\n`);
-
-                // At the end of validation, we have the total number of pixels including documented one and
-                // also undocumented ones encountered in the validation process.
 
                 stats.totalPixels = pixelMap.size;
 
@@ -411,64 +404,17 @@ async function validateLivePixels(mainDir, csvFile) {
                     stats.uniquePerSet[i] = pixelSets[i].size;
                 }
 
-                // Save validation results
-                try {
-                    fs.writeFileSync(
-                        fileUtils.getUniqueErrorPixelPath(mainDir),
-                        JSON.stringify(Array.from(pixelSets[PixelValidationResult.VALIDATION_FAILED]), null, 4),
-                    );
-                } catch (err) {
-                    if (err instanceof RangeError) {
-                        console.error(
-                            'Error: List of unique pixels with errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
-                        );
-                    } else {
-                        throw err;
-                    }
-                }
-
-                try {
-                    fs.writeFileSync(
-                        fileUtils.getUndocumentedPixelsPath(mainDir),
-                        JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
-                    );
-                } catch (err) {
-                    if (err instanceof RangeError) {
-                        console.error(
-                            'Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
-                        );
-                    } else {
-                        throw err;
-                    }
-                }
-
-                try {
-                    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
-                } catch (err) {
-                    if (err instanceof RangeError) {
-                        console.error(
-                            'Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
-                        );
-                    } else {
-                        throw err;
-                    }
-                }
-
-                fs.writeFileSync(fileUtils.getAllOwnersPath(mainDir), JSON.stringify(Array.from(allPixelOwners), null, 4));
-
-                fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
-
-                fs.writeFileSync(fileUtils.getStatsPath(mainDir), JSON.stringify(stats, null, 4));
-
-                pixelMap.forEach((pixelData, pixelName) => {
-                    if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-                        pixelsWithErrors.add({ pixelName, pixelData });
+                // Find owners with errors
+                pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach((pixelName) => {
+                    const pixel = pixelMap.get(pixelName);
+                    if (pixel) {
+                        if (pixel && Array.isArray(pixel.owners)) {
+                            pixel.owners.forEach((owner) => {
+                                ownersWithErrors.add(owner);
+                            });
+                        }
                     }
                 });
-
-                fs.writeFileSync(fileUtils.getPixelsWithErrorsPath(mainDir), JSON.stringify(Array.from(pixelsWithErrors), setReplacer, 4));
-
-                console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
 
                 resolve({
                     pixelSets,
@@ -516,6 +462,64 @@ function printStats(thisStats) {
         );
     }
 }
+
+function saveVerificationResults(mainDir) {
+    try {
+        fs.writeFileSync(
+            fileUtils.getUniqueErrorPixelPath(mainDir),
+            JSON.stringify(Array.from(pixelSets[PixelValidationResult.VALIDATION_FAILED]), null, 4),
+        );
+    } catch (err) {
+        if (err instanceof RangeError) {
+            console.error(
+                'Error: List of unique pixels with errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+            );
+        } else {
+            throw err;
+        }
+    }
+
+    try {
+        fs.writeFileSync(
+            fileUtils.getUndocumentedPixelsPath(mainDir),
+            JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
+        );
+    } catch (err) {
+        if (err instanceof RangeError) {
+            console.error(
+                'Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
+            );
+        } else {
+            throw err;
+        }
+    }
+
+    try {
+        fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
+    } catch (err) {
+        if (err instanceof RangeError) {
+            console.error('Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
+        } else {
+            throw err;
+        }
+    }
+
+    fs.writeFileSync(fileUtils.getAllOwnersPath(mainDir), JSON.stringify(Array.from(allPixelOwners), null, 4));
+
+    fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
+
+    fs.writeFileSync(fileUtils.getStatsPath(mainDir), JSON.stringify(stats, null, 4));
+
+    pixelMap.forEach((pixelData, pixelName) => {
+        if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
+            pixelsWithErrors.add({ pixelName, pixelData });
+        }
+    });
+
+    fs.writeFileSync(fileUtils.getPixelsWithErrorsPath(mainDir), JSON.stringify(Array.from(pixelsWithErrors), setReplacer, 4));
+
+    console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
+}
 function verifyStats(thisStats) {
     if (thisStats.totalRows !== thisStats.documentedRows + thisStats.undocumentedRows) {
         console.error('Total rows is not equal to the sum of documented and undocumented rows');
@@ -559,9 +563,13 @@ async function main(csvFile, mainDir, userMapFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
     await validateLivePixels(mainDir, csvFile);
 
+    stats.numPixelOwnersWithErrors = ownersWithErrors.size;
+
     if (!verifyStats(stats)) {
         console.error('ERROR: stats verification failed');
     }
+
+    saveVerificationResults(mainDir);
 
     console.log('STATS');
     console.log(stats);
