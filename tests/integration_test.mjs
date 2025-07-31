@@ -173,8 +173,8 @@ describe('Validate live pixels', () => {
                 expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
 
                 // check static stats
-                const staticStats = JSON5.parse(fs.readFileSync(fileUtils.getStaticStatsPath(testStatsPath)));
-                const expectedStaticStats = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'static_stats.json')));
+                const staticStats = JSON5.parse(fs.readFileSync(fileUtils.getStatsPath(testStatsPath)));
+                const expectedStaticStats = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'validation_stats.json')));
                 expect(staticStats).to.deep.equal(expectedStaticStats);
 
                 done();

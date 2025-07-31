@@ -151,7 +151,6 @@ export function getPixelErrorsPath(mainPixelDir) {
     return getResultsFilePath(mainPixelDir, 'pixel_errors.json');
 }
 
-
 /**
  * Get path to live stats encountered during live validation
  * @param { string } mainPixelDir - path to the main pixels directory
