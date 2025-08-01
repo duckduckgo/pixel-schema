@@ -19,9 +19,6 @@ const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number
 // pixelMaps includes all pixels, even those that are not accessed and those accessed but not documented
 const pixelMap = new Map();
 
-// uniquePixelsAccessed is a set of all pixels actually accessed
-const uniquePixelsAccessed = new Set();
-
 // ownerMap is a map of owner names to a set of pixel names
 const ownerMap = new Map();
 
@@ -36,7 +33,6 @@ const pixelSets = {
     [PixelValidationResult.VALIDATION_FAILED]: new Set(),
     [PixelValidationResult.VALIDATION_PASSED]: new Set(),
 };
-const pixelValidationResults = new Map();
 
 let totalRows = 0;
 
@@ -93,7 +89,6 @@ function readPixelDefs(mainDir, userMap) {
         for (const [name, def] of Object.entries(pixelsDefs)) {
             pixelMap.set(name, {
                 owners: def.owners || [],
-                documented: true,
                 numPasses: 0,
                 numFailures: 0,
                 numAppVersionOutOfDate: 0,
@@ -157,7 +152,6 @@ async function validateLivePixels(mainDir, csvFile) {
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     return new Promise((resolve, reject) => {
-        // Check if file exists before trying to read it
         if (!fs.existsSync(csvFile)) {
             reject(new Error(`CSV file does not exist: ${csvFile}`));
             return;
@@ -182,9 +176,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     // For documented pixels (including validation failed), use the prefix
                     pixelName = lastPixelState.prefix || pixelRequestFormat;
                 }
-                uniquePixelsAccessed.add(pixelName);
 
-                // const lastPixelState = liveValidator.validatePixel(pixelName, paramsUrlFormat);
                 const status = lastPixelState.status;
 
                 // Collect errors when validation fails
@@ -208,22 +200,8 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
                 pixelSets[status].add(pixelName);
 
-                // Track validation results for each pixel
-                if (!pixelValidationResults.has(pixelName)) {
-                    pixelValidationResults.set(pixelName, {
-                        totalRows: 0,
-                        passes: 0,
-                        failures: 0,
-                        oldAppVersion: 0,
-                        undocumented: 0,
-                    });
-                }
-                const pixelResult = pixelValidationResults.get(pixelName);
-                pixelResult.totalRows++;
-
                 if (!pixelMap.has(pixelName)) {
                     pixelMap.set(pixelName, {
-                        documented: false,
                         numAccesses: 0,
                         numPasses: 0,
                         numFailures: 0,
@@ -236,16 +214,12 @@ async function validateLivePixels(mainDir, csvFile) {
                 pixel.numAccesses++;
 
                 if (status === PixelValidationResult.VALIDATION_PASSED) {
-                    pixelResult.passes++;
                     pixel.numPasses++;
                 } else if (status === PixelValidationResult.VALIDATION_FAILED) {
-                    pixelResult.failures++;
                     pixel.numFailures++;
                 } else if (status === PixelValidationResult.OLD_APP_VERSION) {
-                    pixelResult.oldAppVersion++;
                     pixel.numAppVersionOutOfDate++;
                 } else if (status === PixelValidationResult.UNDOCUMENTED) {
-                    pixelResult.undocumented++;
                     pixel.numUndocumented++;
                 } else {
                     console.error(`UNEXPECTED return ${status} for ${pixelName}`);
@@ -273,10 +247,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 });
 
-                resolve({
-                    pixelSets,
-                    liveValidator,
-                });
+                resolve();
             })
             .on('error', reject);
     });
