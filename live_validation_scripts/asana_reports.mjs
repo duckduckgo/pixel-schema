@@ -116,23 +116,6 @@ async function main() {
         process.exit(1);
     }
 
-    const statsFilePath = fileUtils.getStatsPath(argv.dirPath);
-    console.log(`Reading stats from: ${statsFilePath}`);
-
-    if (!fs.existsSync(statsFilePath)) {
-        console.error(`Stats file ${statsFilePath} does not exist!`);
-        process.exit(1);
-    }
-
-    let validationStats;
-    try {
-        const statsData = fs.readFileSync(statsFilePath, 'utf8');
-        validationStats = JSON.parse(statsData);
-    } catch (error) {
-        console.error(`Error reading or parsing stats file ${statsFilePath}:`, error);
-        process.exit(1);
-    }
-
     let pixelsWithErrors = [];
 
     const pixelsWithErrorsPath = fileUtils.getPixelsWithErrorsPath(argv.dirPath);
@@ -187,21 +170,14 @@ async function main() {
 
     const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
 
-    
     if (numPixelsWithErrors > 0) {
-        topLevelStatement = ` <strong> ${numPixelsWithErrors} pixels with errors.  <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>  </strong>
-                    `;
+        topLevelStatement = ` <strong> ${numPixelsWithErrors} pixels with errors.  <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>  </strong>`;
     } else {
-        topLevelStatement = `
-                    <strong>No errors found. </strong>
-                    `;
+        topLevelStatement = `<strong>No errors found. </strong>`;
     }
 
-   
-    
     const taskNotes = `<body> ${topLevelStatement} </body>`;
 
-   
     // Due date set to when we want to delete any attachments
     const DAYS_UNTIL_DUE = DAYS_TO_DELETE_ATTACHMENT;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];

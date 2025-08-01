@@ -1,8 +1,0 @@
-{
-    "agents": [],
-    "target": {
-        "key": "appVersion",
-        "version": "0.98.4"
-    },
-    "forceLowerCase": true
-}

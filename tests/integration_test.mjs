@@ -10,8 +10,6 @@ const timeout = 10000;
 const validDefsPath = path.join('tests', 'test_data', 'valid');
 const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_results');
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');
-const testStatsPath = path.join('tests', 'test_data', 'stats');
-const statsValidationResultsPath = path.join(testStatsPath, 'expected_processing_results');
 const invalidDefsPath = path.join('tests', 'test_data', 'invalid');
 const validUserMapPath = path.join('tests', 'test_data', 'valid', 'user_map.yml');
 
@@ -124,58 +122,6 @@ describe('Validate live pixels', () => {
 
                 const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)));
                 expect(undocumentedPixels).to.be.empty;
-
-                done();
-            },
-        );
-    }).timeout(timeout);
-
-    it('stats - should find undocumented pixels, DDD appversion outdated and documented pixels unaccessed', (done) => {
-        exec(`npm run preprocess-defs ${testStatsPath}`, (error, _, stderr) => {
-            expect(error).to.equal(null);
-            const tokenizedPixels = JSON5.parse(fs.readFileSync(fileUtils.getTokenizedPixelsPath(testStatsPath)));
-            const expectedPixels = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'tokenized_pixels.json')));
-            expect(tokenizedPixels).to.deep.equal(expectedPixels);
-        });
-
-        exec(
-            `npm run validate-live-pixels ${testStatsPath}/test_live_pixels.csv ${testStatsPath} ${validUserMapPath}`,
-            (error, _, stderr) => {
-                expect(error).to.equal(null);
-
-                console.log('error', error);
-                // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(testStatsPath)));
-                const expectedErrors = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'pixel_errors.json')));
-                expect(pixelErrors).to.deep.equal(expectedErrors);
-
-                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(testStatsPath)));
-                const expectedUndocumented = JSON5.parse(
-                    fs.readFileSync(path.join(statsValidationResultsPath, 'undocumented_pixels.json')),
-                );
-                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
-
-                // TODO: fix this
-                // const ownersWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(testStatsPath)));
-                // const expectedOwnersWithErrors = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'owners_with_errors.json')));
-                // expect(ownersWithErrors).to.deep.equal(expectedOwnersWithErrors);
-
-                // check owners
-                const owners = JSON5.parse(fs.readFileSync(fileUtils.getAllOwnersPath(testStatsPath)));
-                const expectedOwners = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'owners.json')));
-                expect(owners).to.deep.equal(expectedOwners);
-
-                //  check pixelsWithErrors
-                const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(testStatsPath)));
-                const expectedPixelsWithErrors = JSON5.parse(
-                    fs.readFileSync(path.join(statsValidationResultsPath, 'pixels_with_errors.json')),
-                );
-                expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
-
-                // check static stats
-                const staticStats = JSON5.parse(fs.readFileSync(fileUtils.getStatsPath(testStatsPath)));
-                const expectedStaticStats = JSON5.parse(fs.readFileSync(path.join(statsValidationResultsPath, 'validation_stats.json')));
-                expect(staticStats).to.deep.equal(expectedStaticStats);
 
                 done();
             },
