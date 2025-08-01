@@ -60,34 +60,41 @@ async function main() {
         console.log(`Number of tasks in the project ${DDG_ASANA_PIXEL_VALIDATION_PROJECT}: ${result.data.length}`);
 
         result.data.forEach(task => {
-            if (task.attachments && task.attachments.length > 0) {
-                task.attachments.forEach(attachment => {
-                    if (attachment.created_at < latestCreationDate) {
-                        console.log(`Task: ${task.name}`);
-                        console.log(`Attachment: ${attachment.name}`);
-                        console.log(`Attachment created at: ${attachment.created_at}`);
-                        console.log(`Attachment ID: ${attachment.gid}`);
+            
+            // Only delete attachments from tasks whose name includes Pixel Validation Reports
+            if (task.name.includes("Pixel Validation Report")) {
+
+               if (task.attachments && task.attachments.length > 0) {
+                   console.log(`Task ${task.name} has ${task.attachments.length} attachments`);
+
+                    task.attachments.forEach(attachment => {
+                        if (attachment.created_at < latestCreationDate) {
+                            console.log(`Task: ${task.name}`);
+                            console.log(`Attachment: ${attachment.name}`);
+                            console.log(`Attachment created at: ${attachment.created_at}`);
+                            console.log(`Attachment ID: ${attachment.gid}`);
                         
-                        attachmentsToDelete.push({
-                            gid: attachment.gid,
-                            name: attachment.name,
-                            taskName: task.name,
-                            createdAt: attachment.created_at
-                        });
-                        numToDelete++;
-                    } 
+                            attachmentsToDelete.push({
+                                gid: attachment.gid,
+                                name: attachment.name,
+                                taskName: task.name,
+                                createdAt: attachment.created_at
+                            });
+                            numToDelete++;
+                        }
                     
                     
-                });
-            } else {
-                console.log(`No attachments found for task ${task.name}`);
+                    });
+                } else {
+                    console.log(`No attachments found for task ${task.name}`);
+                }
             }
-           
 
         });
         
         if (numToDelete > 0) {
             // Ask for confirmation before deleting
+            // If we want to run this from Jenkins, we can't ask for confirmation, so we can remove this
             console.log(`\n⚠️  WARNING: About to delete ${numToDelete} attachments older than ${DAYS_TO_DELETE_ATTACHMENT} days.`);
             console.log('This action cannot be undone!');
             console.log('Proceed? (y/n)');
@@ -127,6 +134,8 @@ async function main() {
             console.log(`   Failed to delete: ${errorCount}`);
             console.log(`   Total processed: ${deletedCount + errorCount}`);
             
+        } else {
+            console.log(`No attachments found to delete`);
         }
     } catch (error) {
         console.error(`Error processing attachments:`, error);
