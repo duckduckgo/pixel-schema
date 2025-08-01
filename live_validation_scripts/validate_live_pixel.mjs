@@ -16,21 +16,10 @@ import { PIXEL_DELIMITER } from '../src/constants.mjs';
 const KEEP_ALL_ERRORS = false;
 const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number of errors to keep per pixel-error combo
 
-// pixelMaps includes all pixels, even those that are not accessed and those accessed but not documented
 const pixelMap = new Map();
 
 const savedPixelErrors = {};
 
-// These will be written out and used by asana_reports.mjs
-const pixelsWithErrors = new Set();
-const ownersWithErrors = new Set();
-
-const pixelSets = {
-    [PixelValidationResult.UNDOCUMENTED]: new Set(),
-    [PixelValidationResult.OLD_APP_VERSION]: new Set(),
-    [PixelValidationResult.VALIDATION_FAILED]: new Set(),
-    [PixelValidationResult.VALIDATION_PASSED]: new Set(),
-};
 
 let totalRows = 0;
 
@@ -165,8 +154,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 }
 
-                pixelSets[status].add(pixelName);
-
+                
                 if (!pixelMap.has(pixelName)) {
                     pixelMap.set(pixelName, {
                         numAccesses: 0,
@@ -202,17 +190,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 });
 
-                // Find owners with errors
-                pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach((pixelName) => {
-                    const pixel = pixelMap.get(pixelName);
-                    if (pixel) {
-                        if (pixel && Array.isArray(pixel.owners)) {
-                            pixel.owners.forEach((owner) => {
-                                ownersWithErrors.add(owner);
-                            });
-                        }
-                    }
-                });
+               
 
                 resolve();
             })
@@ -232,30 +210,34 @@ function setReplacer(_, value) {
 }
 
 function saveVerificationResults(mainDir) {
-    try {
-        fs.writeFileSync(
-            fileUtils.getUndocumentedPixelsPath(mainDir),
-            JSON.stringify(Array.from(pixelSets[PixelValidationResult.UNDOCUMENTED]), null, 4),
-        );
-    } catch (err) {
-        if (err instanceof RangeError) {
-            console.error(
-                'Error: List of undocumented pixels is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).',
-            );
-        } else {
-            throw err;
-        }
-    }
 
-    try {
-        fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
-    } catch (err) {
-        if (err instanceof RangeError) {
-            console.error('Error: List of pixel errors is too large to write to JSON. Try limiting the validation range (DAYS_TO_FETCH).');
-        } else {
-            throw err;
+    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
+    
+    const undocumentedPixels = new Set();
+    pixelMap.forEach((pixel, pixelName) => {
+        if (pixel.numUndocumented > 0) {
+             undocumentedPixels.add(pixelName);
         }
-    }
+    });
+    fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(undocumentedPixels, setReplacer, 4));
+    
+    // These will be written out and used by asana_reports.mjs
+    const ownersWithErrors = new Set();
+
+    // Find owners with errors
+    pixelMap.forEach((pixel, pixelName) => {
+        if (pixel.numFailures > 0) {
+            if (pixel && Array.isArray(pixel.owners)) {
+                pixel.owners.forEach((owner) => {
+                    ownersWithErrors.add(owner);
+                });
+            }
+        }
+    });
+
+    
+
+    const pixelsWithErrors = new Set();
 
     fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
 
