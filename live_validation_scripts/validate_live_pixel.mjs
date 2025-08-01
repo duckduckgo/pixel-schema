@@ -281,7 +281,6 @@ function saveVerificationResults(mainDir) {
         }
     }
 
-    
     try {
         fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
     } catch (err) {
@@ -291,7 +290,6 @@ function saveVerificationResults(mainDir) {
             throw err;
         }
     }
-    
 
     fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
 
