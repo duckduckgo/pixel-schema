@@ -187,113 +187,21 @@ async function main() {
 
     const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
 
+    
     if (numPixelsWithErrors > 0) {
-        topLevelStatement = `
-                    <h1>TLDR: Pixels you own have errors. Search for your Github username in the attachment for details.  </h1>
-                    <ul>
-                    <li>Fixes typically involve changes to either the pixel definition or the pixel implementation or both. </li>
-                    <li>For changes to the pixel definition, consult the privacy engineering team/ open a privacy triage. </li>
-                    <li>Simple changes (e.g. adding a new value to an existing enum, adding a common parameter like appVersion or channel) can be approved quickly and may not require a full privacy triage. </li>
-                    <li>More complex changes (e.g. adding a parameter, especially a non-enum parameter) likely will require a privacy triage. </li>
-                    <li>Note: The attachment with samples of detailed errors should be deleted after ${DAYS_TO_DELETE_ATTACHMENT} days. </li>
-                    </ul>
+        topLevelStatement = ` <strong> ${numPixelsWithErrors} pixels with errors.  <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>  </strong>
                     `;
     } else {
         topLevelStatement = `
-                    <h1>No errors found. </h1>
+                    <strong>No errors found. </strong>
                     `;
     }
 
-    // Note: Accesses add to 100%, but unique pixels may not. Each unique pixel can experience both passes and failures.
+   
+    
+    const taskNotes = `<body> ${topLevelStatement} </body>`;
 
-    /*
-    const taskNotes = `<body>
-                    ${header}
-                    <h2>Background</h2>
-                    <ul>
-                    <li>This task summarizes pixel mismatches for ${argv.dirPath}.</li>
-                    <li>Processed ${staticStats.numPixelDefinitions} pixel definitions in ${staticStats.numPixelDefinitionFiles} files.</li>
-                    <li>Audited ${uniquePixels} unique pixels and ${totalAccesses} pixel-parameter variants over the last 7 days. </li>
-                    <li>There are ${allPixelOwners.size} owners of pixels: ${Array.from(new Set(allPixelOwners)).join(', ')}</li>
-                    <li>There are ${pixelOwnersWithErrors.size} owners of pixels with errors: ${Array.from(new Set(pixelOwnersWithErrors)).join(', ')}</li>
-                    </ul>
-                    <h2>Summary</h2>
-                    <table>
-                        <tr>
-                            <td><strong>Unique Pixels Accessed</strong></td>
-                            <td>${uniquePixels}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Documented Pixels Accessed</strong></td>
-                            <td>${documentedPixelCount}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Undocumented Pixels Accessed</strong></td>
-                            <td>${undocumentedPixelCount}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Documented Pixels Unaccessed</strong></td>
-                            <td>${numPixelDefinitions - documentedPixelCount}</td>
-                        </tr>
-                        </table>
-
-                        <table>
-                        <tr>
-                            <td></td>
-                            <td> <strong>Unique Pixels </strong></td>
-                            <td> <strong>Unique Pixel-Param Variants</strong></td>
-                            
-                        </tr>
-                        <tr>
-                            <td><strong>Total</strong></td>
-                            <td>${uniquePixels}</td>
-                            <td>${totalAccesses}</td>
-                            
-                        </tr>
-                        <tr>
-                            <td> Undocumented (Not Validated)</td>
-                            <td>${pixelSets[PixelValidationResult.UNDOCUMENTED].size}</td>
-                            <td>${accessCounts[PixelValidationResult.UNDOCUMENTED]}</td>
-                                   </tr>
-                         <tr>
-                            <td>Old App Version (Not Validated)</td>
-                            <td>${pixelSets[PixelValidationResult.OLD_APP_VERSION].size}</td>
-                            <td>${accessCounts[PixelValidationResult.OLD_APP_VERSION]}</td>
-                            
-                        </tr>
-                        <tr>
-                            <td><strong>Passes</strong></td>
-                            <td> ${pixelSets[PixelValidationResult.VALIDATION_PASSED].size}</td>
-                            <td>${accessCounts[PixelValidationResult.VALIDATION_PASSED]} </td>
-                            
-                        </tr>
-                        <tr>
-                            <td><strong>Failures</strong></td>
-                            <td> ${pixelSets[PixelValidationResult.VALIDATION_FAILED].size}</td>
-                            <td>${accessCounts[PixelValidationResult.VALIDATION_FAILED]} </td>
-                            
-                        </tr>
-                       
-                    </table>
-
-                
-                </body>
-                `;
-
-                */
-
-    const taskNotes = `<body>
-                    ${topLevelStatement}
-                    <h2>Background</h2>
-                    <ul>
-                    <li>This task summarizes pixel mismatches for ${argv.dirPath}.</li>
-                    <li>Processed ${validationStats.numPixelDefinitions} pixel definitions in ${validationStats.numPixelDefinitionFiles} files.</li>
-                    <li>Audited ${validationStats.uniquePixels} unique pixels and ${validationStats.totalAccesses} pixel-parameter variants over the last 7 days. </li>
-                    <li>There are ${validationStats.numPixelOwners} owners of pixels</li>
-                    </ul>
-                    </body>
-                    `;
-
+   
     // Due date set to when we want to delete any attachments
     const DAYS_UNTIL_DUE = DAYS_TO_DELETE_ATTACHMENT;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
