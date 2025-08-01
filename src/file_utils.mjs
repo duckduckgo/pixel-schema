@@ -147,15 +147,6 @@ export function getUniqueErrorPixelPath(mainPixelDir) {
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} pixel errors path
  */
-export function getPixelErrorsPath(mainPixelDir) {
-    return getResultsFilePath(mainPixelDir, 'pixel_errors.json');
-}
-
-/**
- * Get path to pixel errors encountered during live validation
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {string} pixel errors path
- */
 export function getPixelsWithErrorsPath(mainPixelDir) {
     return getResultsFilePath(mainPixelDir, 'pixels_with_errors.json');
 }

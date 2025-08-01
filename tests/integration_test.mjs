@@ -92,13 +92,11 @@ describe('Validate live pixels', () => {
                 expect(error).to.equal(null);
 
                 // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)));
-                const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')));
-                expect(pixelErrors).to.deep.equal(expectedErrors);
-
-                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
-                const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
-                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
+                const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(validDefsPath)));
+                const expectedPixelsWithErrors = JSON5.parse(
+                    fs.readFileSync(path.join(liveValidationResultsPath, 'pixels_with_errors.json')),
+                );
+                expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
 
                 const ownersWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(validDefsPath)));
                 const expectedOwnersWithErrors = JSON5.parse(
@@ -106,11 +104,10 @@ describe('Validate live pixels', () => {
                 );
                 expect(ownersWithErrors).to.deep.equal(expectedOwnersWithErrors);
 
-                const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(validDefsPath)));
-                const expectedPixelsWithErrors = JSON5.parse(
-                    fs.readFileSync(path.join(liveValidationResultsPath, 'pixels_with_errors.json')),
-                );
-                expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
+                // Not used except for integration tests
+                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
+                const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
+                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
                 done();
             },
@@ -128,17 +125,15 @@ describe('Validate live pixels', () => {
                 expect(error).to.equal(null);
 
                 // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validCaseInsensitiveDefsPath)));
-                expect(pixelErrors).to.be.empty;
-
-                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)));
-                expect(undocumentedPixels).to.be.empty;
-
                 const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(validCaseInsensitiveDefsPath)));
                 expect(pixelsWithErrors).to.be.empty;
 
                 const ownersWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(validCaseInsensitiveDefsPath)));
                 expect(ownersWithErrors).to.be.empty;
+
+                // Not used except for integration tests
+                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)));
+                expect(undocumentedPixels).to.be.empty;
 
                 done();
             },

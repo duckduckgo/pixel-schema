@@ -230,16 +230,6 @@ function saveVerificationResults(mainDir) {
     fs.writeFileSync(fileUtils.getPixelsWithErrorsPath(mainDir), JSON.stringify(Array.from(pixelsWithErrors), setReplacer, 4));
 
     // Only needed for integration tests, otherwise could remove
-    const pixelErrors = {};
-    pixelMap.forEach((pixelData, pixelName) => {
-        if (pixelData.errors && Object.keys(pixelData.errors).length > 0) {
-            // Use the pixelName as the key since we no longer have separate prefixes
-            pixelErrors[pixelName] = pixelData.errors;
-        }
-    });
-    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(pixelErrors, setReplacer, 4));
-
-    // Only needed for integration tests, otherwise could remove
     const undocumentedPixels = new Set();
     pixelMap.forEach((pixel, pixelName) => {
         if (pixel.numUndocumented > 0) {
