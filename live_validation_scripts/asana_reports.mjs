@@ -2,59 +2,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
 import asana from 'asana';
 import yaml from 'js-yaml';
 
 import * as fileUtils from '../src/file_utils.mjs';
-
-// npm run asana-reports tests/test_data/stats ../internal-github-asana-utils/user_map.yml  1210584574754345
-// Test Pixel Validation Project: 1210584574754345
-// Pixel Validation Project:      1210856607616307
+import { getArgParserAsanaReports } from '../src/args_utils.mjs';
 
 const DDG_ASANA_WORKSPACEID = '137249556945';
 const DAYS_TO_DELETE_ATTACHMENT = 28;
 
-function getArgParser(description) {
-    return yargs(hideBin(process.argv))
-        .command('$0 dirPath userMapFile asanaProjectID', description, (yargs) => {
-            return yargs
-                .positional('dirPath', {
-                    describe: 'path to directory containing the pixels folder and common_[params/suffixes].json in the root',
-                    type: 'string',
-                    demandOption: true,
-                    coerce: (dirPath) => {
-                        if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                            throw new Error(`Directory path ${dirPath} does not exist!`);
-                        }
-                        return dirPath;
-                    },
-                })
-                .positional('userMapFile', {
-                    describe: 'Path to user map YAML file',
-                    type: 'string',
-                    demandOption: true,
-                })
-                .positional('asanaProjectID', {
-                    describe: 'ID of the Asana project to create the task in',
-                    type: 'string',
-                    demandOption: true,
-                });
-        })
-        .demandOption('dirPath');
-}
-
-const argv = getArgParser('Generate Pixel Validation reports in Asana').parse();
-
-function readUserMap(userMapFile) {
-    console.log(`...Reading user map: ${userMapFile}`);
-    if (!fs.existsSync(userMapFile)) {
-        console.error(`User map file ${userMapFile} does not exist!`);
-        process.exit(1);
-    }
-    return yaml.load(fs.readFileSync(userMapFile, 'utf8'));
-}
+const argv = getArgParserAsanaReports('Generate Pixel Validation reports in Asana').parse();
 
 function readAsanaNotifyFile(dirPath, userMap, toNotify) {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
@@ -106,7 +63,11 @@ async function main() {
     const DDG_ASANA_PIXEL_VALIDATION_PROJECT = argv.asanaProjectID;
     console.log('Asana Pixel Validation Project: ', DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
-    const userMap = readUserMap(argv.userMapFile);
+    if (!fs.existsSync(argv.userMapFile)) {
+        console.error(`User map file ${argv.userMapFile} does not exist!`);
+        process.exit(1);
+    }
+    const userMap = yaml.load(fs.readFileSync(argv.userMapFile, 'utf8'));
 
     const toNotify = {};
     const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
