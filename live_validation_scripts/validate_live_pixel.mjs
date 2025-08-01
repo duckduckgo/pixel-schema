@@ -19,10 +19,11 @@ const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number
 // pixelMaps includes all pixels, even those that are not accessed and those accessed but not documented
 const pixelMap = new Map();
 
-const ownersWithErrors = new Set();
-
 const savedPixelErrors = {};
+
+// These will be written out and used by asana_reports.mjs
 const pixelsWithErrors = new Set();
+const ownersWithErrors = new Set();
 
 const pixelSets = {
     [PixelValidationResult.UNDOCUMENTED]: new Set(),
@@ -80,7 +81,6 @@ function readPixelDefs(mainDir, userMap) {
             });
         }
     });
-  
 }
 
 async function validateLivePixels(mainDir, csvFile) {
