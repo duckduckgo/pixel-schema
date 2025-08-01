@@ -228,26 +228,14 @@ async function validateLivePixels(mainDir, csvFile) {
     // This will be equal to stats.documentedPixels at the end of validation
     console.log(`pixelMap size at start of validation/num documented pixels: ${pixelMap.size}`);
 
-    let productDef = {};
-    let experimentsDef = {};
-    let commonParams = {};
-    let commonSuffixes = {};
-    let pixelIgnoreParams = {};
-    let globalIgnoreParams = {};
+    
+    const productDef = fileUtils.readProductDef(mainDir);
+    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
+    const commonParams = fileUtils.readCommonParams(mainDir);
+    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
+    const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 
-    try {
-        productDef = fileUtils.readProductDef(mainDir);
-        experimentsDef = fileUtils.readExperimentsDef(mainDir);
-        commonParams = fileUtils.readCommonParams(mainDir);
-        commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
-
-        pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
-
-        globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-    } catch (error) {
-        console.error('Error reading input files:', error);
-        process.exit(1);
-    }
+    const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
 
     const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);

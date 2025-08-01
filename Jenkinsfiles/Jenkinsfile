@@ -1,0 +1,125 @@
+pipeline {
+    agent { label 'ubuntu-latest' }
+    triggers { cron('H H * * *') }
+    stages {
+        stage('clone pixel-schema repo ') {
+            steps {
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/refactor-asana-reports"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                }
+            }
+        }
+        stage('clone duckduckgo-privacy-extension repo ') {
+            steps {
+                dir('duckduckgo-privacy-extension') {
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-3"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                }
+            }
+        }
+        stage('clone windows-browser repo with credentials') {
+            steps {
+                dir('windows-browser') {
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation-5"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+            }
+        }
+         stage('clone apples-browsers repo with credentials') {
+            steps {
+                dir('apple-browsers') {
+                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                }
+            }
+        }
+        
+        stage('clone internal-github-asana-utils repo ') {
+            steps {
+                dir('internal-github-asana-utils') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                }
+            }
+        }
+        stage('Install ') {
+             steps {
+                sh '''#!/bin/bash
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    cd ..
+                '''
+            }
+        }
+        stage('Validate pixels for duckduckgo-privacy-extension'){
+             steps {
+                sh '''#!/bin/bash
+                    MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
+                    USER_MAP="../internal-github-asana-utils/user_map.yml"
+                    ASANA_PROJECT="1210584574754345"
+                    cd pixel-schema
+                    ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                    cd ..
+                '''
+            }
+        }
+        stage('Validate pixels for apple-browsers (macOS)'){
+             steps {
+                sh '''#!/bin/bash
+                    MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
+                    USER_MAP="../internal-github-asana-utils/user_map.yml"
+                    ASANA_PROJECT="1210584574754345"
+                    cd pixel-schema
+                    ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                    cd ..
+                '''
+            }
+        }
+         stage('Validate pixels for apple-browsers (iOS)'){
+             steps {
+                sh '''#!/bin/bash
+                    MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
+                    USER_MAP="../internal-github-asana-utils/user_map.yml"
+                    ASANA_PROJECT="1210584574754345"
+                    cd pixel-schema
+                    ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                    cd ..
+                '''
+            }
+        }
+        stage('Validate pixels for windows-browser'){
+             steps {
+                sh '''#!/bin/bash
+                    MAIN_DIR="../windows-browser/PixelDefinitions/"
+                    USER_MAP="../internal-github-asana-utils/user_map.yml"
+                    ASANA_PROJECT="1210584574754345"
+                    cd pixel-schema
+                    ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                    cd ..
+                '''
+            }
+        }
+    }
+   post {
+        failure {
+            sh '''#!/bin/bash
+                ASANA_PROJECT="1210584574754345"
+                source /etc/profile.d/perlbrew.sh
+                export PERL5LIB=/usr/local/ddg/lib:$PERL5LIB  # /usr/local/ddg repo
+                /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                    --assignee jmatthews@duckduckgo.com \
+                    --description "Jenkins pixel validation failed" \
+                    --project_id $ASANA_PROJECT \
+                    --no_duplicates \
+                    "pixel validation failed"
+            '''
+        }
+    }
+}
