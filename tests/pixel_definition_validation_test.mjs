@@ -27,7 +27,6 @@ describe('Validating commons', () => {
 });
 
 describe('Pixel with owners field but no owner', () => {
-
     const validator = new DefinitionsValidator({}, {}, {});
 
     it('no owner', () => {
