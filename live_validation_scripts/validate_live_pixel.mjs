@@ -62,7 +62,7 @@ function readPixelDefs(mainDir, userMap) {
                 numFailures: 0,
                 numAppVersionOutOfDate: 0,
                 numAccesses: 0,
-                errors: {}, 
+                errors: {},
             });
         }
     });
@@ -103,7 +103,6 @@ async function validateLivePixels(mainDir, csvFile) {
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     return new Promise((resolve, reject) => {
-
         let totalRows = 0;
 
         if (!fs.existsSync(csvFile)) {
@@ -148,7 +147,7 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
 
                     const pixel = pixelMap.get(pixelName);
-                    
+
                     // Collect errors from currentPixelState.errors
                     if (lastPixelState.errors) {
                         for (const [errorMessage, examples] of Object.entries(lastPixelState.errors)) {
@@ -161,7 +160,6 @@ async function validateLivePixels(mainDir, csvFile) {
                     }
                 }
 
-                
                 if (!pixelMap.has(pixelName)) {
                     pixelMap.set(pixelName, {
                         numAccesses: 0,
@@ -208,8 +206,6 @@ function setReplacer(_, value) {
 }
 
 function saveVerificationResults(mainDir) {
-
-     
     const ownersWithErrors = new Set();
     pixelMap.forEach((pixel, pixelName) => {
         if (pixel.numFailures > 0) {
@@ -251,7 +247,6 @@ function saveVerificationResults(mainDir) {
         }
     });
     fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(undocumentedPixels, setReplacer, 4));
-
 
     console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
 }

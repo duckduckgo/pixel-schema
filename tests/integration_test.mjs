@@ -101,11 +101,15 @@ describe('Validate live pixels', () => {
                 expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
                 const ownersWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(validDefsPath)));
-                const expectedOwnersWithErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'owners_with_errors.json')));
+                const expectedOwnersWithErrors = JSON5.parse(
+                    fs.readFileSync(path.join(liveValidationResultsPath, 'owners_with_errors.json')),
+                );
                 expect(ownersWithErrors).to.deep.equal(expectedOwnersWithErrors);
 
                 const pixelsWithErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelsWithErrorsPath(validDefsPath)));
-                const expectedPixelsWithErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixels_with_errors.json')));
+                const expectedPixelsWithErrors = JSON5.parse(
+                    fs.readFileSync(path.join(liveValidationResultsPath, 'pixels_with_errors.json')),
+                );
                 expect(pixelsWithErrors).to.deep.equal(expectedPixelsWithErrors);
 
                 done();
