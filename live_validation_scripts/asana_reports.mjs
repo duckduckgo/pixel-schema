@@ -131,10 +131,14 @@ async function main() {
 
     const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
 
+    // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
     if (numPixelsWithErrors > 0) {
-        topLevelStatement = ` <strong> ${numPixelsWithErrors} pixels with errors.  <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>  </strong>`;
+        topLevelStatement = `
+        ${numPixelsWithErrors} pixels with errors - check the attachment for details.
+        New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
+        `;
     } else {
-        topLevelStatement = `<strong>No errors found. </strong>`;
+        topLevelStatement = `No errors found.`;
     }
 
     const taskNotes = `<body> ${topLevelStatement} </body>`;

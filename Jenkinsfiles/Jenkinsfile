@@ -1,7 +1,26 @@
 pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H H * * *') }
+    environment {
+        USER_MAP="../internal-github-asana-utils/user_map.yml"
+        ASANA_PROJECT="1210584574754345"
+    }
     stages {
+        stage('Setup parameters') {
+            steps {
+                script { 
+                    properties([
+                        parameters([
+                            string(
+                                defaultValue: '1210584574754345', 
+                                name: 'TEST_PARAM_ASANA_PROJECT', 
+                                trim: true
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
         stage('clone pixel-schema repo ') {
             steps {
                 dir('pixel-schema') {
@@ -29,16 +48,7 @@ pipeline {
                 }
             }
         }
-         stage('clone apples-browsers repo with credentials') {
-            steps {
-                dir('apple-browsers') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/automate-pixel-validation"]],
-                    extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/apple-browsers.git']]])
-                }
-            }
-        }
-        
+     
         stage('clone internal-github-asana-utils repo ') {
             steps {
                 dir('internal-github-asana-utils') {
@@ -62,8 +72,6 @@ pipeline {
              steps {
                 sh '''#!/bin/bash
                     MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
-                    USER_MAP="../internal-github-asana-utils/user_map.yml"
-                    ASANA_PROJECT="1210584574754345"
                     cd pixel-schema
                     ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                     cd ..
@@ -74,8 +82,6 @@ pipeline {
              steps {
                 sh '''#!/bin/bash
                     MAIN_DIR="../windows-browser/PixelDefinitions/"
-                    USER_MAP="../internal-github-asana-utils/user_map.yml"
-                    ASANA_PROJECT="1210584574754345"
                     cd pixel-schema
                     ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                     cd ..
@@ -86,7 +92,6 @@ pipeline {
    post {
         failure {
             sh '''#!/bin/bash
-                ASANA_PROJECT="1210584574754345"
                 source /etc/profile.d/perlbrew.sh
                 export PERL5LIB=/usr/local/ddg/lib:$PERL5LIB  # /usr/local/ddg repo
                 /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
