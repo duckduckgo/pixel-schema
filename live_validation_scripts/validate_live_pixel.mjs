@@ -19,9 +19,6 @@ const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number
 // pixelMaps includes all pixels, even those that are not accessed and those accessed but not documented
 const pixelMap = new Map();
 
-// ownerMap is a map of owner names to a set of pixel names
-const ownerMap = new Map();
-
 const ownersWithErrors = new Set();
 
 const savedPixelErrors = {};
@@ -60,20 +57,6 @@ function getSamplePixelErrors(prefix, numExamples) {
     return errors;
 }
 
-function getPixelOwners(pixelsDefs) {
-    const owners = [];
-    for (const [name, def] of Object.entries(pixelsDefs)) {
-        if (def && Array.isArray(def.owners)) {
-            def.owners.forEach((owner) => {
-                owners.push({ name, owner });
-            });
-        } else {
-            owners.push({ name, owner: 'NO_VALID_OWNER' });
-        }
-    }
-    return owners;
-}
-
 function readPixelDefs(mainDir, userMap) {
     const pixelDir = path.join(mainDir, 'pixels');
 
@@ -96,25 +79,8 @@ function readPixelDefs(mainDir, userMap) {
                 sampleErrors: [],
             });
         }
-
-        getPixelOwners(pixelsDefs).forEach((pixel) => {
-            if (!userMap[pixel.owner]) {
-                console.log(`WARNING: Invalid pixel owner: ${pixel.owner} for pixel: ${pixel.name}`);
-            } else {
-                if (ownerMap.has(pixel.owner)) {
-                    const existingEntry = ownerMap.get(pixel.owner);
-                    if (!existingEntry.pixels.includes(pixel.name)) {
-                        existingEntry.pixels.push(pixel.name);
-                    }
-                } else {
-                    ownerMap.set(pixel.owner, {
-                        asanaId: userMap[pixel.owner].asanaId,
-                        pixels: [pixel.name],
-                    });
-                }
-            }
-        });
     });
+  
 }
 
 async function validateLivePixels(mainDir, csvFile) {
