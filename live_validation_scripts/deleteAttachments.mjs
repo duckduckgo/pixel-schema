@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
-import path from 'path';
 import asana from 'asana';
-import yaml from 'js-yaml';
 import readline from 'readline';
 
-import * as fileUtils from '../src/file_utils.mjs';
 import { getArgParserDeleteAttachments } from '../src/args_utils.mjs';
 
 const DDG_ASANA_WORKSPACEID = '137249556945';
@@ -18,10 +15,10 @@ const argv = getArgParserDeleteAttachments('Delete attachments from Asana').pars
 function askQuestion(query) {
     const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
     });
 
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
         rl.question(query, (answer) => {
             rl.close();
             resolve(answer);
@@ -47,51 +44,45 @@ async function main() {
     const tasks = new asana.TasksApi();
     const attachments = new asana.AttachmentsApi();
 
-    
     const latestCreationDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENT * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     try {
         let numToDelete = 0;
-        let attachmentsToDelete = [];
+        const attachmentsToDelete = [];
 
         const result = await tasks.getTasksForProject(DDG_ASANA_PIXEL_VALIDATION_PROJECT, {
-            opt_fields: 'name,attachments,attachments.gid,attachments.created_at,attachments.name'
+            opt_fields: 'name,attachments,attachments.gid,attachments.created_at,attachments.name',
         });
         console.log(`Number of tasks in the project ${DDG_ASANA_PIXEL_VALIDATION_PROJECT}: ${result.data.length}`);
 
-        result.data.forEach(task => {
-            
+        result.data.forEach((task) => {
             // Only delete attachments from tasks whose name includes Pixel Validation Reports
-            if (task.name.includes("Pixel Validation Report")) {
+            if (task.name.includes('Pixel Validation Report')) {
+                if (task.attachments && task.attachments.length > 0) {
+                    console.log(`Task ${task.name} has ${task.attachments.length} attachments`);
 
-               if (task.attachments && task.attachments.length > 0) {
-                   console.log(`Task ${task.name} has ${task.attachments.length} attachments`);
-
-                    task.attachments.forEach(attachment => {
+                    task.attachments.forEach((attachment) => {
                         if (attachment.created_at < latestCreationDate) {
                             console.log(`Task: ${task.name}`);
                             console.log(`Attachment: ${attachment.name}`);
                             console.log(`Attachment created at: ${attachment.created_at}`);
                             console.log(`Attachment ID: ${attachment.gid}`);
-                        
+
                             attachmentsToDelete.push({
                                 gid: attachment.gid,
                                 name: attachment.name,
                                 taskName: task.name,
-                                createdAt: attachment.created_at
+                                createdAt: attachment.created_at,
                             });
                             numToDelete++;
                         }
-                    
-                    
                     });
                 } else {
                     console.log(`No attachments found for task ${task.name}`);
                 }
             }
-
         });
-        
+
         if (numToDelete > 0) {
             // Ask for confirmation before deleting
             // If we want to run this from Jenkins, we can't ask for confirmation, so we can remove this
@@ -103,7 +94,7 @@ async function main() {
                 console.log('Aborting...');
                 return;
             }
-            
+
             // If running with --dry-run flag, don't actually delete
             if (argv.dryRun) {
                 console.log('🔍 DRY RUN MODE: No attachments will be deleted.');
@@ -124,16 +115,15 @@ async function main() {
                     errorCount++;
                     console.error(`❌ Failed to delete attachment ${attachment.gid}: ${error.message}`);
                 }
-                
+
                 // Add a small delay to be respectful to the API
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise((resolve) => setTimeout(resolve, 100));
             }
 
             console.log(`\nDeletion Summary:`);
             console.log(`   Successfully deleted: ${deletedCount}`);
             console.log(`   Failed to delete: ${errorCount}`);
             console.log(`   Total processed: ${deletedCount + errorCount}`);
-            
         } else {
             console.log(`No attachments found to delete`);
         }

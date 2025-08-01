@@ -117,7 +117,7 @@ export function getArgParserDeleteAttachments(description) {
                     describe: 'Show what would be deleted without actually deleting anything',
                     type: 'boolean',
                     default: false,
-                    alias: 'd'
+                    alias: 'd',
                 });
         })
         .demandOption('asanaProjectID');
