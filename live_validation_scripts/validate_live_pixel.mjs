@@ -38,7 +38,6 @@ let totalRows = 0;
 
 const argv = getArgParserValidateLivePixel('Validate live pixels').parse();
 
-
 function getSamplePixelErrors(prefix, numExamples) {
     if (!savedPixelErrors[prefix]) {
         return [];
@@ -60,7 +59,6 @@ function getSamplePixelErrors(prefix, numExamples) {
 
     return errors;
 }
-    
 
 function getPixelOwners(pixelsDefs) {
     const owners = [];
@@ -181,7 +179,6 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 const status = lastPixelState.status;
 
-                
                 // Collect errors when validation fails
                 if (status === PixelValidationResult.VALIDATION_FAILED) {
                     const prefix = lastPixelState.prefix;
@@ -201,7 +198,7 @@ async function validateLivePixels(mainDir, csvFile) {
                         }
                     }
                 }
-                
+
                 pixelSets[status].add(pixelName);
 
                 if (!pixelMap.has(pixelName)) {
@@ -233,13 +230,11 @@ async function validateLivePixels(mainDir, csvFile) {
             .on('end', async () => {
                 console.log(`\nDone.\n`);
 
-                
                 pixelMap.forEach((pixelData, pixelName) => {
                     if (pixelData.numFailures > 0) {
                         pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
                     }
                 });
-                
 
                 // Find owners with errors
                 pixelSets[PixelValidationResult.VALIDATION_FAILED].forEach((pixelName) => {
@@ -271,7 +266,6 @@ function setReplacer(_, value) {
 }
 
 function saveVerificationResults(mainDir) {
-
     try {
         fs.writeFileSync(
             fileUtils.getUndocumentedPixelsPath(mainDir),

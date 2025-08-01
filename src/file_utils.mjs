@@ -160,7 +160,6 @@ export function getPixelsWithErrorsPath(mainPixelDir) {
     return getResultsFilePath(mainPixelDir, 'pixels_with_errors.json');
 }
 
-
 /**
  * Get path to all owners with errors encountered during live validation
  * This is a list of all the owners with errors - pairs of owner names and pixel names
