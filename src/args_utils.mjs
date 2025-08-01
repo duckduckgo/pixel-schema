@@ -103,3 +103,22 @@ export function getArgParserAsanaReports(description) {
         })
         .demandOption('dirPath');
 }
+
+export function getArgParserDeleteAttachments(description) {
+    return yargs(hideBin(process.argv))
+        .command('$0 asanaProjectID', description, (yargs) => {
+            return yargs
+                .positional('asanaProjectID', {
+                    describe: 'ID of the Asana project to create the task in',
+                    type: 'string',
+                    demandOption: true,
+                })
+                .option('dry-run', {
+                    describe: 'Show what would be deleted without actually deleting anything',
+                    type: 'boolean',
+                    default: false,
+                    alias: 'd'
+                });
+        })
+        .demandOption('asanaProjectID');
+}

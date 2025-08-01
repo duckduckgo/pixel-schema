@@ -24,6 +24,7 @@
         "preprocess-defs": "node ./live_validation_scripts/preprocess_defs.mjs",
         "audit-pixel-owners": "node ./live_validation_scripts/audit_pixel_owners.mjs",
         "asana-reports": "node ./live_validation_scripts/asana_reports.mjs",
+        "delete-attachments": "node ./live_validation_scripts/deleteAttachments.mjs",
         "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs",
         "validate-live-pixels": "node ./live_validation_scripts/validate_live_pixel.mjs"
     },
