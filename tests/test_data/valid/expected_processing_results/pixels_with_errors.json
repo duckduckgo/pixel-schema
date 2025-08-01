@@ -1,0 +1,302 @@
+[
+    {
+        "pixelName": "m_my_first_pixel",
+        "pixelData": {
+            "owners": [
+                "github_username"
+            ],
+            "numPasses": 1,
+            "numFailures": 6,
+            "numAppVersionOutOfDate": 1,
+            "numAccesses": 8,
+            "errors": {
+                "Suffix 'unexpected-suffix' must be equal to one of the allowed values": [
+                    "m_my_first_pixel_unexpected-suffix"
+                ],
+                "Suffix 'unexpected-suffix2' must be equal to one of the allowed values": [
+                    "m_my_first_pixel_new_unexpected-suffix2"
+                ],
+                "Suffix 'unexpected-suffix3' must be equal to one of the allowed values": [
+                    "m_my_first_pixel_new_exceptiontype_some-exception_unexpected-suffix3"
+                ],
+                "Suffix 'unexpected-4' must be equal to one of the allowed values": [
+                    "m_my_first_pixel_new_exceptiontype_x_android_unexpected-4"
+                ],
+                "/appVersion must match pattern \"^[0-9]+\\.[0-9]+\\.[0-9]$\"": [
+                    "appVersion=wrongFormat"
+                ],
+                "/count must be integer": [
+                    "appVersion=2.0.0&count=wrongFormat"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "Suffix 'unexpected-suffix' must be equal to one of the allowed values",
+                    "examples": [
+                        "m_my_first_pixel_unexpected-suffix"
+                    ]
+                },
+                {
+                    "type": "Suffix 'unexpected-suffix2' must be equal to one of the allowed values",
+                    "examples": [
+                        "m_my_first_pixel_new_unexpected-suffix2"
+                    ]
+                },
+                {
+                    "type": "Suffix 'unexpected-suffix3' must be equal to one of the allowed values",
+                    "examples": [
+                        "m_my_first_pixel_new_exceptiontype_some-exception_unexpected-suffix3"
+                    ]
+                },
+                {
+                    "type": "Suffix 'unexpected-4' must be equal to one of the allowed values",
+                    "examples": [
+                        "m_my_first_pixel_new_exceptiontype_x_android_unexpected-4"
+                    ]
+                },
+                {
+                    "type": "/appVersion must match pattern \"^[0-9]+\\.[0-9]+\\.[0-9]$\"",
+                    "examples": [
+                        "appVersion=wrongFormat"
+                    ]
+                },
+                {
+                    "type": "/count must be integer",
+                    "examples": [
+                        "appVersion=2.0.0&count=wrongFormat"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "m_my_first_pixel_test",
+        "pixelData": {
+            "owners": [
+                "tester"
+            ],
+            "numPasses": 1,
+            "numFailures": 2,
+            "numAppVersionOutOfDate": 0,
+            "numAccesses": 3,
+            "errors": {
+                "must NOT have additional properties. Found extra property 'extraParam'": [
+                    "extraParam=10"
+                ],
+                "must NOT have additional properties. Found extra suffix 'extra-suffix'": [
+                    "m_my_first_pixel_test_extra-suffix"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "must NOT have additional properties. Found extra property 'extraParam'",
+                    "examples": [
+                        "extraParam=10"
+                    ]
+                },
+                {
+                    "type": "must NOT have additional properties. Found extra suffix 'extra-suffix'",
+                    "examples": [
+                        "m_my_first_pixel_test_extra-suffix"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "experiment_enroll_defaultBrowser_control",
+        "pixelData": {
+            "numAccesses": 2,
+            "numPasses": 0,
+            "numFailures": 2,
+            "numAppVersionOutOfDate": 0,
+            "numUndocumented": 0,
+            "errors": {
+                "/enrollmentDate must match format \"date\"": [
+                    "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                ],
+                "/enrollmentDate must match pattern \"^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$\"": [
+                    "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                ],
+                "/enrollmentDate must match pattern \"^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$\"": [
+                    "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                ],
+                "/enrollmentDate must match a schema in anyOf": [
+                    "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                ],
+                "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"": [
+                    "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                ],
+                "must NOT have additional properties. Found extra property 'metric'": [
+                    "metric=stageImpression"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "/enrollmentDate must match format \"date\"",
+                    "examples": [
+                        "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "/enrollmentDate must match pattern \"^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$\"",
+                    "examples": [
+                        "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "/enrollmentDate must match pattern \"^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$\"",
+                    "examples": [
+                        "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "/enrollmentDate must match a schema in anyOf",
+                    "examples": [
+                        "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"",
+                    "examples": [
+                        "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "must NOT have additional properties. Found extra property 'metric'",
+                    "examples": [
+                        "metric=stageImpression"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "experiment_enroll_x",
+        "pixelData": {
+            "numAccesses": 2,
+            "numPasses": 0,
+            "numFailures": 1,
+            "numAppVersionOutOfDate": 0,
+            "numUndocumented": 1,
+            "errors": {
+                "Unknown experiment 'x'": [
+                    "experiment_enroll_x_x_cohort"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "Unknown experiment 'x'",
+                    "examples": [
+                        "experiment_enroll_x_x_cohort"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "experiment_metrics_defaultBrowser_control",
+        "pixelData": {
+            "numAccesses": 4,
+            "numPasses": 0,
+            "numFailures": 4,
+            "numAppVersionOutOfDate": 0,
+            "numUndocumented": 0,
+            "errors": {
+                "must be equal to one of the allowed values": [
+                    "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
+                ],
+                "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"": [
+                    "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
+                ],
+                "Experiment metrics pixels must contain 'metric' and 'value' params": [
+                    "metric=stageImpression"
+                ],
+                "Unknown  experiment metric 'unknown'": [
+                    "metric=unknown&value=x"
+                ],
+                "must NOT have additional properties. Found extra property 'unexpectedParam'": [
+                    "metric=stageImpression&value=stage1&unexpectedParam=unknown"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "must be equal to one of the allowed values",
+                    "examples": [
+                        "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "/conversionWindowDays must match pattern \"^([0-9]+(-[0-9]+)?)$\"",
+                    "examples": [
+                        "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
+                    ]
+                },
+                {
+                    "type": "Experiment metrics pixels must contain 'metric' and 'value' params",
+                    "examples": [
+                        "metric=stageImpression"
+                    ]
+                },
+                {
+                    "type": "Unknown  experiment metric 'unknown'",
+                    "examples": [
+                        "metric=unknown&value=x"
+                    ]
+                },
+                {
+                    "type": "must NOT have additional properties. Found extra property 'unexpectedParam'",
+                    "examples": [
+                        "metric=stageImpression&value=stage1&unexpectedParam=unknown"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "experiment_metrics_defaultBrowser",
+        "pixelData": {
+            "numAccesses": 1,
+            "numPasses": 0,
+            "numFailures": 1,
+            "numAppVersionOutOfDate": 0,
+            "numUndocumented": 0,
+            "errors": {
+                "Suffix 'xxx' must be equal to one of the allowed values": [
+                    "experiment_metrics_defaultBrowser_control_android_xxx"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "Suffix 'xxx' must be equal to one of the allowed values",
+                    "examples": [
+                        "experiment_metrics_defaultBrowser_control_android_xxx"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "pixelName": "experiment_metrics_defaultBrowser_control_android_tablet",
+        "pixelData": {
+            "numAccesses": 1,
+            "numPasses": 0,
+            "numFailures": 1,
+            "numAppVersionOutOfDate": 0,
+            "numUndocumented": 0,
+            "errors": {
+                "must be equal to one of the allowed values": [
+                    "metric=search&value=invalid"
+                ]
+            },
+            "sampleErrors": [
+                {
+                    "type": "must be equal to one of the allowed values",
+                    "examples": [
+                        "metric=search&value=invalid"
+                    ]
+                }
+            ]
+        }
+    }
+]

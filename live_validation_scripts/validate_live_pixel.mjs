@@ -18,19 +18,15 @@ const NUM_EXAMPLE_ERRORS = 5; // If KEEP_ALL_ERRORS is false, this is the number
 
 const pixelMap = new Map();
 
-const savedPixelErrors = {};
-
-
-let totalRows = 0;
-
 const argv = getArgParserValidateLivePixel('Validate live pixels').parse();
 
-function getSamplePixelErrors(prefix, numExamples) {
-    if (!savedPixelErrors[prefix]) {
+function getSamplePixelErrors(pixelName, numExamples) {
+    const pixel = pixelMap.get(pixelName);
+    if (!pixel || !pixel.errors) {
         return [];
     }
     const errors = [];
-    for (const [errorType, examples] of Object.entries(savedPixelErrors[prefix])) {
+    for (const [errorType, examples] of Object.entries(pixel.errors)) {
         if (numExamples === -1) {
             errors.push({
                 type: errorType,
@@ -66,7 +62,7 @@ function readPixelDefs(mainDir, userMap) {
                 numFailures: 0,
                 numAppVersionOutOfDate: 0,
                 numAccesses: 0,
-                sampleErrors: [],
+                errors: {}, 
             });
         }
     });
@@ -107,6 +103,9 @@ async function validateLivePixels(mainDir, csvFile) {
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
 
     return new Promise((resolve, reject) => {
+
+        let totalRows = 0;
+
         if (!fs.existsSync(csvFile)) {
             reject(new Error(`CSV file does not exist: ${csvFile}`));
             return;
@@ -136,20 +135,28 @@ async function validateLivePixels(mainDir, csvFile) {
 
                 // Collect errors when validation fails
                 if (status === PixelValidationResult.VALIDATION_FAILED) {
-                    const prefix = lastPixelState.prefix;
-
-                    if (!savedPixelErrors[prefix]) {
-                        savedPixelErrors[prefix] = {};
+                    // Ensure pixelMap entry exists before storing errors
+                    if (!pixelMap.has(pixelName)) {
+                        pixelMap.set(pixelName, {
+                            numAccesses: 0,
+                            numPasses: 0,
+                            numFailures: 0,
+                            numAppVersionOutOfDate: 0,
+                            numUndocumented: 0,
+                            errors: {},
+                        });
                     }
 
+                    const pixel = pixelMap.get(pixelName);
+                    
                     // Collect errors from currentPixelState.errors
                     if (lastPixelState.errors) {
                         for (const [errorMessage, examples] of Object.entries(lastPixelState.errors)) {
-                            if (!savedPixelErrors[prefix][errorMessage]) {
-                                savedPixelErrors[prefix][errorMessage] = new Set();
+                            if (!pixel.errors[errorMessage]) {
+                                pixel.errors[errorMessage] = new Set();
                             }
                             // Add all examples from this validation
-                            examples.forEach((example) => savedPixelErrors[prefix][errorMessage].add(example));
+                            examples.forEach((example) => pixel.errors[errorMessage].add(example));
                         }
                     }
                 }
@@ -162,6 +169,7 @@ async function validateLivePixels(mainDir, csvFile) {
                         numFailures: 0,
                         numAppVersionOutOfDate: 0,
                         numUndocumented: 0,
+                        errors: {}, // Initialize errors as an empty object
                     });
                 }
 
@@ -182,16 +190,6 @@ async function validateLivePixels(mainDir, csvFile) {
                 }
             })
             .on('end', async () => {
-                console.log(`\nDone.\n`);
-
-                pixelMap.forEach((pixelData, pixelName) => {
-                    if (pixelData.numFailures > 0) {
-                        pixelData.sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
-                    }
-                });
-
-               
-
                 resolve();
             })
             .on('error', reject);
@@ -211,20 +209,8 @@ function setReplacer(_, value) {
 
 function saveVerificationResults(mainDir) {
 
-    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(savedPixelErrors, setReplacer, 4));
-    
-    const undocumentedPixels = new Set();
-    pixelMap.forEach((pixel, pixelName) => {
-        if (pixel.numUndocumented > 0) {
-             undocumentedPixels.add(pixelName);
-        }
-    });
-    fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(undocumentedPixels, setReplacer, 4));
-    
-    // These will be written out and used by asana_reports.mjs
+     
     const ownersWithErrors = new Set();
-
-    // Find owners with errors
     pixelMap.forEach((pixel, pixelName) => {
         if (pixel.numFailures > 0) {
             if (pixel && Array.isArray(pixel.owners)) {
@@ -234,20 +220,38 @@ function saveVerificationResults(mainDir) {
             }
         }
     });
-
-    
-
-    const pixelsWithErrors = new Set();
-
     fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
 
+    const pixelsWithErrors = new Set();
     pixelMap.forEach((pixelData, pixelName) => {
-        if (pixelData.sampleErrors && pixelData.sampleErrors.length > 0) {
-            pixelsWithErrors.add({ pixelName, pixelData });
+        if (pixelData.numFailures > 0) {
+            const sampleErrors = getSamplePixelErrors(pixelName, NUM_EXAMPLE_ERRORS);
+            if (sampleErrors && sampleErrors.length > 0) {
+                pixelsWithErrors.add({ pixelName, pixelData: { ...pixelData, sampleErrors } });
+            }
         }
     });
-
     fs.writeFileSync(fileUtils.getPixelsWithErrorsPath(mainDir), JSON.stringify(Array.from(pixelsWithErrors), setReplacer, 4));
+
+    // Only needed for integration tests, otherwise could remove
+    const pixelErrors = {};
+    pixelMap.forEach((pixelData, pixelName) => {
+        if (pixelData.errors && Object.keys(pixelData.errors).length > 0) {
+            // Use the pixelName as the key since we no longer have separate prefixes
+            pixelErrors[pixelName] = pixelData.errors;
+        }
+    });
+    fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(pixelErrors, setReplacer, 4));
+
+    // Only needed for integration tests, otherwise could remove
+    const undocumentedPixels = new Set();
+    pixelMap.forEach((pixel, pixelName) => {
+        if (pixel.numUndocumented > 0) {
+            undocumentedPixels.add(pixelName);
+        }
+    });
+    fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(undocumentedPixels, setReplacer, 4));
+
 
     console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
 }
