@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 CSV_FILE="/tmp/live_pixels.csv"
 
 # Check if all required arguments are provided
