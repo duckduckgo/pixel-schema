@@ -206,18 +206,6 @@ function setReplacer(_, value) {
 }
 
 function saveVerificationResults(mainDir) {
-    const ownersWithErrors = new Set();
-    pixelMap.forEach((pixel, pixelName) => {
-        if (pixel.numFailures > 0) {
-            if (pixel && Array.isArray(pixel.owners)) {
-                pixel.owners.forEach((owner) => {
-                    ownersWithErrors.add(owner);
-                });
-            }
-        }
-    });
-    fs.writeFileSync(fileUtils.getOwnersWithErrorsPath(mainDir), JSON.stringify(Array.from(ownersWithErrors), null, 4));
-
     const pixelsWithErrors = new Set();
     pixelMap.forEach((pixelData, pixelName) => {
         if (pixelData.numFailures > 0) {

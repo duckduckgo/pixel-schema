@@ -10,6 +10,7 @@ import { getArgParserAsanaReports } from '../src/args_utils.mjs';
 
 const DDG_ASANA_WORKSPACEID = '137249556945';
 const DAYS_TO_DELETE_ATTACHMENT = 28;
+const MAKE_PER_OWNER_SUBTASKS = true;
 
 const argv = getArgParserAsanaReports('Generate Pixel Validation reports in Asana').parse();
 
@@ -98,8 +99,14 @@ async function main() {
 
     console.log('Final number of pixel with errors keys (object):', Object.keys(pixelsWithErrors).length);
 
-    // read owners to notify from owners_with_errors.json
-    const ownersWithErrors = JSON.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(argv.dirPath)));
+    // build owners to notify from pixelsWithErrors
+    const ownersSet = new Set();
+    for (const pixel of Object.values(pixelsWithErrors)) {
+        if (pixel.pixelData && pixel.pixelData.owners) {
+            pixel.pixelData.owners.forEach((owner) => ownersSet.add(owner));
+        }
+    }
+    const ownersWithErrors = Array.from(ownersSet);
     console.log(`...Owners with errors: ${ownersWithErrors}`);
 
     if (toNotify.tagPixelOwners) {
@@ -196,56 +203,58 @@ async function main() {
                 console.error('Full error:', attachmentError);
             }
 
-            // Create subtasks for each owner
-            for (const owner of ownersWithErrors) {
-                const thisOwnersPixelsWithErrors = [];
-                for (const pixel of pixelsWithErrors) {
-                    if (pixel.pixelData.owners && pixel.pixelData.owners.includes(owner)) {
-                        thisOwnersPixelsWithErrors.push(pixel);
+            if (MAKE_PER_OWNER_SUBTASKS) {
+                // Create subtasks for each owner
+                for (const owner of ownersWithErrors) {
+                    const thisOwnersPixelsWithErrors = [];
+                    for (const pixel of pixelsWithErrors) {
+                        if (pixel.pixelData.owners && pixel.pixelData.owners.includes(owner)) {
+                            thisOwnersPixelsWithErrors.push(pixel);
+                        }
                     }
-                }
-                // Write thisOwnersPixelsWithErrors to a temporary file
-                const tempFilePath = path.join(argv.dirPath, `pixel_with_errors_${owner}.json`);
-                fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
+                    // Write thisOwnersPixelsWithErrors to a temporary file
+                    const tempFilePath = path.join(argv.dirPath, `pixel_with_errors_${owner}.json`);
+                    fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
 
-                const subtaskNotes = `<body>
+                    const subtaskNotes = `<body>
                 ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
                 New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
                 </body>`;
 
-                // Make a subtask for each owner
-                const subtaskName = `${owner}`;
-                const subtaskData = {
-                    workspace: DDG_ASANA_WORKSPACEID,
-                    name: subtaskName,
-                    html_notes: subtaskNotes,
-                    text: 'TEST',
-                    parent: result.data.gid,
-                };
+                    // Make a subtask for each owner
+                    const subtaskName = `${owner}`;
+                    const subtaskData = {
+                        workspace: DDG_ASANA_WORKSPACEID,
+                        name: subtaskName,
+                        html_notes: subtaskNotes,
+                        text: 'TEST',
+                        parent: result.data.gid,
+                    };
 
-                const subtaskBody = {
-                    data: subtaskData,
-                };
-                const subtaskResult = await tasks.createTask(subtaskBody, opts);
-                console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
+                    const subtaskBody = {
+                        data: subtaskData,
+                    };
+                    const subtaskResult = await tasks.createTask(subtaskBody, opts);
+                    console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
 
-                try {
-                    console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} pixels with errors`);
+                    try {
+                        console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} pixels with errors`);
 
-                    const superagent = await import('superagent');
+                        const superagent = await import('superagent');
 
-                    const attachmentResult = await superagent.default
-                        .post('https://app.asana.com/api/1.0/attachments')
-                        .set('Authorization', `Bearer ${token.accessToken}`)
-                        .field('parent', subtaskResult.data.gid)
-                        .field('name', `pixel_with_errors_${owner}.json`)
-                        .attach('file', tempFilePath);
+                        const attachmentResult = await superagent.default
+                            .post('https://app.asana.com/api/1.0/attachments')
+                            .set('Authorization', `Bearer ${token.accessToken}`)
+                            .field('parent', subtaskResult.data.gid)
+                            .field('name', `pixel_with_errors_${owner}.json`)
+                            .attach('file', tempFilePath);
 
-                    console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-                    fs.unlinkSync(tempFilePath);
-                } catch (attachmentError) {
-                    console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
-                    console.error('Full error:', attachmentError);
+                        console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+                        fs.unlinkSync(tempFilePath);
+                    } catch (attachmentError) {
+                        console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
+                        console.error('Full error:', attachmentError);
+                    }
                 }
             }
         }
