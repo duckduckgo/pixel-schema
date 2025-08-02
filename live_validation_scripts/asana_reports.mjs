@@ -101,7 +101,7 @@ async function main() {
     // read owners to notify from owners_with_errors.json
     const ownersWithErrors = JSON.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(argv.dirPath)));
     console.log(`...Owners with errors: ${ownersWithErrors}`);
-    
+
     if (toNotify.tagPixelOwners) {
         for (const owner of ownersWithErrors) {
             const ownerGID = userMap[owner];
@@ -198,8 +198,7 @@ async function main() {
 
             // Create subtasks for each owner
             for (const owner of ownersWithErrors) {
-
-                let thisOwnersPixelsWithErrors = [];
+                const thisOwnersPixelsWithErrors = [];
                 for (const pixel of pixelsWithErrors) {
                     if (pixel.pixelData.owners && pixel.pixelData.owners.includes(owner)) {
                         thisOwnersPixelsWithErrors.push(pixel);
@@ -209,7 +208,7 @@ async function main() {
                 const tempFilePath = path.join(argv.dirPath, `pixel_with_errors_${owner}.json`);
                 fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
 
-                let subtaskNotes = `<body>
+                const subtaskNotes = `<body>
                 ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
                 New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
                 </body>`;
@@ -248,9 +247,7 @@ async function main() {
                     console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                     console.error('Full error:', attachmentError);
                 }
-
             }
-            
         }
     } catch (error) {
         console.error(`Error creating task for ${argv.dirPath}:`, error);
