@@ -98,11 +98,11 @@ async function main() {
 
     console.log('Final number of pixel with errors keys (object):', Object.keys(pixelsWithErrors).length);
 
-    // read owners to notify from a file
+    // read owners to notify from owners_with_errors.json
+    const ownersWithErrors = JSON.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(argv.dirPath)));
+    console.log(`...Owners with errors: ${ownersWithErrors}`);
+    
     if (toNotify.tagPixelOwners) {
-        // read owners to notify from owners_with_errors.json
-        const ownersWithErrors = JSON.parse(fs.readFileSync(fileUtils.getOwnersWithErrorsPath(argv.dirPath)));
-        console.log(`...Owners with errors: ${ownersWithErrors}`);
         for (const owner of ownersWithErrors) {
             const ownerGID = userMap[owner];
             console.log(`...Adding pixel owner ${owner} to notification list, found in userMap, GID: ${ownerGID}`);
@@ -195,6 +195,62 @@ async function main() {
                 console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
             }
+
+            // Create subtasks for each owner
+            for (const owner of ownersWithErrors) {
+
+                let thisOwnersPixelsWithErrors = [];
+                for (const pixel of pixelsWithErrors) {
+                    if (pixel.pixelData.owners && pixel.pixelData.owners.includes(owner)) {
+                        thisOwnersPixelsWithErrors.push(pixel);
+                    }
+                }
+                // Write thisOwnersPixelsWithErrors to a temporary file
+                const tempFilePath = path.join(argv.dirPath, `pixel_with_errors_${owner}.json`);
+                fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
+
+                let subtaskNotes = `<body>
+                ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
+                New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
+                </body>`;
+
+                // Make a subtask for each owner
+                const subtaskName = `${owner}`;
+                const subtaskData = {
+                    workspace: DDG_ASANA_WORKSPACEID,
+                    name: subtaskName,
+                    html_notes: subtaskNotes,
+                    text: 'TEST',
+                    parent: result.data.gid,
+                };
+
+                const subtaskBody = {
+                    data: subtaskData,
+                };
+                const subtaskResult = await tasks.createTask(subtaskBody, opts);
+                console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
+
+                try {
+                    console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} pixels with errors`);
+
+                    const superagent = await import('superagent');
+
+                    const attachmentResult = await superagent.default
+                        .post('https://app.asana.com/api/1.0/attachments')
+                        .set('Authorization', `Bearer ${token.accessToken}`)
+                        .field('parent', subtaskResult.data.gid)
+                        .field('name', `pixel_with_errors_${owner}.json`)
+                        .attach('file', tempFilePath);
+
+                    console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+                    fs.unlinkSync(tempFilePath);
+                } catch (attachmentError) {
+                    console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
+                    console.error('Full error:', attachmentError);
+                }
+
+            }
+            
         }
     } catch (error) {
         console.error(`Error creating task for ${argv.dirPath}:`, error);
