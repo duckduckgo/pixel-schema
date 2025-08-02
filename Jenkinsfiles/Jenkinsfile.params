@@ -3,12 +3,48 @@ pipeline {
     triggers { cron('H H * * *') }
     environment {
         USER_MAP="../internal-github-asana-utils/user_map.yml"
-        ASANA_PROJECT="1210584574754345"
     }
+    stages {
+        stage('Setup parameters') {
+            steps {
+                script { 
+                    properties([
+                        parameters([
+                            choice(
+                                choices: ['TEST', 'PROD'], 
+                                name: 'ENVIRONMENT'
+                            )
+                        ])
+                    ])
+                    
+                    // Set environment variables based on ENVIRONMENT parameter
+                    if (params.ENVIRONMENT == 'PROD') {
+                        env.WINDOWS_BROWSER_BRANCH = 'develop'
+                        env.EXTENSION_BRANCH = 'main'
+                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/remove-stats'
+                        env.ASANA_UTILS_BRANCH = 'main'
+                        env.ASANA_PROJECT = "1210856607616307"
+                    } else if (params.ENVIRONMENT == 'TEST') {
+                        env.WINDOWS_BROWSER_BRANCH = 'jmatthews/automate-pixel-validation-5'
+                        env.EXTENSION_BRANCH = 'jmatthews/automate-pixel-validation-3'
+                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/remove-stats'
+                        env.ASANA_UTILS_BRANCH = 'main'
+                        env.ASANA_PROJECT = "1210584574754345"
+                    }
+                    
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Windows Browser Branch: ${env.WINDOWS_BROWSER_BRANCH}"
+                    echo "Extension Branch: ${env.EXTENSION_BRANCH}"
+                    echo "Pixel Schema Branch: ${env.PIXEL_SCHEMA_BRANCH}"
+                    echo "Asana Utils Branch: ${env.ASANA_UTILS_BRANCH}"
+                    echo "Test Asana Project: ${env.ASANA_PROJECT}"
+                }
+            }
+        }
         stage('clone pixel-schema repo ') {
             steps {
                 dir('pixel-schema') {
-                    checkout([$class: 'GitSCM', branches: [[name: "jmatthews/remove-stats"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.PIXEL_SCHEMA_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
                 }
@@ -17,7 +53,7 @@ pipeline {
         stage('clone duckduckgo-privacy-extension repo ') {
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.EXTENSION_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
@@ -26,7 +62,7 @@ pipeline {
         stage('clone windows-browser repo with credentials') {
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.WINDOWS_BROWSER_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
@@ -36,7 +72,7 @@ pipeline {
         stage('clone internal-github-asana-utils repo ') {
             steps {
                 dir('internal-github-asana-utils') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.ASANA_UTILS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
 		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
@@ -49,6 +85,18 @@ pipeline {
                     fnm install
                     fnm exec npm ci
                     cd ..
+                '''
+            }
+        }
+        stage('Confirm settings ') {
+             steps {
+                sh '''#!/bin/bash
+                    echo "Environment: $ENVIRONMENT"
+                    echo "Windows Browser Branch: $WINDOWS_BROWSER_BRANCH"
+                    echo "DDG Extension Branch: $EXTENSION_BRANCH"
+                    echo "Pixel Schema Branch: $PIXEL_SCHEMA_BRANCH"
+                    echo "Asana Utils Branch: $ASANA_UTILS_BRANCH"
+                    echo "Asana Project: $ASANA_PROJECT"
                 '''
             }
         }
