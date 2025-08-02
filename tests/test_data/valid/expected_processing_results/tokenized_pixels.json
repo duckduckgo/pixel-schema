@@ -4,6 +4,9 @@
             "first": {
                 "pixel": {
                     "__root_prefix__": {
+                        "owners": [
+                            "ddg_username"
+                        ],
                         "parameters": [
                             "appVersion",
                             {
@@ -93,7 +96,11 @@
                         ]
                     },
                     "test": {
-                        "__root_prefix__": {}
+                        "__root_prefix__": {
+                            "owners": [
+                                "tester"
+                            ]
+                        }
                     }
                 }
             }
@@ -104,11 +111,19 @@
             "3": {
                 "level": {
                     "deep": {
-                        "__root_prefix__": {}
+                        "__root_prefix__": {
+                            "owners": [
+                                "tester"
+                            ]
+                        }
                     }
                 }
             },
-            "__root_prefix__": {}
+            "__root_prefix__": {
+                "owners": [
+                    "tester"
+                ]
+            }
         }
     }
 }

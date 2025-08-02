@@ -1,5 +1,8 @@
 {
     "m_my_first_pixel_test": {
+        "owners": [
+            "tester"
+        ],
         "must NOT have additional properties. Found extra property 'extraParam'": [
             "extraParam=10"
         ],
@@ -8,6 +11,9 @@
         ]
     },
     "m_my_first_pixel": {
+        "owners": [
+            "ddg_username"
+        ],
         "Suffix 'unexpected-suffix' must be equal to one of the allowed values": [
             "m_my_first_pixel_unexpected-suffix"
         ],
@@ -28,6 +34,7 @@
         ]
     },
     "experiment_enroll_defaultBrowser_control": {
+        "owners": [],
         "/enrollmentDate must match format \"date\"": [
             "enrollmentDate=not_a_date&conversionWindowDays=x-x-x"
         ],
@@ -48,11 +55,13 @@
         ]
     },
     "experiment_enroll_x": {
+        "owners": [],
         "Unknown experiment 'x'": [
             "experiment_enroll_x_x_cohort"
         ]
     },
     "experiment_metrics_defaultBrowser_control": {
+        "owners": [],
         "must be equal to one of the allowed values": [
             "metric=stageImpression&value=x&conversionWindowDays=x-x-x"
         ],
@@ -70,11 +79,13 @@
         ]
     },
     "experiment_metrics_defaultBrowser": {
+        "owners": [],
         "Suffix 'xxx' must be equal to one of the allowed values": [
             "experiment_metrics_defaultBrowser_control_android_xxx"
         ]
     },
     "experiment_metrics_defaultBrowser_control_android_tablet": {
+        "owners": [],
         "must be equal to one of the allowed values": [
             "metric=search&value=invalid"
         ]

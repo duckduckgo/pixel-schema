@@ -19,11 +19,7 @@ export class LivePixelsValidator {
     #commonExperimentSuffixesSchema;
     #compiledExperiments;
 
-    #currentPixelState = {
-        status: PIXEL_VALIDATION_RESULT.VALIDATION_PASSED,
-        prefixForErrors: null,
-        errors: [],
-    };
+    #currentPixelState;
 
     /**
      * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
@@ -33,6 +29,7 @@ export class LivePixelsValidator {
      * @param {ParamsValidator} paramsValidator
      */
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
+        this.#initPixelState();
         this.#forceLowerCase = productDef.forceLowerCase;
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
@@ -107,23 +104,28 @@ export class LivePixelsValidator {
             const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
             const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
 
-            // Pre-compile each schema
+            // Pre-compile each schema and remember owners
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
+            const owners = pixelDef.owners;
             tokenizedPixels[prefix] = {
                 paramsSchema,
                 suffixesSchema,
+                owners,
             };
         });
     }
 
     /**
-     * Resets the current pixel state.
+     * (Re)initializes the current pixel state.
      */
-    #resetPixelState() {
-        this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.VALIDATION_PASSED;
-        this.#currentPixelState.prefixForErrors = null;
-        this.#currentPixelState.errors = [];
+    #initPixelState() {
+        this.#currentPixelState = {
+            status: PIXEL_VALIDATION_RESULT.VALIDATION_PASSED,
+            owners: [],
+            prefixForErrors: null,
+            errors: [],
+        };
     }
 
     validateExperimentPixel(pixel, paramsUrlFormat) {
@@ -204,7 +206,7 @@ export class LivePixelsValidator {
      * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
     validatePixel(pixel, params) {
-        this.#resetPixelState();
+        this.#initPixelState();
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateExperimentPixel(pixel, params);
         }
@@ -228,7 +230,11 @@ export class LivePixelsValidator {
             return this.#currentPixelState;
         }
 
+        // Found a match: remember owners
+        // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         const prefix = matchedParts.slice(0, -1);
+        this.#currentPixelState.owners = pixelMatch[ROOT_PREFIX].owners;
+
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
         return this.#currentPixelState;
     }

@@ -65,7 +65,9 @@ function saveResult(pixelRequestFormat, result) {
         }
 
         if (!pixelErrors[prefix]) {
-            pixelErrors[prefix] = {};
+            pixelErrors[prefix] = {
+                owners: result.owners,
+            };
         }
 
         for (const errorWithExample of result.errors) {
