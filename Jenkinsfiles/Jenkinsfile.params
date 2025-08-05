@@ -130,7 +130,7 @@ pipeline {
                             MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
                             cd pixel-schema
                             echo "Starting validation for duckduckgo-privacy-extension..."
-                            ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -152,7 +152,7 @@ pipeline {
                             MAIN_DIR="../windows-browser/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for windows-browser..."
-                            ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -177,7 +177,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (macOS)..."
-                            ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -202,7 +202,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (iOS)..."
-                            ./bin/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -221,49 +221,17 @@ pipeline {
    post {
         failure {
             script {
-                try {
-                    sh '''#!/bin/bash
-                        echo "Attempting to create Asana task for failure..."
+          
+                sh '''#!/bin/bash
+                    echo "Attempting to create Asana task for failure..."
                         
-                        # Check if required files exist
-                        if [ ! -f "/etc/profile.d/perlbrew.sh" ]; then
-                            echo "Warning: /etc/profile.d/perlbrew.sh not found, skipping perlbrew setup"
-                        else
-                            source /etc/profile.d/perlbrew.sh
-                        fi
-                        
-                        if [ ! -f "/usr/local/ddg/sysadmin/scripts/asana_create_task.pl" ]; then
-                            echo "Error: Asana task creation script not found at /usr/local/ddg/sysadmin/scripts/asana_create_task.pl"
-                            echo "Pixel validation failed but unable to create Asana task"
-                            exit 0  # Don't fail the post condition
-                        fi
-                        
-                        # Check for required Perl modules
-                        export PERL5LIB=/usr/local/ddg/lib:$PERL5LIB
-                        if ! perl -MYAML::XS -e "1" 2>/dev/null; then
-                            echo "Error: Required Perl module YAML::XS is not installed"
-                            echo "Pixel validation failed but unable to create Asana task due to missing dependencies"
-                            exit 0  # Don't fail the post condition
-                        fi
-                        
-                        # Check if DDG::Util::Asana module is available
-                        if ! perl -I/usr/local/ddg/sysadmin/scripts/../../lib -MDDG::Util::Asana -e "1" 2>/dev/null; then
-                            echo "Error: Required Perl module DDG::Util::Asana is not available"
-                            echo "Pixel validation failed but unable to create Asana task due to missing dependencies"
-                            exit 0  # Don't fail the post condition
-                        fi
-                        
-                        ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --assignee jmatthews@duckduckgo.com \
                             --description "Jenkins pixel validation failed" \
                             --project_id $ASANA_PROJECT \
                             --no_duplicates \
                             "pixel validation failed"
-                    '''
-                } catch (Exception e) {
-                    echo "Failed to create Asana task: ${e.getMessage()}"
-                    echo "Pixel validation failed but Asana task creation also failed"
-                }
+                '''
             }
         }
     }
