@@ -237,7 +237,7 @@ async function main() {
                     const subtaskBody = {
                         data: subtaskData,
                     };
-                   
+
                     const subtaskResult = await tasks.createTask(subtaskBody, opts);
                     console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
 
