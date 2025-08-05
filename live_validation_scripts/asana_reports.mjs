@@ -12,8 +12,22 @@ import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS } from '../src/consta
 const MAKE_PER_OWNER_SUBTASKS = true;
 
 const argv = getArgParserAsanaReports('Generate Pixel Validation reports in Asana').parse();
+const dirPath = argv.dirPath;
+const DDG_ASANA_PIXEL_VALIDATION_PROJECT = argv.asanaProjectID;
 
-function readAsanaNotifyFile(dirPath, userMap, toNotify) {
+const superagent = await import('superagent');
+
+const client = asana.ApiClient.instance;
+const token = client.authentications.token;
+const tasksApi = new asana.TasksApi();
+
+let pixelsWithErrors = [];
+let ownersWithErrors = [];
+let userMap = null;
+
+const toNotify = {};
+
+function readAsanaNotifyFile() {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
     if (!fs.existsSync(notifyFile)) {
         console.log(`Notify file ${dirPath}/asana_notify.json does not exist, will simply add pixel owners as followers `);
@@ -49,37 +63,92 @@ function readAsanaNotifyFile(dirPath, userMap, toNotify) {
 
     if (notify.tagPixelOwners) {
         toNotify.tagPixelOwners = notify.tagPixelOwners;
-        console.log(`...Add pixel owners as followers to Asana task`);
-    } else {
-        toNotify.tagPixelOwners = false;
-        console.log(`...Do not add pixel owners as followers to Asana task`);
+        console.log(`...Will Assign per-owner subtasks to pixel owners`);
     }
 
     return true;
 }
 
+async function createOwnerSubtask(owner, parentTaskGid) {
+    const thisOwnersPixelsWithErrors = [];
+    for (const pixel of Object.values(pixelsWithErrors)) {
+        if (pixel.owners && pixel.owners.includes(owner)) {
+            thisOwnersPixelsWithErrors.push(pixel);
+        }
+    }
+
+    if (thisOwnersPixelsWithErrors.length > 0) {
+        // Write thisOwnersPixelsWithErrors to a temporary file
+        const tempFilePath = path.join(dirPath, `pixel_with_errors_${owner}.json`);
+        fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
+
+        const subtaskNotes = `<body>
+                ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
+                New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
+                </body>`;
+
+        // Make a subtask for each owner
+        const subtaskName = `${owner}`;
+        const subtaskData = {
+            workspace: DDG_ASANA_WORKSPACEID,
+            name: subtaskName,
+            html_notes: subtaskNotes,
+            text: 'Per-owner subtask',
+            parent: parentTaskGid,
+        };
+
+        if (toNotify.tagPixelOwners) {
+            subtaskData.assignee = userMap[owner];
+        }
+
+        const subtaskBody = {
+            data: subtaskData,
+        };
+
+        const opts = {};
+        const subtaskResult = await tasksApi.createTask(subtaskBody, opts);
+        console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
+
+        try {
+            console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} pixels with errors`);
+
+            const attachmentResult = await superagent.default
+                .post('https://app.asana.com/api/1.0/attachments')
+                .set('Authorization', `Bearer ${token.accessToken}`)
+                .field('parent', subtaskResult.data.gid)
+                .field('name', `pixel_with_errors_${owner}.json`)
+                .attach('file', tempFilePath);
+
+            console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+            fs.unlinkSync(tempFilePath);
+        } catch (attachmentError) {
+            console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
+            console.error('Full error:', attachmentError);
+        }
+    }
+}
+
 async function main() {
     console.log('AsanaWorkspace ID: ' + DDG_ASANA_WORKSPACEID);
-    const DDG_ASANA_PIXEL_VALIDATION_PROJECT = argv.asanaProjectID;
     console.log('Asana Pixel Validation Project: ', DDG_ASANA_PIXEL_VALIDATION_PROJECT);
 
+    // Load user map
     if (!fs.existsSync(argv.userMapFile)) {
         console.error(`User map file ${argv.userMapFile} does not exist!`);
         process.exit(1);
     }
-    const userMap = yaml.load(fs.readFileSync(argv.userMapFile, 'utf8'));
+    userMap = yaml.load(fs.readFileSync(argv.userMapFile, 'utf8'));
 
-    const toNotify = {};
-    const success = readAsanaNotifyFile(argv.dirPath, userMap, toNotify);
+    // Save the directory path and load the asana notify file
+    const success = readAsanaNotifyFile(dirPath);
 
     if (!success) {
-        console.log(`Error: Failed to read asana notify file ${argv.dirPath}/asana_notify.json`);
+        console.log(`Error: Failed to read asana notify file ${dirPath}/asana_notify.json`);
         process.exit(1);
     }
 
-    let pixelsWithErrors = [];
-
-    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(argv.dirPath);
+    // Load the pixelsWithErrors object
+    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);
     console.log(`Pixel with errors path from fileUtils: ${pixelsErrorsPath}`);
 
     if (fs.existsSync(pixelsErrorsPath)) {
@@ -96,30 +165,20 @@ async function main() {
         console.log(`Pixel errors file not found at: ${pixelsErrorsPath}`);
     }
 
-    console.log('Final number of pixel with errors keys (object):', Object.keys(pixelsWithErrors).length);
+    const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
+    console.log('Final number of pixel with errors keys (object):', numPixelsWithErrors);
 
-    // build owners to notify from pixelsWithErrors
+    // Build ownersWithErrors from pixelsWithErrors
     const ownersSet = new Set();
     for (const pixel of Object.values(pixelsWithErrors)) {
         if (pixel.owners) {
             pixel.owners.forEach((owner) => ownersSet.add(owner));
         }
     }
-    const ownersWithErrors = Array.from(ownersSet);
+    ownersWithErrors = Array.from(ownersSet);
     console.log(`...Owners with errors: ${ownersWithErrors}`);
 
-    if (toNotify.tagPixelOwners) {
-        for (const owner of ownersWithErrors) {
-            const ownerGID = userMap[owner];
-            console.log(`...Adding pixel owner ${owner} to notification list, found in userMap, GID: ${ownerGID}`);
-
-            toNotify.followerGIDs.push(ownerGID);
-        }
-    }
-
-    const client = asana.ApiClient.instance;
-    const token = client.authentications.token;
-
+    // Load the assana access token
     try {
         token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
     } catch (error) {
@@ -127,20 +186,16 @@ async function main() {
         process.exit(1);
     }
 
-    const tasks = new asana.TasksApi();
-
-    const taskName = `Pixel Validation Report for ${argv.dirPath}`;
+    // Create the top level Pixel Validation Report task
+    const taskName = `Pixel Validation Report for ${dirPath}`;
 
     console.log(taskName);
 
     let topLevelStatement = '';
 
-    const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
-
     // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
     if (numPixelsWithErrors > 0) {
-        topLevelStatement = `
-        ${numPixelsWithErrors} pixels with errors - check the attachment for details.
+        topLevelStatement = `${numPixelsWithErrors} pixels with errors - check the attachment for details.
         New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
         `;
     } else {
@@ -154,12 +209,13 @@ async function main() {
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     try {
+        // Build taskData
         const taskData = {
             workspace: DDG_ASANA_WORKSPACEID,
             name: taskName,
             due_on: dueDate,
             html_notes: taskNotes,
-            text: 'TEST',
+            text: 'Pixel Validation Report',
             projects: [DDG_ASANA_PIXEL_VALIDATION_PROJECT],
         };
 
@@ -173,97 +229,46 @@ async function main() {
             taskData.followers = toNotify.followerGIDs;
         }
 
+        // Build body and opts
         const body = {
             data: taskData,
         };
         const opts = {};
 
-        console.log(`Creating task for ${argv.dirPath}...`);
-        const result = await tasks.createTask(body, opts);
-        console.log(`Task created for ${argv.dirPath}: ${result.data.gid}`);
+        // Create the top level Pixel Validation Report task
+        console.log(`Creating task for ${dirPath}...`);
+        const result = await tasksApi.createTask(body, opts);
+
+        // Save the resulting taskGID
+        const taskGid = result.data.gid;
+
+        console.log(`Task created for ${dirPath}: ${taskGid}`);
 
         // Add attachment after task creation if there are pixels with errors
         if (numPixelsWithErrors > 0) {
             try {
-                console.log(`Attempting to attach ${numPixelsWithErrors} pixels with errors`);
-
-                const superagent = await import('superagent');
-
                 const attachmentResult = await superagent.default
                     .post('https://app.asana.com/api/1.0/attachments')
                     .set('Authorization', `Bearer ${token.accessToken}`)
-                    .field('parent', result.data.gid)
+                    .field('parent', taskGid)
                     .field('name', `pixel_with_errors.json`)
                     .attach('file', pixelsErrorsPath);
 
                 console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
             } catch (attachmentError) {
-                console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
+                console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
                 console.error('Full error:', attachmentError);
             }
 
             if (MAKE_PER_OWNER_SUBTASKS) {
                 // Create subtasks for each owner
                 for (const owner of ownersWithErrors) {
-                    const thisOwnersPixelsWithErrors = [];
-                    for (const pixel of Object.values(pixelsWithErrors)) {
-                        if (pixel.owners && pixel.owners.includes(owner)) {
-                            thisOwnersPixelsWithErrors.push(pixel);
-                        }
-                    }
-                    // Write thisOwnersPixelsWithErrors to a temporary file
-                    const tempFilePath = path.join(argv.dirPath, `pixel_with_errors_${owner}.json`);
-                    fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
-
-                    const subtaskNotes = `<body>
-                ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
-                New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
-                </body>`;
-
-                    // Make a subtask for each owner
-                    const subtaskName = `${owner}`;
-                    const subtaskData = {
-                        workspace: DDG_ASANA_WORKSPACEID,
-                        name: subtaskName,
-                        html_notes: subtaskNotes,
-                        text: 'TEST',
-                        parent: result.data.gid,
-                    };
-
-                    if (toNotify.tagPixelOwners) {
-                        subtaskData.assignee = userMap[owner];
-                    }
-
-                    const subtaskBody = {
-                        data: subtaskData,
-                    };
-
-                    const subtaskResult = await tasks.createTask(subtaskBody, opts);
-                    console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
-
-                    try {
-                        console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} pixels with errors`);
-
-                        const superagent = await import('superagent');
-
-                        const attachmentResult = await superagent.default
-                            .post('https://app.asana.com/api/1.0/attachments')
-                            .set('Authorization', `Bearer ${token.accessToken}`)
-                            .field('parent', subtaskResult.data.gid)
-                            .field('name', `pixel_with_errors_${owner}.json`)
-                            .attach('file', tempFilePath);
-
-                        console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-                        fs.unlinkSync(tempFilePath);
-                    } catch (attachmentError) {
-                        console.error(`Error adding attachment for ${argv.dirPath}:`, attachmentError.message);
-                        console.error('Full error:', attachmentError);
-                    }
+                    await createOwnerSubtask(owner, taskGid);
                 }
             }
         }
     } catch (error) {
-        console.error(`Error creating task for ${argv.dirPath}:`, error);
+        console.error(`Error creating task for ${dirPath}:`, error);
     }
 }
 

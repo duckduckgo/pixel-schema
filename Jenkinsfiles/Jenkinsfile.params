@@ -1,6 +1,6 @@
 pipeline {
     agent { label 'ubuntu-latest' }
-    triggers { cron('H H * * *') }
+    triggers { cron('H 0 * * 0') }
     environment {
         USER_MAP="../internal-github-asana-utils/user_map.yml"
     }
@@ -10,9 +10,36 @@ pipeline {
                 script { 
                     properties([
                         parameters([
-                            choice(
-                                choices: ['TEST', 'PROD'], 
-                                name: 'ENVIRONMENT'
+                        
+                            string(
+                                defaultValue: 'main',
+                                description: 'Pixel Schema Branch',
+                                name: 'PIXEL_SCHEMA_BRANCH'
+                            ),
+                            string(
+                                defaultValue: 'develop',
+                                description: 'Windows Browser Branch',
+                                name: 'WINDOWS_BROWSER_BRANCH'
+                            ),
+                            string( 
+                                defaultValue: 'main',
+                                description: 'Asana Utils Branch',
+                                name: 'ASANA_UTILS_BRANCH'
+                            ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'DuckDuckGo Extension Branch',
+                                name: 'EXTENSION_BRANCH'
+                            ),
+                            string( 
+                                defaultValue: 'main',
+                                description: 'Apple Browsers Branch',
+                                name: 'APPLE_BROWSERS_BRANCH'
+                            ),
+                            string(
+                                defaultValue: '1210856607616307',
+                                description: 'Asana Project',
+                                name: 'ASANA_PROJECT'
                             ),
                             booleanParam(
                                 defaultValue: false,
@@ -22,37 +49,13 @@ pipeline {
                         ])
                     ])
                     
-                    // Set environment variables based on ENVIRONMENT parameter
-                    if (params.ENVIRONMENT == 'PROD') {
-                        env.WINDOWS_BROWSER_BRANCH = 'develop'
-                        env.EXTENSION_BRANCH = 'main'
-                        env.APPLE_BROWSERS_BRANCH = 'main'
-                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/new-asana-reports'
-                        env.ASANA_UTILS_BRANCH = 'main'
-                        env.ASANA_PROJECT = "1210856607616307"
-                    } else if (params.ENVIRONMENT == 'TEST') {
-                        env.WINDOWS_BROWSER_BRANCH = 'jmatthews/automate-pixel-validation-5'
-                        env.EXTENSION_BRANCH = 'jmatthews/automate-pixel-validation-3'
-                        env.APPLE_BROWSERS_BRANCH = 'jmatthews/automate-pixel-validation'
-                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/new-asana-reports'
-                        env.ASANA_UTILS_BRANCH = 'main'
-                        env.ASANA_PROJECT = "1210584574754345"
-                    }
-                    
-                    echo "Environment: ${params.ENVIRONMENT}"
-                    echo "Run Apple Validation: ${params.RUN_APPLE_VALIDATION}"
-                    echo "Windows Browser Branch: ${env.WINDOWS_BROWSER_BRANCH}"
-                    echo "Extension Branch: ${env.EXTENSION_BRANCH}"
-                    echo "Pixel Schema Branch: ${env.PIXEL_SCHEMA_BRANCH}"
-                    echo "Asana Utils Branch: ${env.ASANA_UTILS_BRANCH}"
-                    echo "Test Asana Project: ${env.ASANA_PROJECT}"
                 }
             }
         }
         stage('clone pixel-schema repo ') {
             steps {
                 dir('pixel-schema') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.PIXEL_SCHEMA_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
                 }
@@ -61,7 +64,7 @@ pipeline {
         stage('clone duckduckgo-privacy-extension repo ') {
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.EXTENSION_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
@@ -70,7 +73,7 @@ pipeline {
         stage('clone windows-browser repo with credentials') {
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.WINDOWS_BROWSER_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
@@ -83,7 +86,7 @@ pipeline {
             }
             steps {
                 dir('apple-browsers') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.APPLE_BROWSERS_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/apple-browsers.git']]])
                 }
@@ -93,7 +96,7 @@ pipeline {
         stage('clone internal-github-asana-utils repo ') {
             steps {
                 dir('internal-github-asana-utils') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.ASANA_UTILS_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
 		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
@@ -112,13 +115,12 @@ pipeline {
         stage('Confirm settings ') {
              steps {
                 sh '''#!/bin/bash
-                    echo "Environment: $ENVIRONMENT"
-                    echo "Windows Browser Branch: $WINDOWS_BROWSER_BRANCH"
-                    echo "DDG Extension Branch: $EXTENSION_BRANCH"
-                    echo "Apple Browsers Branch: $APPLE_BROWSERS_BRANCH"
-                    echo "Pixel Schema Branch: $PIXEL_SCHEMA_BRANCH"
-                    echo "Asana Utils Branch: $ASANA_UTILS_BRANCH"
-                    echo "Asana Project: $ASANA_PROJECT"
+                    echo "Windows Browser Branch: $params.WINDOWS_BROWSER_BRANCH"
+                    echo "DDG Extension Branch: $params.EXTENSION_BRANCH"
+                    echo "Apple Browsers Branch: $params.APPLE_BROWSERS_BRANCH"
+                    echo "Pixel Schema Branch: $params.PIXEL_SCHEMA_BRANCH"
+                    echo "Asana Utils Branch: $params.ASANA_UTILS_BRANCH"
+                    echo "Asana Project: $params.ASANA_PROJECT"
                 '''
             }
         }
@@ -130,7 +132,7 @@ pipeline {
                             MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
                             cd pixel-schema
                             echo "Starting validation for duckduckgo-privacy-extension..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -152,7 +154,7 @@ pipeline {
                             MAIN_DIR="../windows-browser/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for windows-browser..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -177,7 +179,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (macOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -202,7 +204,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (iOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -228,7 +230,7 @@ pipeline {
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --assignee jmatthews@duckduckgo.com \
                             --description "Jenkins pixel validation failed" \
-                            --project_id $ASANA_PROJECT \
+                            --project_id $params.ASANA_PROJECT \
                             --no_duplicates \
                             "pixel validation failed"
                 '''
