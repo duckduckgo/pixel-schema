@@ -101,8 +101,8 @@ async function main() {
     // build owners to notify from pixelsWithErrors
     const ownersSet = new Set();
     for (const pixel of Object.values(pixelsWithErrors)) {
-        if (pixel.pixelData && pixel.pixelData.owners) {
-            pixel.pixelData.owners.forEach((owner) => ownersSet.add(owner));
+        if (pixel.owners) {
+            pixel.owners.forEach((owner) => ownersSet.add(owner));
         }
     }
     const ownersWithErrors = Array.from(ownersSet);
@@ -206,8 +206,8 @@ async function main() {
                 // Create subtasks for each owner
                 for (const owner of ownersWithErrors) {
                     const thisOwnersPixelsWithErrors = [];
-                    for (const pixel of pixelsWithErrors) {
-                        if (pixel.pixelData.owners && pixel.pixelData.owners.includes(owner)) {
+                    for (const pixel of Object.values(pixelsWithErrors)) {
+                        if (pixel.owners && pixel.owners.includes(owner)) {
                             thisOwnersPixelsWithErrors.push(pixel);
                         }
                     }
@@ -230,9 +230,14 @@ async function main() {
                         parent: result.data.gid,
                     };
 
+                    if (toNotify.tagPixelOwners) {
+                        subtaskData.assignee = userMap[owner];
+                    }
+
                     const subtaskBody = {
                         data: subtaskData,
                     };
+                   
                     const subtaskResult = await tasks.createTask(subtaskBody, opts);
                     console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
 

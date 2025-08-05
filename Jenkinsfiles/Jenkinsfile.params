@@ -27,14 +27,14 @@ pipeline {
                         env.WINDOWS_BROWSER_BRANCH = 'develop'
                         env.EXTENSION_BRANCH = 'main'
                         env.APPLE_BROWSERS_BRANCH = 'main'
-                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/remove-stats'
+                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/new-asana-reports'
                         env.ASANA_UTILS_BRANCH = 'main'
                         env.ASANA_PROJECT = "1210856607616307"
                     } else if (params.ENVIRONMENT == 'TEST') {
                         env.WINDOWS_BROWSER_BRANCH = 'jmatthews/automate-pixel-validation-5'
                         env.EXTENSION_BRANCH = 'jmatthews/automate-pixel-validation-3'
                         env.APPLE_BROWSERS_BRANCH = 'jmatthews/automate-pixel-validation'
-                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/remove-stats'
+                        env.PIXEL_SCHEMA_BRANCH = 'jmatthews/new-asana-reports'
                         env.ASANA_UTILS_BRANCH = 'main'
                         env.ASANA_PROJECT = "1210584574754345"
                     }
