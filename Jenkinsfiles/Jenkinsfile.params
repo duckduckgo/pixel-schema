@@ -253,7 +253,7 @@ pipeline {
                             exit 0  # Don't fail the post condition
                         fi
                         
-                        /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                        ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --assignee jmatthews@duckduckgo.com \
                             --description "Jenkins pixel validation failed" \
                             --project_id $ASANA_PROJECT \
