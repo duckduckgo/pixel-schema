@@ -1,0 +1,240 @@
+pipeline {
+    agent { label 'ubuntu-latest' }
+    triggers { cron('H 0 * * 0') }
+    environment {
+        USER_MAP="../internal-github-asana-utils/user_map.yml"
+    }
+    stages {
+        stage('Setup parameters') {
+            steps {
+                script { 
+                    properties([
+                        parameters([
+                        
+                            string(
+                                defaultValue: 'main',
+                                description: 'Pixel Schema Branch',
+                                name: 'PIXEL_SCHEMA_BRANCH'
+                            ),
+                            string(
+                                defaultValue: 'develop',
+                                description: 'Windows Browser Branch',
+                                name: 'WINDOWS_BROWSER_BRANCH'
+                            ),
+                            string( 
+                                defaultValue: 'main',
+                                description: 'Asana Utils Branch',
+                                name: 'ASANA_UTILS_BRANCH'
+                            ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'DuckDuckGo Extension Branch',
+                                name: 'EXTENSION_BRANCH'
+                            ),
+                            string( 
+                                defaultValue: 'main',
+                                description: 'Apple Browsers Branch',
+                                name: 'APPLE_BROWSERS_BRANCH'
+                            ),
+                            string(
+                                defaultValue: '1210856607616307',
+                                description: 'Asana Project',
+                                name: 'ASANA_PROJECT'
+                            ),
+                            booleanParam(
+                                defaultValue: false,
+                                description: 'Run Apple browser (macOS and iOS) pixel validation',
+                                name: 'RUN_APPLE_VALIDATION'
+                            )
+                        ])
+                    ])
+                    
+                }
+            }
+        }
+        stage('clone pixel-schema repo ') {
+            steps {
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                }
+            }
+        }
+        stage('clone duckduckgo-privacy-extension repo ') {
+            steps {
+                dir('duckduckgo-privacy-extension') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                }
+            }
+        }
+        stage('clone windows-browser repo with credentials') {
+            steps {
+                dir('windows-browser') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+            }
+        }
+        
+         stage('clone apple-browsers repo with credentials') {
+            when {
+                expression { params.RUN_APPLE_VALIDATION == true }
+            }
+            steps {
+                dir('apple-browsers') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                }
+            }
+        }
+     
+        stage('clone internal-github-asana-utils repo ') {
+            steps {
+                dir('internal-github-asana-utils') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                }
+            }
+        }
+        stage('Install ') {
+             steps {
+                sh '''#!/bin/bash
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    cd ..
+                '''
+            }
+        }
+        stage('Confirm settings ') {
+             steps {
+                sh '''#!/bin/bash
+                    echo "Windows Browser Branch: $params.WINDOWS_BROWSER_BRANCH"
+                    echo "DDG Extension Branch: $params.EXTENSION_BRANCH"
+                    echo "Apple Browsers Branch: $params.APPLE_BROWSERS_BRANCH"
+                    echo "Pixel Schema Branch: $params.PIXEL_SCHEMA_BRANCH"
+                    echo "Asana Utils Branch: $params.ASANA_UTILS_BRANCH"
+                    echo "Asana Project: $params.ASANA_PROJECT"
+                '''
+            }
+        }
+        stage('Validate pixels for duckduckgo-privacy-extension'){
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
+                            cd pixel-schema
+                            echo "Starting validation for duckduckgo-privacy-extension..."
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            exit_code=$?
+                            echo "validateRepo.sh exit code: $exit_code"
+                            cd ..
+                            exit $exit_code
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("validateRepo.sh failed for duckduckgo-privacy-extension with exit code: ${result}")
+                    }
+                }
+            }
+        }
+         stage('Validate pixels for windows-browser'){
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            MAIN_DIR="../windows-browser/PixelDefinitions/"
+                            cd pixel-schema
+                            echo "Starting validation for windows-browser..."
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            exit_code=$?
+                            echo "validateRepo.sh exit code: $exit_code"
+                            cd ..
+                            exit $exit_code
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("validateRepo.sh failed for windows-browser with exit code: ${result}")
+                    }
+                }
+            }
+        }
+        stage('Validate pixels for apple-browsers (macOS)'){
+            when {
+                expression { params.RUN_APPLE_VALIDATION == true }
+            }
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
+                            cd pixel-schema
+                            echo "Starting validation for apple-browsers (macOS)..."
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            exit_code=$?
+                            echo "validateRepo.sh exit code: $exit_code"
+                            cd ..
+                            exit $exit_code
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("validateRepo.sh failed for apple-browsers (macOS) with exit code: ${result}")
+                    }
+                }
+            }
+        }
+        stage('Validate pixels for apple-browsers (iOS)'){
+            when {
+                expression { params.RUN_APPLE_VALIDATION == true }
+            }
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
+                            cd pixel-schema
+                            echo "Starting validation for apple-browsers (iOS)..."
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            exit_code=$?
+                            echo "validateRepo.sh exit code: $exit_code"
+                            cd ..
+                            exit $exit_code
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("validateRepo.sh failed for apple-browsers (iOS) with exit code: ${result}")
+                    }
+                }
+            }
+        }
+       
+    }
+   post {
+        failure {
+            script {
+          
+                sh '''#!/bin/bash
+                    echo "Attempting to create Asana task for failure..."
+                        
+                    ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
+                            --assignee jmatthews@duckduckgo.com \
+                            --description "Jenkins pixel validation failed" \
+                            --project_id $params.ASANA_PROJECT \
+                            --no_duplicates \
+                            "pixel validation failed"
+                '''
+            }
+        }
+    }
+}

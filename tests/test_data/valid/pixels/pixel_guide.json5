@@ -4,7 +4,7 @@
     "m_my_first_pixel": {
         // Required fields:
         "description": "Fires when my cool feature is used.",
-        "owners": ["ddg_username"],
+        "owners": ["github_username"],
         "triggers": ["exception", "scheduled"],
         // [Optional] - parameterized portions of the pixel name, if applicable
         // The examples below result in: m.my.first.pixel.[new|returning].exceptiontype.{exception}.[phone|tablet]

@@ -12,7 +12,7 @@
     },
     "m_my_first_pixel": {
         "owners": [
-            "ddg_username"
+            "github_username"
         ],
         "Suffix 'unexpected-suffix' must be equal to one of the allowed values": [
             "m_my_first_pixel_unexpected-suffix"

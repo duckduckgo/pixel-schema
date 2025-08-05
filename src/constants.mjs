@@ -8,3 +8,6 @@ export const PIXEL_VALIDATION_RESULT = Object.freeze({
     VALIDATION_FAILED: 2,
     VALIDATION_PASSED: 3,
 });
+
+export const DDG_ASANA_WORKSPACEID = '137249556945';
+export const DAYS_TO_DELETE_ATTACHMENTS = 28;
