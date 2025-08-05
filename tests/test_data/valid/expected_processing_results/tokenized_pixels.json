@@ -5,7 +5,7 @@
                 "pixel": {
                     "__root_prefix__": {
                         "owners": [
-                            "ddg_username"
+                            "github_username"
                         ],
                         "parameters": [
                             "appVersion",
