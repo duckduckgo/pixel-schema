@@ -6,6 +6,7 @@ import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TMP_TABLE_NAME = 'temp.pixel_validation';
+const CH_BIN = 'ddg-rw-ch';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 
 function createTempTable() {
@@ -17,7 +18,7 @@ function createTempTable() {
         ENGINE = MergeTree
         ORDER BY params;
         `;
-    const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat(queryString));
+    const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat(queryString));
     const resultErr = clickhouseQuery.stderr.toString();
     if (resultErr) {
         throw new Error(`Error creating table:\n ${resultErr}`);
@@ -58,7 +59,7 @@ function populateTempTable(tokenizedPixels, productDef) {
         console.log(`...Executing query ${queryString}`);
         console.log(`\t...With params ${params}`);
 
-        const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat([queryString, params]));
+        const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat([queryString, params]));
         const resultErr = clickhouseQuery.stderr.toString();
         if (resultErr) {
             throw new Error(`Error creating table:\n ${resultErr}`);
@@ -75,7 +76,7 @@ async function outputTableToCSV() {
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
         const queryString = `SELECT DISTINCT pixel, params FROM ${TMP_TABLE_NAME};`;
-        const clickhouseProcess = spawn('clickhouse-client', CH_ARGS.concat([queryString, '--format=CSVWithNames']));
+        const clickhouseProcess = spawn(CH_BIN, CH_ARGS.concat([queryString, '--format=CSVWithNames']));
         clickhouseProcess.stdout.on('data', function (data) {
             outputStream.write(data);
         });
@@ -106,7 +107,7 @@ async function outputTableToCSV() {
 function deleteTempTable() {
     console.log('Deleting table');
     const queryString = `DROP TABLE IF EXISTS ${TMP_TABLE_NAME};`;
-    const clickhouseQuery = spawnSync('clickhouse-client', CH_ARGS.concat(queryString));
+    const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat(queryString));
     const resultErr = clickhouseQuery.stderr.toString();
     if (resultErr) {
         throw new Error(`Error deleting table:\n ${resultErr}`);
