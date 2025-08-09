@@ -82,17 +82,26 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const tempFilePath = path.join(dirPath, `pixel_with_errors_${owner}.json`);
         fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
 
-        const subtaskNotes = `<body>
-                ${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
-                New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
-                </body>`;
+        const header = `${thisOwnersPixelsWithErrors.length} pixels with errors - check the attachment for details.
+                New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>`;
+
+       let table = `
+        <table>
+            <tr>
+                <th>Pixel</th>
+                <th>Error</th>
+            </tr>
+            ${thisOwnersPixelsWithErrors.map((pixel) => `<tr><td>${pixel.name}</td><td>${pixel.error}</td></tr>`).join('')}
+        </table>
+        `;
+        const taskNotes = `<body> ${header} ${table}</body>`;
 
         // Make a subtask for each owner
         const subtaskName = `${owner}`;
         const subtaskData = {
             workspace: DDG_ASANA_WORKSPACEID,
             name: subtaskName,
-            html_notes: subtaskNotes,
+            html_notes: taskNotes,
             text: 'Per-owner subtask',
             parent: parentTaskGid,
         };

@@ -111,12 +111,8 @@ pipeline {
         stage('Confirm settings ') {
              steps {
                 sh '''#!/bin/bash
-                    echo "Windows Browser Branch: $params.WINDOWS_BROWSER_BRANCH"
-                    echo "DDG Extension Branch: $params.EXTENSION_BRANCH"
-                    echo "Apple Browsers Branch: $params.APPLE_BROWSERS_BRANCH"
-                    echo "Pixel Schema Branch: $params.PIXEL_SCHEMA_BRANCH"
-                    echo "Asana Utils Branch: $params.ASANA_UTILS_BRANCH"
-                    echo "Asana Project: $params.ASANA_PROJECT"
+                    echo "User map: $USER_MAP"
+                    echo "Asana Project: $ASANA_PROJECT"
                 '''
             }
         }
@@ -128,7 +124,7 @@ pipeline {
                             MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
                             cd pixel-schema
                             echo "Starting validation for duckduckgo-privacy-extension..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -150,7 +146,7 @@ pipeline {
                             MAIN_DIR="../windows-browser/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for windows-browser..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -175,7 +171,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (macOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -200,7 +196,7 @@ pipeline {
                             MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (iOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $params.ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
@@ -222,13 +218,14 @@ pipeline {
           
                 sh '''#!/bin/bash
                     echo "Attempting to create Asana task for failure..."
+                    DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
+                    echo $DATE
                         
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --assignee jmatthews@duckduckgo.com \
-                            --description "Jenkins pixel validation failed" \
-                            --project_id $params.ASANA_PROJECT \
-                            --no_duplicates \
-                            "pixel validation failed"
+                            --description "Pixel validation failed see console output at https://jenkins.duckduckgo.com/job/PixelValidation/" \
+                            --project_id $ASANA_PROJECT \
+                            "Pixel validation failed $DATE"
                 '''
             }
         }
