@@ -70,8 +70,6 @@ function readAsanaNotifyFile() {
 }
 
 async function createOwnerSubtask(owner, parentTaskGid) {
-
-
     console.log(`Creating subtask for ${owner}...`);
 
     const thisOwnersPixelsWithErrors = [];
@@ -87,25 +85,27 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
 
         const pixelWord = thisOwnersPixelsWithErrors.length === 1 ? 'pixel' : 'pixels';
-        const header = `${thisOwnersPixelsWithErrors.length} ${pixelWord} with errors. Check the attachment for more details. New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>`;
+        const header = `${thisOwnersPixelsWithErrors.length} ${pixelWord} with errors. Check the attachment for more details. 
+             New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>`;
 
-       let table = `
+        const table = `
         <table>
             <tr>
                 <td><strong>Pixels</strong></td>
                 <td><strong>Error Types</strong></td>
             </tr>
-            ${thisOwnersPixelsWithErrors.map((pixel) => {
-                // Get error types (excluding 'owners' property) and limit to first 3
-                const allErrorTypes = Object.keys(pixel).filter(key => key !== 'owners' && key !== 'name');
-                const errorTypes = allErrorTypes.slice(0, 3);
-                
-                // Create rows for each error type
-                const rows = [];
-                errorTypes.forEach((errorType, index) => {
-                    const examples = Array.from(pixel[errorType]);
-                    if (examples.length > 0) {
-                        /*
+            ${thisOwnersPixelsWithErrors
+                .map((pixel) => {
+                    // Get error types (excluding 'owners' property) and limit to first 3
+                    const allErrorTypes = Object.keys(pixel).filter((key) => key !== 'owners' && key !== 'name');
+                    const errorTypes = allErrorTypes.slice(0, 3);
+
+                    // Create rows for each error type
+                    const rows = [];
+                    errorTypes.forEach((errorType, index) => {
+                        const examples = Array.from(pixel[errorType]);
+                        if (examples.length > 0) {
+                            /*
                         // Truncate long error messages for readability
                         let errorMsg = examples[0];
                         // Truncate to first 150 characters and add ellipsis if longer
@@ -113,25 +113,24 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                             errorMsg = errorMsg.substring(0, 150) + '...';
                         }
                         */
-                        
-                        // Only show pixel name in the first row
-                        const pixelNameCell = index === 0 
-                            ? `<td rowspan="${errorTypes.length}">${pixel.name}</td>` 
-                            : '';
-                        
-                        // HTML escape the error type to prevent breaking the table
-                        const escapedErrorType = errorType
-                            .replace(/&/g, '&amp;')
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/"/g, '&quot;');
-                        
-                        rows.push(`<tr>${pixelNameCell}<td>${escapedErrorType}</td></tr>`);
-                    }
-                });
-                
-                return rows.join('');
-            }).join('')}
+
+                            // Only show pixel name in the first row
+                            const pixelNameCell = index === 0 ? `<td rowspan="${errorTypes.length}">${pixel.name}</td>` : '';
+
+                            // HTML escape the error type to prevent breaking the table
+                            const escapedErrorType = errorType
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;');
+
+                            rows.push(`<tr>${pixelNameCell}<td>${escapedErrorType}</td></tr>`);
+                        }
+                    });
+
+                    return rows.join('');
+                })
+                .join('')}
         </table>
         `;
         const taskNotes = `<body> ${header} ${table}</body>`;
@@ -164,11 +163,9 @@ async function createOwnerSubtask(owner, parentTaskGid) {
             console.error('Full error:', subtaskError);
             console.error(`Task notes: ${taskNotes}`);
             return false;
-
         }
 
         try {
-            
             const pixelWordForLog = thisOwnersPixelsWithErrors.length === 1 ? 'pixel' : 'pixels';
             console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} ${pixelWordForLog} with errors`);
 
@@ -193,7 +190,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
 async function main() {
     console.log('AsanaWorkspace ID: ' + DDG_ASANA_WORKSPACEID);
     console.log('Asana Pixel Validation Project: ', DDG_ASANA_PIXEL_VALIDATION_PROJECT);
-    
+
     let hasErrors = false;
 
     // Load user map
@@ -234,7 +231,7 @@ async function main() {
 
     // Build ownersWithErrors from pixelsWithErrors
     const ownersSet = new Set();
-    for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
+    for (const [, pixel] of Object.entries(pixelsWithErrors)) {
         if (pixel.owners) {
             pixel.owners.forEach((owner) => ownersSet.add(owner));
         }
@@ -342,12 +339,12 @@ async function main() {
         console.error(`Error creating task for ${dirPath}:`, error);
         process.exit(1);
     }
-    
+
     if (hasErrors) {
         console.error('There were errors during Asana task creation');
         process.exit(1);
     }
-    
+
     console.log('Asana tasks created successfully');
     process.exit(0);
 }
