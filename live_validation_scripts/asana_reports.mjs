@@ -88,12 +88,15 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const header = `${thisOwnersPixelsWithErrors.length} ${pixelWord} with errors. Check the attachment for more details. 
              New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>`;
 
+        const pixelNameWidth = 200;
+        const errorTypeWidth = 400;
+
         const table = `
         <table>
-            <tr>
-                <td><strong>Pixels</strong></td>
-                <td><strong>Error Types</strong></td>
-            </tr>
+           <tr>
+            <td data-cell-widths="${pixelNameWidth}"><strong>Pixel Name</strong></td>
+            <td data-cell-widths="${errorTypeWidth}"><strong>Error Type</strong></td>
+           </tr>
             ${thisOwnersPixelsWithErrors
                 .map((pixel) => {
                     // Get error types (excluding 'owners' property) and limit to first 3
@@ -115,7 +118,10 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                         */
 
                             // Only show pixel name in the first row
-                            const pixelNameCell = index === 0 ? `<td rowspan="${errorTypes.length}">${pixel.name}</td>` : '';
+                            const pixelNameCell =
+                                index === 0
+                                    ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}">${pixel.name}</td>`
+                                    : '';
 
                             // HTML escape the error type to prevent breaking the table
                             const escapedErrorType = errorType
@@ -124,7 +130,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                                 .replace(/>/g, '&gt;')
                                 .replace(/"/g, '&quot;');
 
-                            rows.push(`<tr>${pixelNameCell}<td>${escapedErrorType}</td></tr>`);
+                            rows.push(`<tr>${pixelNameCell}<td data-cell-widths="${errorTypeWidth}">${escapedErrorType}</td></tr>`);
                         }
                     });
 
