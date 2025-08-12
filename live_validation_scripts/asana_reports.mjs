@@ -142,7 +142,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const taskNotes = `<body> ${header} ${table}</body>`;
 
         // Make a subtask for each owner
-        const subtaskName = `${owner}`;
+        const subtaskName = `Failing pixels report for owner ${owner}`;
         const subtaskData = {
             workspace: DDG_ASANA_WORKSPACEID,
             name: subtaskName,
@@ -263,8 +263,8 @@ async function main() {
     // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
     if (numPixelsWithErrors > 0) {
         const topLevelPixelWord = numPixelsWithErrors === 1 ? 'pixel' : 'pixels';
-        topLevelStatement = `${numPixelsWithErrors} ${topLevelPixelWord} with errors - check the attachment for details.
-        New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
+        topLevelStatement = `${numPixelsWithErrors} ${topLevelPixelWord} with errors - check the attachment for details. 
+ New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
         `;
     } else {
         topLevelStatement = `No errors found.`;
