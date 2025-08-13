@@ -47,7 +47,9 @@ function getPixelFailureMessage(numFailures, isPerOwnerTask) {
         pixelPhrase += ' Check per-owner subtasks and/or the attachment for details.';
     }
 
-    pixelPhrase += ` New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
+    pixelPhrase += ` 
+
+ New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
 
     return `${pixelPhrase}`;
 }
@@ -180,12 +182,12 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                                     : '';
 
                             // HTML escape the error type to prevent breaking the table
+                            // Escaping single quote ( .replace(/'/g, '&#39;')) results in errorTypes that are munged
                             const escapedErrorType = errorType
                                 .replace(/&/g, '&amp;')
                                 .replace(/</g, '&lt;')
                                 .replace(/>/g, '&gt;')
-                                .replace(/"/g, '&quot;')
-                                .replace(/'/g, '&#39;');
+                                .replace(/"/g, '&quot;');
 
                             rows.push(`<tr>${pixelNameCell}<td data-cell-widths="${errorTypeWidth}">${escapedErrorType}</td></tr>`);
                         }
@@ -199,7 +201,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const taskNotes = `<body> ${header} ${table}</body>`;
 
         // Make a subtask for each owner
-        const subtaskName = `Failing pixels report for ${ownerName} (${owner})`;
+        const subtaskName = `Failing pixels report for ${ownerName}`;
         const subtaskData = {
             workspace: DDG_ASANA_WORKSPACEID,
             name: subtaskName,
