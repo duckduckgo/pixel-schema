@@ -20,12 +20,37 @@ const superagent = await import('superagent');
 const client = asana.ApiClient.instance;
 const token = client.authentications.token;
 const tasksApi = new asana.TasksApi();
+const usersApi = new asana.UsersApi();
 
 let pixelsWithErrors = [];
 let ownersWithErrors = [];
 let userMap = null;
 
 const toNotify = {};
+
+// URL to the instructions task in Asanathat explains the report and its contents
+const INSTRUCTIONS_TASK_URL = 'https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true';
+function getPixelFailureMessage(numFailures, isPerOwnerTask) {
+    if (numFailures === 0) {
+        return `No errors found.`;
+    }
+
+    let pixelPhrase = `${numFailures} `;
+    pixelPhrase += numFailures === 1 ? ' pixel' : 'pixels';
+    pixelPhrase += ' that you own ';
+    pixelPhrase += numFailures === 1 ? 'has' : 'have';
+    pixelPhrase += ' failed live validation.';
+    
+    if (isPerOwnerTask) {
+        pixelPhrase += ' Table below lists the errors encountered - check the attachment for examples of pixels triggering each error.';
+    } else {
+        pixelPhrase += ' Check per-owner subtasks and/or the attachment for details.';
+    }   
+
+    pixelPhrase += ` New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
+    
+    return `${pixelPhrase}`;
+}
 
 function readAsanaNotifyFile() {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
@@ -69,8 +94,32 @@ function readAsanaNotifyFile() {
     return true;
 }
 
+async function getOwnerName(ownersGithubUsername) {
+
+    const ownerGID = userMap[ownersGithubUsername];
+    
+    // Get the owner's name from Asana API
+    let ownerName = ownersGithubUsername; // fallback to GitHub username
+    if (ownerGID) {
+        try {
+            const userResult = await usersApi.getUser(ownerGID, {});
+            ownerName = userResult.data.name || ownersGithubUsername;
+            console.log(`Retrieved owner name from Asana: ${ownerName} (${ownersGithubUsername})`);
+        } catch (error) {
+            console.warn(`Failed to get owner name from Asana for ${ownersGithubUsername} (GID: ${ownerGID}):`, error.message);
+            // ownerName remains as GitHub username fallback
+        }
+    } else {
+        console.warn(`Fullname for owner ${ownersGithubUsername} not found, proceed using GitHub username`);
+    }
+    
+    return ownerName;
+}
+
 async function createOwnerSubtask(owner, parentTaskGid) {
     console.log(`Creating subtask for ${owner}...`);
+
+    const ownerName = await getOwnerName(owner);
 
     const thisOwnersPixelsWithErrors = [];
     for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
@@ -84,9 +133,8 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const tempFilePath = path.join(dirPath, `pixel_with_errors_${owner}.json`);
         fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
 
-        const pixelWord = thisOwnersPixelsWithErrors.length === 1 ? 'pixel' : 'pixels';
-        const header = `${thisOwnersPixelsWithErrors.length} ${pixelWord} with errors. Check the attachment for more details. 
-             New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>`;
+        const pixelPhrase = getPixelFailureMessage(thisOwnersPixelsWithErrors.length, true);
+        const header = `${pixelPhrase}`;
 
         const pixelNameWidth = 200;
         const errorTypeWidth = 400;
@@ -108,14 +156,24 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                     errorTypes.forEach((errorType, index) => {
                         const examples = Array.from(pixel[errorType]);
                         if (examples.length > 0) {
+
+                            /*  
+                            We could consider adding the error messages themselves to the table, but
+                            1) we want to delete those after DAYS_TO_DELETE_ATTACHMENTS days and that is
+                            easier to do with the attachment than the table, and
+                            2) It is easier for those looking at these tasks in Asana to reason about what will 
+                            be removed and it won't risk removing any edits people might make to the table. 
+                            3) we want to keep the table small and readable. 
+                               If we did keep the error messages consinder truncating them and adding ellipsis of longer than X characters
+                            */
+                    
                             /*
-                        // Truncate long error messages for readability
-                        let errorMsg = examples[0];
-                        // Truncate to first 150 characters and add ellipsis if longer
-                        if (errorMsg.length > 150) {
-                            errorMsg = errorMsg.substring(0, 150) + '...';
-                        }
-                        */
+                            let errorMsg = examples[0];
+                            // Truncate to first 150 characters and add ellipsis if longer
+                            if (errorMsg.length > 150) {
+                                errorMsg = errorMsg.substring(0, 150) + '...';
+                            }
+                            */
 
                             // Only show pixel name in the first row
                             const pixelNameCell =
@@ -128,7 +186,8 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                                 .replace(/&/g, '&amp;')
                                 .replace(/</g, '&lt;')
                                 .replace(/>/g, '&gt;')
-                                .replace(/"/g, '&quot;');
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#39;');
 
                             rows.push(`<tr>${pixelNameCell}<td data-cell-widths="${errorTypeWidth}">${escapedErrorType}</td></tr>`);
                         }
@@ -142,7 +201,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
         const taskNotes = `<body> ${header} ${table}</body>`;
 
         // Make a subtask for each owner
-        const subtaskName = `Failing pixels report for owner ${owner}`;
+        const subtaskName = `Failing pixels report for ${ownerName} (${owner})`;
         const subtaskData = {
             workspace: DDG_ASANA_WORKSPACEID,
             name: subtaskName,
@@ -260,90 +319,79 @@ async function main() {
 
     let topLevelStatement = '';
 
-    // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
-    if (numPixelsWithErrors > 0) {
-        const topLevelPixelWord = numPixelsWithErrors === 1 ? 'pixel' : 'pixels';
-        topLevelStatement = `${numPixelsWithErrors} ${topLevelPixelWord} with errors - check the attachment for details. 
- New to these reports? See <a href="https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true">View task</a>
-        `;
-    } else {
-        topLevelStatement = `No errors found.`;
-    }
+    const pixelPhrase = getPixelFailureMessage(numPixelsWithErrors, false);
 
-    const taskNotes = `<body> ${topLevelStatement} </body>`;
+    // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
+    const taskNotes = `<body> ${pixelPhrase} </body>`;
 
     // Due date set to when we want to delete any attachments
     const DAYS_UNTIL_DUE = DAYS_TO_DELETE_ATTACHMENTS;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    try {
-        // Build taskData
-        const taskData = {
-            workspace: DDG_ASANA_WORKSPACEID,
-            name: taskName,
-            due_on: dueDate,
-            html_notes: taskNotes,
-            text: 'Pixel Validation Report',
-            projects: [DDG_ASANA_PIXEL_VALIDATION_PROJECT],
-        };
+    
+    // Build taskData
+    const taskData = {
+        workspace: DDG_ASANA_WORKSPACEID,
+        name: taskName,
+        due_on: dueDate,
+        html_notes: taskNotes,
+        text: 'Pixel Validation Report',
+        projects: [DDG_ASANA_PIXEL_VALIDATION_PROJECT],
+    };
 
-        // Only set assignee if toNotify.assigneeGID exists and is not empty
-        if (toNotify.assigneeGID) {
-            taskData.assignee = toNotify.assigneeGID;
+    // Only set assignee if toNotify.assigneeGID exists and is not empty
+    if (toNotify.assigneeGID) {
+        taskData.assignee = toNotify.assigneeGID;
+    }
+
+    // Only set followers if toNotify.followerGIDs exists and has items
+    if (toNotify.followerGIDs && toNotify.followerGIDs.length > 0) {
+        taskData.followers = toNotify.followerGIDs;
+    }
+
+    // Build body and opts
+    const body = {
+        data: taskData,
+    };
+    const opts = {};
+
+    // Create the top level Pixel Validation Report task
+    console.log(`Creating task for ${dirPath}...`);
+    const result = await tasksApi.createTask(body, opts);
+
+    // Save the resulting taskGID
+    const taskGid = result.data.gid;
+
+    console.log(`Task created for ${dirPath}: ${taskGid}`);
+
+    // Add attachment after task creation if there are pixels with errors
+    if (numPixelsWithErrors > 0) {
+        try {
+            const attachmentResult = await superagent.default
+                .post('https://app.asana.com/api/1.0/attachments')
+                .set('Authorization', `Bearer ${token.accessToken}`)
+                .field('parent', taskGid)
+                .field('name', `pixel_with_errors.json`)
+                .attach('file', pixelsErrorsPath);
+
+            console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+        } catch (attachmentError) {
+            console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
+            console.error('Full error:', attachmentError);
+            hasErrors = true;
         }
 
-        // Only set followers if toNotify.followerGIDs exists and has items
-        if (toNotify.followerGIDs && toNotify.followerGIDs.length > 0) {
-            taskData.followers = toNotify.followerGIDs;
-        }
-
-        // Build body and opts
-        const body = {
-            data: taskData,
-        };
-        const opts = {};
-
-        // Create the top level Pixel Validation Report task
-        console.log(`Creating task for ${dirPath}...`);
-        const result = await tasksApi.createTask(body, opts);
-
-        // Save the resulting taskGID
-        const taskGid = result.data.gid;
-
-        console.log(`Task created for ${dirPath}: ${taskGid}`);
-
-        // Add attachment after task creation if there are pixels with errors
-        if (numPixelsWithErrors > 0) {
-            try {
-                const attachmentResult = await superagent.default
-                    .post('https://app.asana.com/api/1.0/attachments')
-                    .set('Authorization', `Bearer ${token.accessToken}`)
-                    .field('parent', taskGid)
-                    .field('name', `pixel_with_errors.json`)
-                    .attach('file', pixelsErrorsPath);
-
-                console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-            } catch (attachmentError) {
-                console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
-                console.error('Full error:', attachmentError);
-                hasErrors = true;
-            }
-
-            // Even if there are no errors, continue to create per-owner subtasks where possible
-            if (MAKE_PER_OWNER_SUBTASKS) {
-                // Create subtasks for each owner
-                for (const owner of ownersWithErrors) {
-                    const success = await createOwnerSubtask(owner, taskGid);
-                    if (!success) {
-                        console.error(`Error creating subtask for ${owner}`);
-                        hasErrors = true;
-                    }
+        // Even if there are no errors, continue to create per-owner subtasks where possible
+        if (MAKE_PER_OWNER_SUBTASKS) {
+            // Create subtasks for each owner
+            for (const owner of ownersWithErrors) {
+                const success = await createOwnerSubtask(owner, taskGid);
+                if (!success) {
+                    console.error(`Error creating subtask for ${owner}`);
+                    hasErrors = true;
                 }
             }
         }
-    } catch (error) {
-        console.error(`Error creating task for ${dirPath}:`, error);
-        process.exit(1);
     }
 
     if (hasErrors) {
