@@ -37,8 +37,10 @@ function getPixelFailureMessage(numFailures, isPerOwnerTask) {
 
     let pixelPhrase = `${numFailures} `;
     pixelPhrase += numFailures === 1 ? ' pixel' : 'pixels';
-    pixelPhrase += ' that you own ';
-    pixelPhrase += numFailures === 1 ? 'has' : 'have';
+    if (isPerOwnerTask) {
+        pixelPhrase += ' that you own';
+    }
+    pixelPhrase += numFailures === 1 ? ' has' : ' have';
     pixelPhrase += ' failed live validation.';
 
     if (isPerOwnerTask) {
