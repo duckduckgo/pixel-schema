@@ -40,15 +40,15 @@ function getPixelFailureMessage(numFailures, isPerOwnerTask) {
     pixelPhrase += ' that you own ';
     pixelPhrase += numFailures === 1 ? 'has' : 'have';
     pixelPhrase += ' failed live validation.';
-    
+
     if (isPerOwnerTask) {
         pixelPhrase += ' Table below lists the errors encountered - check the attachment for examples of pixels triggering each error.';
     } else {
         pixelPhrase += ' Check per-owner subtasks and/or the attachment for details.';
-    }   
+    }
 
     pixelPhrase += ` New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
-    
+
     return `${pixelPhrase}`;
 }
 
@@ -95,9 +95,8 @@ function readAsanaNotifyFile() {
 }
 
 async function getOwnerName(ownersGithubUsername) {
-
     const ownerGID = userMap[ownersGithubUsername];
-    
+
     // Get the owner's name from Asana API
     let ownerName = ownersGithubUsername; // fallback to GitHub username
     if (ownerGID) {
@@ -112,7 +111,7 @@ async function getOwnerName(ownersGithubUsername) {
     } else {
         console.warn(`Fullname for owner ${ownersGithubUsername} not found, proceed using GitHub username`);
     }
-    
+
     return ownerName;
 }
 
@@ -156,7 +155,6 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                     errorTypes.forEach((errorType, index) => {
                         const examples = Array.from(pixel[errorType]);
                         if (examples.length > 0) {
-
                             /*  
                             We could consider adding the error messages themselves to the table, but
                             1) we want to delete those after DAYS_TO_DELETE_ATTACHMENTS days and that is
@@ -166,7 +164,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                             3) we want to keep the table small and readable. 
                                If we did keep the error messages consinder truncating them and adding ellipsis of longer than X characters
                             */
-                    
+
                             /*
                             let errorMsg = examples[0];
                             // Truncate to first 150 characters and add ellipsis if longer
@@ -317,8 +315,6 @@ async function main() {
 
     console.log(taskName);
 
-    let topLevelStatement = '';
-
     const pixelPhrase = getPixelFailureMessage(numPixelsWithErrors, false);
 
     // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
@@ -328,7 +324,6 @@ async function main() {
     const DAYS_UNTIL_DUE = DAYS_TO_DELETE_ATTACHMENTS;
     const dueDate = new Date(Date.now() + DAYS_UNTIL_DUE * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    
     // Build taskData
     const taskData = {
         workspace: DDG_ASANA_WORKSPACEID,
