@@ -157,42 +157,38 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                     // Create rows for each error type
                     const rows = [];
                     errorTypes.forEach((errorType, index) => {
-                        const examples = Array.from(pixel[errorType]);
-                        if (examples.length > 0) {
-                            /*  
+                        /*  
                             We could consider adding the error messages themselves to the table, but
                             1) we want to delete those after DAYS_TO_DELETE_ATTACHMENTS days and that is
                             easier to do with the attachment than the table, and
                             2) It is easier for those looking at these tasks in Asana to reason about what will 
                             be removed and it won't risk removing any edits people might make to the table. 
                             3) we want to keep the table small and readable. 
-                               If we did keep the error messages consinder truncating them and adding ellipsis of longer than X characters
-                            */
+                            If we did keep the error messages consider truncating them and adding ellipsis of longer than X characters
+                        */
 
-                            /*
+                        /*
+                            const examples = Array.from(pixel[errorType]);
                             let errorMsg = examples[0];
                             // Truncate to first 150 characters and add ellipsis if longer
                             if (errorMsg.length > 150) {
                                 errorMsg = errorMsg.substring(0, 150) + '...';
                             }
-                            */
+                        */
 
-                            // Only show pixel name in the first row
-                            const pixelNameCell =
-                                index === 0
-                                    ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}">${pixel.name}</td>`
-                                    : '';
+                        // Only show pixel name in the first row
+                        const pixelNameCell =
+                            index === 0 ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}">${pixel.name}</td>` : '';
 
-                            // HTML escape the error type to prevent breaking the table
-                            // Escaping single quote ( .replace(/'/g, '&#39;')) results in errorTypes that are munged
-                            const escapedErrorType = errorType
-                                .replace(/&/g, '&amp;')
-                                .replace(/</g, '&lt;')
-                                .replace(/>/g, '&gt;')
-                                .replace(/"/g, '&quot;');
+                        // HTML escape the error type to prevent breaking the table
+                        // Escaping single quote ( .replace(/'/g, '&#39;')) results in errorTypes that are munged
+                        const escapedErrorType = errorType
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;');
 
-                            rows.push(`<tr>${pixelNameCell}<td data-cell-widths="${errorTypeWidth}">${escapedErrorType}</td></tr>`);
-                        }
+                        rows.push(`<tr>${pixelNameCell}<td data-cell-widths="${errorTypeWidth}">${escapedErrorType}</td></tr>`);
                     });
 
                     return rows.join('');
@@ -240,7 +236,7 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                 .post('https://app.asana.com/api/1.0/attachments')
                 .set('Authorization', `Bearer ${token.accessToken}`)
                 .field('parent', subtaskResult.data.gid)
-                .field('name', `pixel_with_errors_${owner}.json`)
+                .field('name', `pixel_errors_${owner}.json`)
                 .attach('file', tempFilePath);
 
             console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
