@@ -238,7 +238,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
         console.error('Full error:', attachmentError);
         return false;
     }
-    
+
     return true;
 }
 
@@ -263,7 +263,7 @@ async function main() {
         console.error(`Error reading ${argv.userMapFile}:`, error);
         process.exit(1);
     }
-    
+
     // Load the asana notify file
     const success = readAsanaNotifyFile(dirPath);
     if (!success) {
@@ -290,7 +290,7 @@ async function main() {
     console.log('Final number of pixel with errors keys (object):', numPixelsWithErrors);
 
     // Build ownerToPixelsMap from pixelsWithErrors
-    // We could modify validate_live_pixel.mjs to export this format 
+    // We could modify validate_live_pixel.mjs to export this format
     ownerToPixelsMap = {};
     for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
         if (pixel.owners) {
@@ -298,21 +298,20 @@ async function main() {
                 if (!ownerToPixelsMap[owner]) {
                     ownerToPixelsMap[owner] = [];
                 }
-                
+
                 const pixelData = { ...pixel };
                 delete pixelData.owners;
-                
+
                 ownerToPixelsMap[owner].push({
                     name: pixelName,
-                    ...pixelData
+                    ...pixelData,
                 });
             });
         }
     }
-    
+
     const ownersWithErrors = Object.keys(ownerToPixelsMap);
     console.log(`...Owners with errors: ${ownersWithErrors}`);
-
 
     // Create the top level Pixel Validation Report task
     const currentDateTime = new Date().toISOString().replace('T', ' ').split('.')[0]; // Format: YYYY-MM-DD HH:MM:SS
