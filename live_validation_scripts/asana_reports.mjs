@@ -23,7 +23,7 @@ const tasksApi = new asana.TasksApi();
 const usersApi = new asana.UsersApi();
 
 let pixelsWithErrors = [];
-let ownersWithErrors = [];
+let ownerToPixelsMap = {};
 let userMap = null;
 
 const toNotify = {};
@@ -119,36 +119,28 @@ async function getOwnerName(ownersGithubUsername) {
     return ownerName;
 }
 
-async function createOwnerSubtask(owner, parentTaskGid) {
+async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
     console.log(`Creating subtask for ${owner}...`);
 
     const ownerName = await getOwnerName(owner);
 
-    const thisOwnersPixelsWithErrors = [];
-    for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
-        if (pixel.owners && pixel.owners.includes(owner)) {
-            thisOwnersPixelsWithErrors.push({ name: pixelName, ...pixel });
-        }
-    }
+    // Write thisOwnersPixelsWithErrors to a temporary file
+    const tempFilePath = path.join(dirPath, `pixel_errors_${owner}.json`);
+    fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 2));
 
-    if (thisOwnersPixelsWithErrors.length > 0) {
-        // Write thisOwnersPixelsWithErrors to a temporary file
-        const tempFilePath = path.join(dirPath, `pixel_with_errors_${owner}.json`);
-        fs.writeFileSync(tempFilePath, JSON.stringify(thisOwnersPixelsWithErrors, null, 2));
+    const pixelPhrase = getPixelFailureMessage(ownersPixelData.length, true);
+    const header = `${pixelPhrase}`;
 
-        const pixelPhrase = getPixelFailureMessage(thisOwnersPixelsWithErrors.length, true);
-        const header = `${pixelPhrase}`;
+    const pixelNameWidth = 200;
+    const errorTypeWidth = 400;
 
-        const pixelNameWidth = 200;
-        const errorTypeWidth = 400;
-
-        const table = `
+    const table = `
         <table>
            <tr>
             <td data-cell-widths="${pixelNameWidth}"><strong>Pixel Name</strong></td>
             <td data-cell-widths="${errorTypeWidth}"><strong>Error Type</strong></td>
            </tr>
-            ${thisOwnersPixelsWithErrors
+            ${ownersPixelData
                 .map((pixel) => {
                     // Get error types (excluding 'owners' property) and limit to first 3
                     const allErrorTypes = Object.keys(pixel).filter((key) => key !== 'owners' && key !== 'name');
@@ -195,58 +187,58 @@ async function createOwnerSubtask(owner, parentTaskGid) {
                 })
                 .join('')}
         </table>
-        `;
-        const taskNotes = `<body> ${header} ${table}</body>`;
+    `;
+    const taskNotes = `<body> ${header} ${table}</body>`;
 
-        // Make a subtask for each owner
-        const subtaskName = `Failing pixels report for ${ownerName}`;
-        const subtaskData = {
-            workspace: DDG_ASANA_WORKSPACEID,
-            name: subtaskName,
-            html_notes: taskNotes,
-            text: 'Per-owner subtask',
-            parent: parentTaskGid,
-        };
+    // Make a subtask for each owner
+    const subtaskName = `Failing pixels report for ${ownerName}`;
+    const subtaskData = {
+        workspace: DDG_ASANA_WORKSPACEID,
+        name: subtaskName,
+        html_notes: taskNotes,
+        text: 'Per-owner subtask',
+        parent: parentTaskGid,
+    };
 
-        if (toNotify.tagPixelOwners) {
-            subtaskData.assignee = userMap[owner];
-        }
-
-        const subtaskBody = {
-            data: subtaskData,
-        };
-
-        let subtaskResult = null;
-        try {
-            const opts = {};
-            subtaskResult = await tasksApi.createTask(subtaskBody, opts);
-            console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
-        } catch (subtaskError) {
-            console.error(`Error creating subtask for ${owner}:`, subtaskError.message);
-            console.error('Full error:', subtaskError);
-            console.error(`Task notes: ${taskNotes}`);
-            return false;
-        }
-
-        try {
-            const pixelWordForLog = thisOwnersPixelsWithErrors.length === 1 ? 'pixel' : 'pixels';
-            console.log(`Attempting to attach ${thisOwnersPixelsWithErrors.length} ${pixelWordForLog} with errors`);
-
-            const attachmentResult = await superagent.default
-                .post('https://app.asana.com/api/1.0/attachments')
-                .set('Authorization', `Bearer ${token.accessToken}`)
-                .field('parent', subtaskResult.data.gid)
-                .field('name', `pixel_errors_${owner}.json`)
-                .attach('file', tempFilePath);
-
-            console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
-            fs.unlinkSync(tempFilePath);
-        } catch (attachmentError) {
-            console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
-            console.error('Full error:', attachmentError);
-            return false;
-        }
+    if (toNotify.tagPixelOwners) {
+        subtaskData.assignee = userMap[owner];
     }
+
+    const subtaskBody = {
+        data: subtaskData,
+    };
+
+    let subtaskResult = null;
+    try {
+        const opts = {};
+        subtaskResult = await tasksApi.createTask(subtaskBody, opts);
+        console.log(`Subtask created for ${owner}: ${subtaskResult.data.gid}`);
+    } catch (subtaskError) {
+        console.error(`Error creating subtask for ${owner}:`, subtaskError.message);
+        console.error('Full error:', subtaskError);
+        console.error(`Task notes: ${taskNotes}`);
+        return false;
+    }
+
+    try {
+        const pixelWordForLog = ownersPixelData.length === 1 ? 'pixel' : 'pixels';
+        console.log(`Attempting to attach ${ownersPixelData.length} ${pixelWordForLog} with errors`);
+
+        const attachmentResult = await superagent.default
+            .post('https://app.asana.com/api/1.0/attachments')
+            .set('Authorization', `Bearer ${token.accessToken}`)
+            .field('parent', subtaskResult.data.gid)
+            .field('name', `pixel_errors_${owner}.json`)
+            .attach('file', tempFilePath);
+
+        console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
+        fs.unlinkSync(tempFilePath);
+    } catch (attachmentError) {
+        console.error(`Error adding attachment for ${dirPath}:`, attachmentError.message);
+        console.error('Full error:', attachmentError);
+        return false;
+    }
+    
     return true;
 }
 
@@ -256,52 +248,6 @@ async function main() {
 
     let hasErrors = false;
 
-    // Load user map
-    if (!fs.existsSync(argv.userMapFile)) {
-        console.error(`User map file ${argv.userMapFile} does not exist!`);
-        process.exit(1);
-    }
-    userMap = yaml.load(fs.readFileSync(argv.userMapFile, 'utf8'));
-
-    // Save the directory path and load the asana notify file
-    const success = readAsanaNotifyFile(dirPath);
-
-    if (!success) {
-        console.log(`Error: Failed to read asana notify file ${dirPath}/asana_notify.json`);
-        process.exit(1);
-    }
-
-    // Load the pixelsWithErrors object
-    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);
-    console.log(`Pixel with errors path from fileUtils: ${pixelsErrorsPath}`);
-
-    if (fs.existsSync(pixelsErrorsPath)) {
-        try {
-            const pixelErrorsData = fs.readFileSync(pixelsErrorsPath, 'utf8');
-            pixelsWithErrors = JSON.parse(pixelErrorsData);
-
-            const pixelNames = Object.keys(pixelsWithErrors);
-            console.log(`Successfully loaded pixel with errors object with ${pixelNames.length} pixels`);
-        } catch (error) {
-            console.error(`Error parsing pixel with errors JSON:`, error);
-        }
-    } else {
-        console.log(`Pixel errors file not found at: ${pixelsErrorsPath}`);
-    }
-
-    const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
-    console.log('Final number of pixel with errors keys (object):', numPixelsWithErrors);
-
-    // Build ownersWithErrors from pixelsWithErrors
-    const ownersSet = new Set();
-    for (const [, pixel] of Object.entries(pixelsWithErrors)) {
-        if (pixel.owners) {
-            pixel.owners.forEach((owner) => ownersSet.add(owner));
-        }
-    }
-    ownersWithErrors = Array.from(ownersSet);
-    console.log(`...Owners with errors: ${ownersWithErrors}`);
-
     // Load the assana access token
     try {
         token.accessToken = fs.readFileSync('/etc/ddg/env/ASANA_DAX_TOKEN', 'utf8');
@@ -310,8 +256,67 @@ async function main() {
         process.exit(1);
     }
 
+    // Load user map
+    try {
+        userMap = yaml.load(fs.readFileSync(argv.userMapFile, 'utf8'));
+    } catch (error) {
+        console.error(`Error reading ${argv.userMapFile}:`, error);
+        process.exit(1);
+    }
+    
+    // Load the asana notify file
+    const success = readAsanaNotifyFile(dirPath);
+    if (!success) {
+        console.log(`Error: Failed to read asana notify file ${dirPath}/asana_notify.json`);
+        process.exit(1);
+    }
+
+    // Load the pixelsWithErrors object produced by validate_live_pixel.mjs
+    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);
+    console.log(`Pixel with errors path from fileUtils: ${pixelsErrorsPath}`);
+
+    try {
+        const pixelErrorsData = fs.readFileSync(pixelsErrorsPath, 'utf8');
+        pixelsWithErrors = JSON.parse(pixelErrorsData);
+
+        const pixelNames = Object.keys(pixelsWithErrors);
+        console.log(`Successfully loaded pixel with errors object with ${pixelNames.length} pixels`);
+    } catch (error) {
+        console.error(`Error parsing pixel with errors JSON:`, error);
+        process.exit(1);
+    }
+
+    const numPixelsWithErrors = Object.keys(pixelsWithErrors).length;
+    console.log('Final number of pixel with errors keys (object):', numPixelsWithErrors);
+
+    // Build ownerToPixelsMap from pixelsWithErrors
+    // We could modify validate_live_pixel.mjs to export this format 
+    ownerToPixelsMap = {};
+    for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
+        if (pixel.owners) {
+            pixel.owners.forEach((owner) => {
+                if (!ownerToPixelsMap[owner]) {
+                    ownerToPixelsMap[owner] = [];
+                }
+                
+                const pixelData = { ...pixel };
+                delete pixelData.owners;
+                
+                ownerToPixelsMap[owner].push({
+                    name: pixelName,
+                    ...pixelData
+                });
+            });
+        }
+    }
+    
+    const ownersWithErrors = Object.keys(ownerToPixelsMap);
+    console.log(`...Owners with errors: ${ownersWithErrors}`);
+
+
     // Create the top level Pixel Validation Report task
-    const taskName = `Pixel Validation Report for ${dirPath}`;
+    const currentDateTime = new Date().toISOString().replace('T', ' ').split('.')[0]; // Format: YYYY-MM-DD HH:MM:SS
+    const taskName = `Pixel Validation Report for ${dirPath} - ${currentDateTime}`;
 
     console.log(taskName);
 
@@ -378,11 +383,10 @@ async function main() {
 
         // Even if there are no errors, continue to create per-owner subtasks where possible
         if (MAKE_PER_OWNER_SUBTASKS) {
-            // Create subtasks for each owner
-            for (const owner of ownersWithErrors) {
-                const success = await createOwnerSubtask(owner, taskGid);
+            for (const [thisOwner, thisOwnerPixelsWithErrors] of Object.entries(ownerToPixelsMap)) {
+                const success = await createOwnerSubtask(thisOwner, taskGid, thisOwnerPixelsWithErrors);
                 if (!success) {
-                    console.error(`Error creating subtask for ${owner}`);
+                    console.error(`Error creating subtask for ${thisOwner}`);
                     hasErrors = true;
                 }
             }
