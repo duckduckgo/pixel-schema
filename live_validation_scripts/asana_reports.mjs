@@ -128,7 +128,8 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
     const tempFilePath = path.join(dirPath, `pixel_errors_${owner}.json`);
     fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 2));
 
-    const pixelPhrase = getPixelFailureMessage(ownersPixelData.length, true);
+    const numPixels = Object.keys(ownersPixelData).length;
+    const pixelPhrase = getPixelFailureMessage(numPixels, true);
     const header = `${pixelPhrase}`;
 
     const pixelNameWidth = 200;
@@ -140,10 +141,10 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
             <td data-cell-widths="${pixelNameWidth}"><strong>Pixel Name</strong></td>
             <td data-cell-widths="${errorTypeWidth}"><strong>Error Type</strong></td>
            </tr>
-            ${ownersPixelData
-                .map((pixel) => {
+            ${Object.entries(ownersPixelData)
+                .map(([pixelName, pixel]) => {
                     // Get error types (excluding 'owners' property) and limit to first 3
-                    const allErrorTypes = Object.keys(pixel).filter((key) => key !== 'owners' && key !== 'name');
+                    const allErrorTypes = Object.keys(pixel).filter((key) => key !== 'owners');
                     const errorTypes = allErrorTypes.slice(0, 3);
 
                     // Create rows for each error type
@@ -170,7 +171,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
 
                         // Only show pixel name in the first row
                         const pixelNameCell =
-                            index === 0 ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}">${pixel.name}</td>` : '';
+                            index === 0 ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}">${pixelName}</td>` : '';
 
                         // HTML escape the error type to prevent breaking the table
                         // Escaping single quote ( .replace(/'/g, '&#39;')) results in errorTypes that are munged
@@ -221,8 +222,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
     }
 
     try {
-        const pixelWordForLog = ownersPixelData.length === 1 ? 'pixel' : 'pixels';
-        console.log(`Attempting to attach ${ownersPixelData.length} ${pixelWordForLog} with errors`);
+        console.log(`Attempting to attach ${numPixels} ${numPixels === 1 ? 'pixel' : 'pixels'} with errors`);
 
         const attachmentResult = await superagent.default
             .post('https://app.asana.com/api/1.0/attachments')
@@ -296,16 +296,13 @@ async function main() {
         if (pixel.owners) {
             pixel.owners.forEach((owner) => {
                 if (!ownerToPixelsMap[owner]) {
-                    ownerToPixelsMap[owner] = [];
+                    ownerToPixelsMap[owner] = {};
                 }
 
                 const pixelData = { ...pixel };
                 delete pixelData.owners;
 
-                ownerToPixelsMap[owner].push({
-                    name: pixelName,
-                    ...pixelData,
-                });
+                ownerToPixelsMap[owner][pixelName] = pixelData;
             });
         }
     }
