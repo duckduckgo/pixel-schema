@@ -126,7 +126,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
 
     // Write thisOwnersPixelsWithErrors to a temporary file
     const tempFilePath = path.join(dirPath, `pixel_errors_${owner}.json`);
-    fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 2));
+    fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 4));
 
     const numPixels = Object.keys(ownersPixelData).length;
     const pixelPhrase = getPixelFailureMessage(numPixels, true);
@@ -293,17 +293,21 @@ async function main() {
     // We could modify validate_live_pixel.mjs to export this format
     ownerToPixelsMap = {};
     for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
-        if (pixel.owners) {
-            pixel.owners.forEach((owner) => {
-                if (!ownerToPixelsMap[owner]) {
-                    ownerToPixelsMap[owner] = {};
-                }
+        if (pixel.owners && pixel.owners.length > 0) {
+            /* 
+                Notifing only the first owner; Notifying all owners
+                risks wasted effort if multiple people work on fixing the same
+                pixel in parallel ; First owner can tag others in Asana to help as needed.
+            */
+            const owner = pixel.owners[0];
+            if (!ownerToPixelsMap[owner]) {
+                ownerToPixelsMap[owner] = {};
+            }
 
-                const pixelData = { ...pixel };
-                delete pixelData.owners;
+            const pixelData = { ...pixel };
+            delete pixelData.owners;
 
-                ownerToPixelsMap[owner][pixelName] = pixelData;
-            });
+            ownerToPixelsMap[owner][pixelName] = pixelData;
         }
     }
 
