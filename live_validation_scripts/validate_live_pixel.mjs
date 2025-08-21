@@ -41,8 +41,7 @@ function main(mainDir, csvFile) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
-            const paramsUrlFormat = JSON5.parse(row.params).join('&');
-            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const result = liveValidator.validatePixel(pixelRequestFormat, row.param);
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {
