@@ -172,26 +172,24 @@ export class LivePixelsValidator {
         }
 
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
-        const metric = rawParamsStruct.metric;
-        const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
-            if (!metric || !metricValue) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
-                return this.#currentPixelState;
+            const metric = rawParamsStruct.metric;
+            const metricValue = rawParamsStruct.value;
+
+            if (metric) {
+                const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
+                if (!metricSchema) {
+                    this.#saveErrors(pixel, paramsUrlFormat, [`Unknown experiment metric '${metric}'`]);
+                    return this.#currentPixelState;
+                }
+
+                metricSchema(metricValue);
+                this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+
+                // Remove metric and value from params for further validation
+                delete rawParamsStruct.metric;
+                delete rawParamsStruct.value;
             }
-
-            const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
-            if (!metricSchema) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
-                return this.#currentPixelState;
-            }
-
-            metricSchema(metricValue);
-            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
-
-            // Remove metric and value from params for further validation
-            delete rawParamsStruct.metric;
-            delete rawParamsStruct.value;
         }
 
         // Validate enrollmentDate and conversionWindow
