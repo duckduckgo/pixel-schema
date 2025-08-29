@@ -2,6 +2,7 @@
 
 import csv from 'csv-parser';
 import fs from 'fs';
+import JSON5 from 'json5';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -40,7 +41,8 @@ function main(mainDir, csvFile) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
-            const result = liveValidator.validatePixel(pixelRequestFormat, row.param);
+            const paramsUrlFormat = JSON5.parse(row.params).join('&');
+            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {

@@ -22,7 +22,7 @@ function prepareQuery(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     const queryString = `
-        SELECT pixel, param
+        SELECT DISTINCT pixel, params
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
         AND (${pixelIDsWhereClause});`
