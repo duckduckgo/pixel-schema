@@ -71,7 +71,7 @@
         "Experiment metrics pixels must contain 'metric' and 'value' params": [
             "metric=stageImpression"
         ],
-        "Unknown experiment metric 'unknown'": [
+        "Unknown  experiment metric 'unknown'": [
             "metric=unknown&value=x"
         ],
         "must NOT have additional properties. Found extra property 'unexpectedParam'": [
