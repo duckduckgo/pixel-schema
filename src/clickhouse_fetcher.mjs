@@ -25,7 +25,7 @@ function prepareQuery(tokenizedPixels, productDef) {
         SELECT DISTINCT pixel, params
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
-        AND (${pixelIDsWhereClause});`
+        AND (${pixelIDsWhereClause});`;
 
     return queryString;
 }
