@@ -182,7 +182,7 @@ export class LivePixelsValidator {
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown  experiment metric '${metric}'`]);
+                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown experiment metric '${metric}'`]);
                 return this.#currentPixelState;
             }
 
