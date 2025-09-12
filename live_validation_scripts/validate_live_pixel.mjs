@@ -48,6 +48,7 @@ function main(mainDir, csvFile) {
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
             console.log(`Undocumented pixels: ${undocumentedPixels.size.toLocaleString('en-US')}`);
+            console.log(`Pixels with validation errors: ${Object.keys(pixelErrors).length.toLocaleString('en-US')}`);
 
             fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
             fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(pixelErrors, setReplacer, 4));
