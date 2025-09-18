@@ -6,7 +6,7 @@ import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TABLE_NAME = 'metrics.pixels_validation';
-const CH_BIN = 'ddg-rw-ch';
+const CH_BIN = 'ddg-ch';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 
 /**
@@ -22,11 +22,10 @@ function prepareQuery(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     const queryString = `
-        SELECT DISTINCT pixel, params
+        SELECT pixel, params
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
-        AND (${pixelIDsWhereClause})
-        SETTINGS final=1;`;
+        AND (${pixelIDsWhereClause});`;
 
     return queryString;
 }
