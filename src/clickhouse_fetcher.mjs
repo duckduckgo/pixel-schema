@@ -30,7 +30,7 @@ function prepareCSVQuery(tokenizedPixels, productDef) {
     return queryString;
 }
 
-async function updatePixelIDs(tokenizedPixels) {
+function updatePixelIDs(tokenizedPixels) {
     const pixelIDs = Object.keys(tokenizedPixels);
     pixelIDs.push('experiment');
     const values = pixelIDs.map((id) => `'${id.split('-')[0]}'`).join(',today()), (').concat(',today()');
@@ -83,7 +83,7 @@ async function outputTableToCSV(queryString) {
 export async function preparePixelsCSV(mainPixelDir) {
     try {
         const tokenizedPixels = readTokenizedPixels(mainPixelDir)
-        await updatePixelIDs(tokenizedPixels);
+        updatePixelIDs(tokenizedPixels);
         const queryString = prepareCSVQuery(tokenizedPixels, readProductDef(mainPixelDir));
         await outputTableToCSV(queryString);
     } catch (err) {
