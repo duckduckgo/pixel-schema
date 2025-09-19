@@ -33,18 +33,21 @@ function prepareCSVQuery(tokenizedPixels, productDef) {
 function updatePixelIDs(tokenizedPixels) {
     const pixelIDs = Object.keys(tokenizedPixels);
     pixelIDs.push('experiment');
-    const values = pixelIDs.map((id) => `'${id.split('-')[0]}'`).join(',today()), (').concat(',today()');
+    const values = pixelIDs
+        .map((id) => `'${id.split('-')[0]}'`)
+        .join(',today()), (')
+        .concat(',today()');
     const queryString = `
         INSERT INTO metrics.pixels_validation_pixel_ids (pixel_id, updated_at)
         VALUES (${values});`;
 
     console.log('Updating pixels IDs with:', pixelIDs.toString());
 
-    const result =  spawnSync(CH_BIN, CH_ARGS.concat([queryString]));
+    const result = spawnSync(CH_BIN, CH_ARGS.concat([queryString]));
     if (result.error) {
         console.error('Error executing clickhouse-client:', result.error);
         throw new Error('Error inserting pixel IDs. Check logs above.');
-    };
+    }
 }
 
 async function outputTableToCSV(queryString) {
@@ -82,7 +85,7 @@ async function outputTableToCSV(queryString) {
 
 export async function preparePixelsCSV(mainPixelDir) {
     try {
-        const tokenizedPixels = readTokenizedPixels(mainPixelDir)
+        const tokenizedPixels = readTokenizedPixels(mainPixelDir);
         updatePixelIDs(tokenizedPixels);
         const queryString = prepareCSVQuery(tokenizedPixels, readProductDef(mainPixelDir));
         await outputTableToCSV(queryString);
