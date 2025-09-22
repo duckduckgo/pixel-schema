@@ -82,36 +82,57 @@ export class ParamsValidator {
     }
 
     /**
-     * Replaces shortcuts to common suffixes and compiles the suffix schema
-     * @param {Object} suffixes
+     * Replaces shortcuts to common suffixes and compiles the suffix schema.
+     * Supports either:
+     *  - a single ordered list of suffixes, e.g. ['a','b','c']
+     *  - or a list of alternative ordered lists, e.g. [['a','b','c'], ['b','c']]
+     * In the latter case, anyOf is used to allow any of the sequences.
+     * @param {Array|Array[]} suffixes
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
      */
     compileSuffixesSchema(suffixes) {
         if (!suffixes) return this.#ajv.compile({});
 
-        const properties = {};
-        let idx = 0;
-        suffixes.forEach((item) => {
-            const suffix = this.getUpdatedItem(item, this.#commonSuffixes);
-            if (suffix.key) {
-                // If suffix contains a key, we set it as an enum
-                // to use as a static portion of the pixel name
-                properties[idx] = { enum: [suffix.key] };
+        const buildSequenceSchema = (sequence) => {
+            const properties = {};
+            let idx = 0;
+            sequence.forEach((item) => {
+                const suffix = this.getUpdatedItem(item, this.#commonSuffixes);
+                if (suffix.key) {
+                    // Static token in the pixel name
+                    properties[idx] = { enum: [suffix.key] };
+                    idx++;
+                }
+                properties[idx] = suffix;
                 idx++;
-            }
+            });
 
-            properties[idx] = suffix;
-            idx++;
-        });
-
-        const pixelNameSchema = {
-            type: 'object',
-            properties,
-            additionalProperties: false,
+            return {
+                type: 'object',
+                properties,
+                additionalProperties: false,
+            };
         };
 
-        return this.#ajv.compile(pixelNameSchema);
+        if (!Array.isArray(suffixes)) {
+            throw new Error('suffixes must be an array (either a list or a list of lists)');
+        }
+
+        const containsArrays = suffixes.some(Array.isArray);
+        const isArrayOfArrays = containsArrays && suffixes.every(Array.isArray);
+
+        if (containsArrays && !isArrayOfArrays) {
+            throw new Error('Invalid suffixes definition: when using nested arrays, provide only arrays of suffix sequences.');
+        }
+
+        if (isArrayOfArrays) {
+            const schemas = suffixes.map((seq) => buildSequenceSchema(seq));
+            return this.#ajv.compile({ anyOf: schemas });
+        }
+
+        // Flat, single sequence
+        return this.#ajv.compile(buildSequenceSchema(suffixes));
     }
 
     /**
