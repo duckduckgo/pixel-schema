@@ -50,7 +50,7 @@ export class ParamsValidator {
      * @param {*} item - param/suffix
      */
     castEnumsToString(item) {
-        if (item.enum) {
+        if (item.enum && item.type === undefined) {
             item.enum = item.enum.map((val) => val.toString());
         }
     }
