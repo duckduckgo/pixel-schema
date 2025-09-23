@@ -350,3 +350,19 @@ describe('Suffix alternatives schema (ParamsValidator)', () => {
         );
     });
 });
+
+describe('castEnumsToString (ParamsValidator)', () => {
+    const validator = new ParamsValidator({}, {}, {});
+
+    it('casts numeric enum values to strings when no type is provided', () => {
+        const item = { enum: [1, 2, '3'] };
+        validator.castEnumsToString(item);
+        expect(item.enum).to.deep.equal(['1', '2', '3']);
+    });
+
+    it('does not cast enum values when a type is defined', () => {
+        const item = { type: 'number', enum: [1, 2, 3] };
+        validator.castEnumsToString(item);
+        expect(item.enum).to.deep.equal([1, 2, 3]);
+    });
+});
