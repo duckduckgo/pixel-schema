@@ -48,7 +48,7 @@ must be documented separately in `native_experiments.json` and adhere to the [na
   * `cohorts`: an array of Strings defining each cohort in the experiment
   * `metrics`: a collection of objects where each object is keyed by the metric name as it would appear in the pixel. Each metric must also provide:
     * `description` of the metric
-    * `enum` of possible values
+    * `enum` of possible values; if you don't specify a corresponding `type` for the enum then `string` is assumed.
 
 **Note**: The following are pre-defined and are automatically taken into account by the pixel schema
 (you do not need to worry about defining them):
