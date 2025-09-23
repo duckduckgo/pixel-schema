@@ -387,10 +387,7 @@ describe('Alternative suffix sequences (anyOf)', () => {
             // Either:
             // 1) 'exception' + anystring + one of [1,2,3], or
             // 2) a single suffix one of [4,5]
-            suffixes: [
-                ['exception', { enum: [1, 2, 3] }],
-                [{ enum: [4, 5] }],
-            ],
+            suffixes: [['exception', { enum: [1, 2, 3] }], [{ enum: [4, 5] }]],
         },
     };
 

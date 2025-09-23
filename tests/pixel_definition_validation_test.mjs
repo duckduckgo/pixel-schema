@@ -324,10 +324,7 @@ describe('Suffix alternatives schema (ParamsValidator)', () => {
     const paramsValidator = new ParamsValidator({}, { exception: { key: 'exception' } }, {});
 
     it('nested arrays are compiled (anyOf) without error', () => {
-        const suffixes = [
-            ['exception', { enum: [1, 2, 3] }],
-            [{ enum: [4, 5] }],
-        ];
+        const suffixes = [['exception', { enum: [1, 2, 3] }], [{ enum: [4, 5] }]];
         expect(() => paramsValidator.compileSuffixesSchema(suffixes)).to.not.throw();
     });
 
