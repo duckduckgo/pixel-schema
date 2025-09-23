@@ -319,3 +319,34 @@ describe('Object-based params', () => {
         expect(() => paramsValidator.compileParamsSchema([param])).to.not.throw();
     });
 });
+
+describe('Suffix alternatives schema (ParamsValidator)', () => {
+    const paramsValidator = new ParamsValidator({}, { exception: { key: 'exception' } }, {});
+
+    it('nested arrays are compiled (anyOf) without error', () => {
+        const suffixes = [
+            ['exception', { enum: [1, 2, 3] }],
+            [{ enum: [4, 5] }],
+        ];
+        expect(() => paramsValidator.compileSuffixesSchema(suffixes)).to.not.throw();
+    });
+
+    it('flat array is compiled without error', () => {
+        const suffixes = ['exception', { enum: [1, 2, 3] }];
+        expect(() => paramsValidator.compileSuffixesSchema(suffixes)).to.not.throw();
+    });
+
+    it('mixed array types should throw', () => {
+        const suffixes = ['exception', ['platform', 'form_factor']];
+        expect(() => paramsValidator.compileSuffixesSchema(suffixes)).to.throw(
+            'Invalid suffixes definition: when using nested arrays, provide only arrays of suffix sequences.',
+        );
+    });
+
+    it('non-array suffixes should throw', () => {
+        // @ts-ignore - intentionally invalid type
+        expect(() => paramsValidator.compileSuffixesSchema('invalid')).to.throw(
+            'suffixes must be an array (either a list or a list of lists)',
+        );
+    });
+});

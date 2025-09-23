@@ -373,3 +373,64 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
     });
 });
+
+describe('Alternative suffix sequences (anyOf)', () => {
+    const commonSuffixes = {
+        exception: {
+            key: 'exception',
+        },
+    };
+    const paramsValidator = new ParamsValidator({}, commonSuffixes, {});
+    const prefix = 'complexPixel';
+    const pixelDefs = {
+        complexPixel: {
+            // Either:
+            // 1) 'exception' + anystring + one of [1,2,3], or
+            // 2) a single suffix one of [4,5]
+            suffixes: [
+                ['exception', { enum: [1, 2, 3] }],
+                [{ enum: [4, 5] }],
+            ],
+        },
+    };
+
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+    const params = '';
+
+    it('first sequence should pass', () => {
+        const pixel = `${prefix}${PIXEL_DELIMITER}exception${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}1`;
+        const pixelStatus = liveValidator.validatePixel(pixel, params);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('second sequence should pass', () => {
+        const pixel = `${prefix}${PIXEL_DELIMITER}4`;
+        const pixelStatus = liveValidator.validatePixel(pixel, params);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('extra suffix should fail for the shorter alternative', () => {
+        const pixel = `${prefix}${PIXEL_DELIMITER}4${PIXEL_DELIMITER}extra`;
+        const pixelStatus = liveValidator.validatePixel(pixel, params);
+
+        const expectedErrors = [
+            "Suffix '4' must be equal to one of the allowed values",
+            "must NOT have additional properties. Found extra suffix 'extra'",
+            'must match a schema in anyOf',
+        ];
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.include.members(expectedErrors);
+        expect(pixelStatus.errors.map((e) => e.example)).to.include(pixel);
+    });
+
+    it('invalid value for the first sequence should fail', () => {
+        const pixel = `${prefix}${PIXEL_DELIMITER}exception${PIXEL_DELIMITER}anystring${PIXEL_DELIMITER}9`;
+        const pixelStatus = liveValidator.validatePixel(pixel, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors).to.not.be.empty;
+        expect(pixelStatus.errors.map((e) => e.example)).to.include(pixel);
+    });
+});
