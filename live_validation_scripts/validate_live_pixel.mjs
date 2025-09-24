@@ -41,7 +41,12 @@ function main(mainDir, csvFile) {
                 console.log(`...Processing row ${processedPixels.toLocaleString('en-US')}...`);
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
-            const paramsUrlFormat = JSON5.parse(row.params).join('&');
+            let parsedParams = JSON5.parse(row.params);
+            // Append version param (e.g. appVersion=1.2.3) if present in a dedicated CSV column.
+            if (typeof row.version === 'string' && row.version.trim() !== '') {
+                parsedParams = parsedParams.concat(row.version.trim());
+            }
+            const paramsUrlFormat = parsedParams.join('&');
             const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             saveResult(pixelRequestFormat, result);
         })

@@ -22,7 +22,7 @@ function prepareCSVQuery(tokenizedPixels, productDef) {
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
     const queryString = `
-        SELECT pixel, params
+        SELECT pixel, params, version
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
         AND (${pixelIDsWhereClause});`;
