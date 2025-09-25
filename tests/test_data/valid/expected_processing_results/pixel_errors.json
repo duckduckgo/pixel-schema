@@ -30,7 +30,7 @@
             "appVersion=wrongFormat"
         ],
         "/count must be integer": [
-            "appVersion=2.0.0&count=wrongFormat"
+            "count=wrongFormat&appVersion=2.0.0"
         ]
     },
     "experiment_enroll_defaultBrowser_control": {

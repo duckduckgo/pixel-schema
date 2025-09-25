@@ -1,4 +1,4 @@
-pixel,params
-m.my.first.pixel,['color=blue']
-m.my.first.pixel,['color=Blue']
-m.my.first.pixel,['color=yeLLow']
+pixel,params,version
+m.my.first.pixel,['color=blue'],
+m.my.first.pixel,['color=Blue'],
+m.my.first.pixel,['color=yeLLow'],
