@@ -49,8 +49,8 @@ const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR
 const ignoreParams = { ...pixelIgnoreParams, ...globalIgnoreParams };
 
 const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
-logErrors('ERROR in common_params.json:', validator.validateCommonParamsDefinition());
-logErrors('ERROR in common_suffixes.json:', validator.validateCommonSuffixesDefinition());
+logErrors('ERROR in params_dictionary.json:', validator.validateCommonParamsDefinition());
+logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixesDefinition());
 logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments

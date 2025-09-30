@@ -19,6 +19,4 @@ fnm exec npm run preprocess-defs $MAIN_DIR
 echo "Validate pixels"
 fnm exec npm run validate-live-pixels $MAIN_DIR $CSV_FILE
 
-rm -rf $CSV_FILE
-
 exit 0

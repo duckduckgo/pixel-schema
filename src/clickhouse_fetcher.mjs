@@ -55,9 +55,34 @@ async function outputTableToCSV(queryString) {
 
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
+
+        // Handle stream errors
+        outputStream.on('error', function (err) {
+            reject(new Error(`Failed to write to file ${PIXELS_TMP_CSV}: ${err.message}`));
+        });
+
         const clickhouseProcess = spawn(CH_BIN, CH_ARGS.concat([queryString, '--format=CSVWithNames']));
+
+        // Handle backpressure properly
+        let isPaused = false;
+
         clickhouseProcess.stdout.on('data', function (data) {
-            outputStream.write(data);
+            try {
+                const writeResult = outputStream.write(data);
+                if (!writeResult && !isPaused) {
+                    // Buffer is full, pause the readable stream to prevent memory buildup
+                    isPaused = true;
+                    clickhouseProcess.stdout.pause();
+
+                    // Wait for drain event to resume
+                    outputStream.once('drain', function () {
+                        isPaused = false;
+                        clickhouseProcess.stdout.resume();
+                    });
+                }
+            } catch (err) {
+                reject(new Error(`Failed to write data to ${PIXELS_TMP_CSV}: ${err.message}`));
+            }
         });
 
         clickhouseProcess.stderr.on('data', function (data) {

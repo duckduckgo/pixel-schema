@@ -23,6 +23,13 @@
                 {
                     "type": "string",
                     "description": "Shortcut to a common suffix"
+                },
+                {
+                    "type": "array",
+                    "description": "Array of nested suffixes",
+                    "items": {
+                        "$ref": "#/$defs/suffix"
+                    }
                 }
             ]
         }
