@@ -124,6 +124,35 @@
                     "tester"
                 ]
             }
+        },
+        "suffixes": {
+            "__root_prefix__": {
+                "owners": [
+                    "tester"
+                ],
+                "suffixes": [
+                    "device_type",
+                    "first_daily_count"
+                ]
+            }
+        },
+        "nested": {
+            "suffixes": {
+                "__root_prefix__": {
+                    "owners": [
+                        "tester"
+                    ],
+                    "suffixes": [
+                        [
+                            "first_daily_count"
+                        ],
+                        [
+                            "device_type",
+                            "first_daily_count"
+                        ]
+                    ]
+                }
+            }
         }
     }
 }
