@@ -2,7 +2,7 @@ import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef, readExperimentsDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TABLE_NAME = 'metrics.pixels_validation';
@@ -15,9 +15,11 @@ const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--quer
  * @param {object} productDef schema is a TODO.
  * See tests/test_data/valid/product.json for an example.
  */
-function prepareCSVQuery(tokenizedPixels, productDef) {
+function prepareCSVQuery(tokenizedPixels, productDef, experimentsDefined) {
     const pixelIDs = Object.keys(tokenizedPixels);
-    pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+    if (experimentsDefined) {
+        pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+    }
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
@@ -30,9 +32,11 @@ function prepareCSVQuery(tokenizedPixels, productDef) {
     return queryString;
 }
 
-function updatePixelIDs(tokenizedPixels) {
+function updatePixelIDs(tokenizedPixels, experimentsDefined) {
     const pixelIDs = Object.keys(tokenizedPixels);
-    pixelIDs.push('experiment');
+    if (experimentsDefined) {
+        pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+    }
     const values = pixelIDs
         .map((id) => `'${id.split('-')[0]}'`)
         .join(',today()), (')
@@ -50,7 +54,7 @@ function updatePixelIDs(tokenizedPixels) {
     }
 }
 
-async function outputTableToCSV(queryString) {
+async function outputTableToCSV(queryString, experimentsDefined) {
     console.log('Preparing CSV');
 
     const chPromise = new Promise((resolve, reject) => {
@@ -111,8 +115,11 @@ async function outputTableToCSV(queryString) {
 export async function preparePixelsCSV(mainPixelDir) {
     try {
         const tokenizedPixels = readTokenizedPixels(mainPixelDir);
-        updatePixelIDs(tokenizedPixels);
-        const queryString = prepareCSVQuery(tokenizedPixels, readProductDef(mainPixelDir));
+        const experimentsDef = readExperimentsDef(mainPixelDir);
+        const experimentsDefined = Object.keys(experimentsDef.activeExperiments).length > 0;
+
+        updatePixelIDs(tokenizedPixels, experimentsDefined);
+        const queryString = prepareCSVQuery(tokenizedPixels, readProductDef(mainPixelDir), experimentsDefined);
         await outputTableToCSV(queryString);
     } catch (err) {
         console.error(err);
