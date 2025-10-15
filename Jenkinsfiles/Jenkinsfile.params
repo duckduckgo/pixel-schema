@@ -8,10 +8,10 @@ pipeline {
     stages {
         stage('Setup parameters') {
             steps {
-                script { 
+                script {
                     properties([
                         parameters([
-                        
+
                             string(
                                 defaultValue: 'main',
                                 description: 'Pixel Schema Branch',
@@ -22,7 +22,7 @@ pipeline {
                                 description: 'Windows Browser Branch',
                                 name: 'WINDOWS_BROWSER_BRANCH'
                             ),
-                            string( 
+                            string(
                                 defaultValue: 'main',
                                 description: 'Asana Utils Branch',
                                 name: 'ASANA_UTILS_BRANCH'
@@ -32,19 +32,24 @@ pipeline {
                                 description: 'DuckDuckGo Extension Branch',
                                 name: 'EXTENSION_BRANCH'
                             ),
-                            string( 
+                            string(
                                 defaultValue: 'main',
                                 description: 'Apple Browsers Branch',
                                 name: 'APPLE_BROWSERS_BRANCH'
                             ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'Android',
+                                name: 'ANDROID_BRANCH'
+                            )
                             booleanParam(
-                                defaultValue: false,
+                                defaultValue: true,
                                 description: 'Run Apple browser (macOS and iOS) pixel validation',
                                 name: 'RUN_APPLE_VALIDATION'
-                            )
+                            ),
                         ])
                     ])
-                    
+
                 }
             }
         }
@@ -75,8 +80,7 @@ pipeline {
                 }
             }
         }
-        
-         stage('clone apple-browsers repo with credentials') {
+        stage('clone apple-browsers repo with credentials') {
             when {
                 expression { params.RUN_APPLE_VALIDATION == true }
             }
@@ -88,13 +92,21 @@ pipeline {
                 }
             }
         }
-     
+        stage('clone android repo with credentials') {
+            steps {
+                dir('android') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/android.git']]])
+                }
+            }
+        }
         stage('clone internal-github-asana-utils repo ') {
             steps {
                 dir('internal-github-asana-utils') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
-		    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+		            userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
             }
         }
@@ -138,7 +150,7 @@ pipeline {
                 }
             }
         }
-         stage('Validate pixels for windows-browser'){
+        stage('Validate pixels for windows-browser'){
              steps {
                 script {
                     def result = sh(
@@ -210,17 +222,38 @@ pipeline {
                 }
             }
         }
-       
+        stage('Validate pixels for android'){
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            MAIN_DIR="../android/PixelDefinitions/"
+                            cd pixel-schema
+                            echo "Starting validation for android..."
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            exit_code=$?
+                            echo "validateRepo.sh exit code: $exit_code"
+                            cd ..
+                            exit $exit_code
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("validateRepo.sh failed for android with exit code: ${result}")
+                    }
+                }
+            }
+        }
     }
-   post {
+    post {
         failure {
             script {
-          
+
                 sh '''#!/bin/bash
                     echo "Attempting to create Asana task for failure..."
                     DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`
                     echo $DATE
-                        
+
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
                             --assignee jmatthews@duckduckgo.com \
                             --description "Pixel validation failed see console output at https://jenkins.duckduckgo.com/job/PixelValidation/" \
