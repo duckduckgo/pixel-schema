@@ -80,7 +80,7 @@ pipeline {
                 }
             }
         }
-        stage('clone apple-browsers repo with credentials') {
+        stage('clone apple-browsers repo') {
             when {
                 expression { params.RUN_APPLE_VALIDATION == true }
             }
@@ -88,16 +88,16 @@ pipeline {
                 dir('apple-browsers') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
                 }
             }
         }
-        stage('clone android repo with credentials') {
+        stage('clone android repo') {
             steps {
                 dir('android') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/android.git']]])
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
                 }
             }
         }
@@ -106,7 +106,7 @@ pipeline {
                 dir('internal-github-asana-utils') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
-		            userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
             }
         }
