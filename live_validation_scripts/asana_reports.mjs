@@ -49,7 +49,7 @@ function getPixelFailureMessage(numFailures, isPerOwnerTask) {
         pixelPhrase += ' Check per-owner subtasks and/or the attachment for details.';
     }
 
-    pixelPhrase += ` 
+    pixelPhrase += `
 
  New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
 
@@ -59,10 +59,12 @@ function getPixelFailureMessage(numFailures, isPerOwnerTask) {
 function readAsanaNotifyFile() {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
     if (!fs.existsSync(notifyFile)) {
-        console.log(`Notify file ${dirPath}/asana_notify.json does not exist, will simply add pixel owners as followers `);
+        console.log(`Notify file ${dirPath}/asana_notify.json does not exist, skipping assignees and followers`);
         return false;
     }
+
     const notify = JSON.parse(fs.readFileSync(notifyFile, 'utf8'));
+
     if (notify.assignee) {
         if (userMap[notify.assignee]) {
             console.log(`...userMap[${notify.assignee}]:`, userMap[notify.assignee]);
@@ -150,13 +152,13 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
                     // Create rows for each error type
                     const rows = [];
                     errorTypes.forEach((errorType, index) => {
-                        /*  
+                        /*
                             We could consider adding the error messages themselves to the table, but
                             1) we want to delete those after DAYS_TO_DELETE_ATTACHMENTS days and that is
                             easier to do with the attachment than the table, and
-                            2) It is easier for those looking at these tasks in Asana to reason about what will 
-                            be removed and it won't risk removing any edits people might make to the table. 
-                            3) we want to keep the table small and readable. 
+                            2) It is easier for those looking at these tasks in Asana to reason about what will
+                            be removed and it won't risk removing any edits people might make to the table.
+                            3) we want to keep the table small and readable.
                             If we did keep the error messages consider truncating them and adding ellipsis of longer than X characters
                         */
 
@@ -294,7 +296,7 @@ async function main() {
     ownerToPixelsMap = {};
     for (const [pixelName, pixel] of Object.entries(pixelsWithErrors)) {
         if (pixel.owners && pixel.owners.length > 0) {
-            /* 
+            /*
                 Notifing only the first owner; Notifying all owners
                 risks wasted effort if multiple people work on fixing the same
                 pixel in parallel ; First owner can tag others in Asana to help as needed.
