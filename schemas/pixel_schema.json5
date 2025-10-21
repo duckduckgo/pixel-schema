@@ -58,6 +58,10 @@
                         ]
                     }
                 },
+                "requiredVersion": {
+                    "type": "string",
+                    "description": "Optional value indicating the minimum app version (for client apps) or date (for server apps) to be validated"
+                },
                 "suffixes": {
                     "type": "array",
                     "description": "List of pixel suffix combinations under the main pixel prefix. Can be a shortcut to a common suffix",

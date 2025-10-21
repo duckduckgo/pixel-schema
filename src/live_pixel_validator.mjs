@@ -110,10 +110,13 @@ export class LivePixelsValidator {
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             const owners = pixelDef.owners;
+            const requiredVersion = pixelDef.requiredVersion;
+
             tokenizedPixels[prefix] = {
                 paramsSchema,
                 suffixesSchema,
                 owners,
+                requiredVersion
             };
         });
     }
@@ -236,12 +239,13 @@ export class LivePixelsValidator {
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         const prefix = matchedParts.slice(0, -1);
         this.#currentPixelState.owners = pixelMatch[ROOT_PREFIX].owners;
+        const requiredVersionForPixel = pixelMatch[ROOT_PREFIX].requiredVersion;
 
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX], requiredVersionForPixel);
         return this.#currentPixelState;
     }
 
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, requiredVersionForPixel) {
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
@@ -253,7 +257,8 @@ export class LivePixelsValidator {
         // 1) Skip pixels based on version requirements
         if (this.#defsVersionKey) {
             const versionVal = paramsStruct[this.#defsVersionKey];
-            const isRequired = !!this.#defsVersionRequired;
+            const isRequired = typeof(requiredVersionForPixel) === 'undefined' ? !!this.#defsVersionRequired : !!requiredVersionForPixel;
+            console.log('Version required:', isRequired, requiredVersionForPixel, paramsStruct);
 
             // If version is required but missing, skip
             if (isRequired && !versionVal) {
