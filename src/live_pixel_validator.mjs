@@ -13,6 +13,7 @@ export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
     #defsVersionKey;
+    #defsVersionRequired
     #forceLowerCase;
 
     #commonExperimentParamsSchema;
@@ -33,6 +34,7 @@ export class LivePixelsValidator {
         this.#forceLowerCase = productDef.forceLowerCase;
         this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
+        this.#defsVersionRequired = this.#getNormalizedVal(productDef.target.required);
 
         this.#compileDefs(tokenizedPixels, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
@@ -248,11 +250,23 @@ export class LivePixelsValidator {
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 
-        // 1) Skip outdated pixels based on version
-        if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
-            if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+        // 1) Skip pixels based on version requirements
+        if (this.#defsVersionKey) {
+            const versionVal = paramsStruct[this.#defsVersionKey];
+            const isRequired = !!this.#defsVersionRequired;
+
+            // If version is required but missing, skip
+            if (isRequired && !versionVal) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
+            }
+
+            // If provided, and valid, check if it's older than required
+            if (versionVal && validateVersion(versionVal)) {
+                if (compareVersions(versionVal, this.#defsVersion) === -1) {
+                    this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
+                    return this.#currentPixelState;
+                }
             }
         }
 
