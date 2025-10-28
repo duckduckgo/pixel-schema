@@ -46,7 +46,7 @@ const commonParams = fileUtils.readCommonParams(mainDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
 const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-const ignoreParams = { ...pixelIgnoreParams, ...globalIgnoreParams };
+const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
 const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
 logErrors('ERROR in params_dictionary.json:', validator.validateCommonParamsDefinition());
