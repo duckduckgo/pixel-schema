@@ -85,12 +85,21 @@ export function readProductDef(mainPixelDir) {
 }
 
 /**
- * Read experiments definitions
+ * Read native experiments definitions
  * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {object} experiments definitions
+ * @returns {object} native experiments definitions
  */
-export function readExperimentsDef(mainPixelDir) {
+export function readNativeExperimentsDef(mainPixelDir) {
     return readSchemaFile(mainPixelDir, 'native_experiments.json');
+}
+
+/**
+ * Read web experiments definitions
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {object} web experiments definitions
+ */
+export function readSearchExperimentsDef(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'search_experiments.json');
 }
 
 /**

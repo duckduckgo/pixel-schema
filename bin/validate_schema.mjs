@@ -54,8 +54,15 @@ logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixes
 logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments
-const experiments = fileUtils.readExperimentsDef(mainDir);
+const experiments = fileUtils.readNativeExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
+
+try {
+    const searchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+    logErrors('ERROR in search_experiments.json:', validator.validateExperimentsDefinition(searchExperiments));
+} catch {
+    console.log('No search_experiments.json found, skipping web experiments validation.');
+}
 
 // 3) Validate pixels and params
 function validateFile(file, userMap) {

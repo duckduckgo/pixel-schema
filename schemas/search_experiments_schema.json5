@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "web_experiments.schema.json",
+  "title": "WebExperiments",
+  "description": "Schema for web experiments keyed by experiment name",
+  "type": "object",
+
+  // Each property key is an experiment name
+  "additionalProperties": {
+    "$ref": "#/$defs/experiment"
+  },
+
+  "$defs": {
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allocation", "assignment", "variants", "persistent", "description"],
+      "properties": {
+        "allocation": {
+          "description": "Traffic allocation as a fraction (0..1) or a [min,max] range",
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          ]
+        },
+        "description": { "type": "string" },
+        "assignment": {
+          "type": "string",
+        },
+        "persistent": {
+          "description": "Whether the assignment is persistent or special mode like 'bounce'",
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "string" }
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" },
+        },
+        "services": {
+          "type": "array",
+          "items": { "type": "string" },
+        },
+        "exclusionGroup": { "type": "string" }
+      }
+    }
+  }
+}

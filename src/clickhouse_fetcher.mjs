@@ -2,7 +2,7 @@ import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { readTokenizedPixels, readProductDef, readExperimentsDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef, readNativeExperimentsDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TABLE_NAME = 'metrics.pixels_validation';
@@ -18,12 +18,21 @@ const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--quer
 function prepareCSVQuery(pixelIDs, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
+    let dateFilter = '';
+
+    if (productDef.target.queryWindowInDays) {
+        const days = productDef.target.queryWindowInDays;
+        console.log(`Query window: ${days} days`);
+        // Append date filter to the where clause
+        dateFilter = `AND (updated_at >= today() - ${days})`;
+    }
 
     const queryString = `
         SELECT pixel, params, version
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
-        AND (${pixelIDsWhereClause});`;
+        AND (${pixelIDsWhereClause})
+        ${dateFilter};`;
 
     return queryString;
 }
@@ -106,12 +115,12 @@ async function outputTableToCSV(queryString) {
 
 function preparePixelIDs(mainPixelDir) {
     const tokenizedPixels = readTokenizedPixels(mainPixelDir);
-    const experimentsDef = readExperimentsDef(mainPixelDir);
-    const experimentsDefined = Object.keys(experimentsDef.activeExperiments).length > 0;
+    const nativeExperimentsDef = readNativeExperimentsDef(mainPixelDir);
+    const nativeExperimentsDefined = Object.keys(nativeExperimentsDef.activeExperiments).length > 0;
 
     const pixelIDs = Object.keys(tokenizedPixels);
-    if (experimentsDefined) {
-        pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+    if (nativeExperimentsDefined) {
+        pixelIDs.push('experiment'); // add native "experiment.*" pixels to the list of pixel IDs (defined outside tokenized defs)
     }
 
     return pixelIDs;

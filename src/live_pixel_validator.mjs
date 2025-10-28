@@ -128,7 +128,7 @@ export class LivePixelsValidator {
         };
     }
 
-    validateExperimentPixel(pixel, paramsUrlFormat) {
+    validateNativeExperimentPixel(pixel, paramsUrlFormat) {
         const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
         const pixelPrefixLen = 3;
@@ -208,7 +208,7 @@ export class LivePixelsValidator {
     validatePixel(pixel, params) {
         this.#initPixelState();
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
-            return this.validateExperimentPixel(pixel, params);
+            return this.validateNativeExperimentPixel(pixel, params);
         }
 
         // Match longest prefix:
