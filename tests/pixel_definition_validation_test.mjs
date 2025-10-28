@@ -363,3 +363,69 @@ describe('castEnumsToString (ParamsValidator)', () => {
         expect(item.enum).to.deep.equal([1, 2, 3]);
     });
 });
+
+describe('ParamsValidator.compileParamsSchema', () => {
+    it('merges ignoreParams with parameters and allows ignored keys', () => {
+        const ignoreParams = {
+            ignored: { key: 'ignored', description: 'Ignored param' },
+        };
+        const validator = new ParamsValidator({}, {}, ignoreParams);
+
+        const validate = validator.compileParamsSchema([]);
+
+        expect(validate({ ignored: 'value' })).to.be.true;
+        expect(validate({ other: 'value' })).to.be.false;
+    });
+
+    it('parameters take precedence over ignoreParams on duplicate keys', () => {
+        const ignoreParams = {
+            dup: { key: 'dup', description: 'Number only', type: 'number', enum: [1] },
+        };
+        const parameters = [{ key: 'dup', description: 'String dup', enum: ['a', 'b'] }];
+        const validator = new ParamsValidator({}, {}, ignoreParams);
+
+        const validate = validator.compileParamsSchema(parameters);
+
+        expect(validate({ dup: 'a' })).to.be.true;
+        expect(validate({ dup: 1 })).to.be.false; // would have been valid if ignore param took precedence
+    });
+});
+
+// Cover params + ignoreParams merge via DefinitionsValidator
+describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
+    it('parameters take precedence over ignoreParams (no duplicate key error)', () => {
+        const ignoreParams = {
+            duplicate: { key: 'duplicate', description: 'ignored param' },
+        };
+        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+
+        const pixel = {
+            description: 'Pixel with param also present in ignoreParams',
+            owners: ['owner'],
+            triggers: ['other'],
+            parameters: [{ key: 'duplicate', description: 'custom overrides' }],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel });
+        expect(errors).to.be.empty;
+    });
+
+    it('ignoreParams keyPattern collides with concrete key (strict mode error)', () => {
+        const ignoreParams = {
+            patterned: { keyPattern: '^param[0-9]$', description: 'pattern in ignore' },
+        };
+        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+
+        const pixel = {
+            description: 'Pixel where key matches ignore pattern',
+            owners: ['owner'],
+            triggers: ['other'],
+            parameters: [{ key: 'param1', description: 'concrete key' }],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel });
+        const expectedErrors = ['pixel --> strict mode: property param1 matches pattern ^param[0-9]$ (use allowMatchingProperties)'];
+        expect(errors).to.have.members(expectedErrors);
+    });
+});
+

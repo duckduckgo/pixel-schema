@@ -28,7 +28,7 @@ function main(mainDir, csvFile) {
 
     const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-    const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
+    const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);

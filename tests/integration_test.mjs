@@ -102,7 +102,7 @@ describe('Validate live pixels', () => {
         });
     }).timeout(timeout);
 
-    it('case insensitive - should produce expected errors', (done) => {
+    it('case insensitive - should produce zero errors', (done) => {
         exec(`npm run preprocess-defs ${validCaseInsensitiveDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
         });
