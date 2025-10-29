@@ -9,6 +9,7 @@ import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
+import { parseSearchExperiments } from '../src/pixel_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -29,7 +30,17 @@ function main(mainDir, csvFile) {
     const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
     const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
-    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+
+    let searchExperiments = {};
+    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir) || {};
+    if (rawSearchExperiments) {
+        searchExperiments = parseSearchExperiments(rawSearchExperiments)
+    } else {
+        console.log('No search_experiments.json found, skipping web experiments validation.', e);
+    }
+
+    const ignoreAndExperimentParams = { ...ignoreParams, ...searchExperiments };
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreAndExperimentParams);
 
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);
     let processedPixels = 0;

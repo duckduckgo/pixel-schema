@@ -11,6 +11,7 @@ import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
 
 import * as fileUtils from '../src/file_utils.mjs';
+import { parseSearchExperiments } from '../src/pixel_utils.mjs';
 
 const argv = yargs(hideBin(process.argv))
     .command('$0 [dirPath]', 'validate pixel definitions', (yargs) => {
@@ -48,21 +49,25 @@ const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
 const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
+let searchExperiments = {};
+const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir) || {};
+if (rawSearchExperiments) {
+    searchExperiments = parseSearchExperiments(rawSearchExperiments)
+} else {
+    console.log('No search_experiments.json found, skipping web experiments validation.', e);
+}
+
+const ignoreAndExperimentParams = { ...ignoreParams, ...searchExperiments };
+
+const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreAndExperimentParams);
 logErrors('ERROR in params_dictionary.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixesDefinition());
 logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments
+logErrors('ERROR in search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
 const experiments = fileUtils.readNativeExperimentsDef(mainDir);
-logErrors('ERROR in native_experiments.json:', validator.validateExperimentsDefinition(experiments));
-
-try {
-    const searchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
-    logErrors('ERROR in search_experiments.json:', validator.validateExperimentsDefinition(searchExperiments));
-} catch {
-    console.log('No search_experiments.json found, skipping web experiments validation.');
-}
+logErrors('ERROR in native_experiments.json:', validator.validateNativeExperimentsDefinition(experiments));
 
 // 3) Validate pixels and params
 function validateFile(file, userMap) {
