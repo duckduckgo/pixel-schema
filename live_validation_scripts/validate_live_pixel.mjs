@@ -32,11 +32,11 @@ function main(mainDir, csvFile) {
     const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
     let searchExperiments = {};
-    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir) || {};
-    if (rawSearchExperiments) {
+    try {
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir) || {};
         searchExperiments = parseSearchExperiments(rawSearchExperiments)
-    } else {
-        console.log('No search_experiments.json found, skipping web experiments validation.', e);
+    } catch {
+        console.log('No search_experiments.json found, skipping web experiments validation.');
     }
 
     const ignoreAndExperimentParams = { ...ignoreParams, ...searchExperiments };
