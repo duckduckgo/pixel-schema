@@ -41,12 +41,12 @@ pipeline {
                                 defaultValue: 'main',
                                 description: 'Android',
                                 name: 'ANDROID_BRANCH'
-                            )
+                            ),
                             booleanParam(
                                 defaultValue: true,
                                 description: 'Run Apple browser (macOS and iOS) pixel validation',
                                 name: 'RUN_APPLE_VALIDATION'
-                            ),
+                            )
                         ])
                     ])
 
