@@ -49,25 +49,26 @@ const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
 const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-let searchExperiments = {};
-const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir) || {};
-if (rawSearchExperiments) {
-    searchExperiments = parseSearchExperiments(rawSearchExperiments)
-} else {
-    console.log('No search_experiments.json found, skipping web experiments validation.', e);
-}
-
-const ignoreAndExperimentParams = { ...ignoreParams, ...searchExperiments };
-
-const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreAndExperimentParams);
+const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
 logErrors('ERROR in params_dictionary.json:', validator.validateCommonParamsDefinition());
 logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixesDefinition());
 logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments
-logErrors('ERROR in search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
 const experiments = fileUtils.readNativeExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateNativeExperimentsDefinition(experiments));
+
+try {
+    // validate source file format for search experiments
+    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+    logErrors('ERROR in source search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
+    // validate parsed file format for search experiments, which should be equivalent to ignore params
+    const searchExperiments = parseSearchExperiments(rawSearchExperiments)
+    const searchExpValidator = new DefinitionsValidator(commonParams, commonSuffixes, searchExperiments);
+    logErrors('ERROR in parsed search_experiments.json:', validator.validateIgnoreParamsDefinition());
+} catch(e) {
+    console.log('No search_experiments.json found, skipping web experiments validation.');
+}
 
 // 3) Validate pixels and params
 function validateFile(file, userMap) {
