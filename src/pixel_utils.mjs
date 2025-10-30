@@ -14,10 +14,10 @@ export function parseSearchExperiments(searchExperiments = {}) {
 function parseExperimentDef(name, def) {
     const experiment = {
         key: name,
-        description: def.description,
+        description: def.description ?? null
     };
 
-    if (Array.isArray(def?.variants)) {
+    if (Array.isArray(def.variants)) {
         experiment.enum = def.variants;
         if (def.variants.length > 0) {
             // infer type from first variant
