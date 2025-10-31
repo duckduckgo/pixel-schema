@@ -1,7 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { parseSearchExperiments, parseSearchExpPixels, matchPixel } from '../src/pixel_utils.mjs';
-import { PIXEL_DELIMITER } from '../src/constants.mjs';
 
 describe('parseSearchExperiments', () => {
     it('should return an empty object for an empty input object', () => {

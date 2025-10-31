@@ -17,6 +17,7 @@
     },
     "scripts": {
         "test": "mocha ./tests/**/*.mjs",
+        "test.one": "mocha",
         "test.coverage": "c8 mocha ./tests/**/*.mjs",
         "lint": "eslint . && prettier . --check",
         "lint.fix": "eslint . --fix && prettier . --write",

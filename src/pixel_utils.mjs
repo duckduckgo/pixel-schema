@@ -1,4 +1,4 @@
-import { ROOT_PREFIX, PIXEL_DELIMITER } from './constants.mjs';
+import { PIXEL_DELIMITER } from './constants.mjs';
 
 // Parse experiments matching schemas/search_experiments_schema.json5, remapping them to a format compatible with ignoreParams
 export function parseSearchExperiments(searchExperiments) {
@@ -44,6 +44,28 @@ export function parseSearchExpPixels(pixels) {
 }
 
 // return the longest matching pixel prefix and the matched pixel object
+export function matchPixel_old(pixel, allPixels) {
+        // Match longest prefix:
+        const pixelParts = pixel.split(PIXEL_DELIMITER);
+        let pixelMatch = allPixels;
+        let matchedParts = '';
+
+        for (let i = 0; i < pixelParts.length; i++) {
+            const part = pixelParts[i];
+            if (pixelMatch[part]) {
+                pixelMatch = pixelMatch[part];
+                matchedParts += part + PIXEL_DELIMITER;
+            } else {
+                break;
+            }
+        }
+
+        if(matchedParts != '') matchedParts = matchedParts.slice(0, -1);
+
+        return [matchedParts, pixelMatch]
+}
+
+// return the longest matching pixel prefix and the matched pixel object
 export function matchPixel(pixel, allPixels) {
     let longestPrefix = null;
 
@@ -62,5 +84,5 @@ export function matchPixel(pixel, allPixels) {
         return [longestPrefix, allPixels[longestPrefix]];
     }
 
-    return [null, allPixels];
+    return ['', allPixels];
 }
