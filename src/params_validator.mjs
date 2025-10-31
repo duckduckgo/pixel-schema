@@ -142,7 +142,9 @@ export class ParamsValidator {
      * @throws if any errors are found
      */
     compileParamsSchema(parameters) {
-        const combinedParams = [...(parameters || []), ...this.#ignoreParams];
+        parameters = parameters || []; // handle undefined params
+        // combine params with ignoreParams, avoiding duplicates (parameters take precedence)
+        const combinedParams = [...parameters || [], ...(this.#ignoreParams || []).filter(ip => !parameters.some(p => (typeof p === 'string' ? p : (p.keyPattern || p.key)) === (ip.keyPattern || ip.key)))];
         if (!combinedParams) return this.#ajv.compile({});
 
         const properties = {};

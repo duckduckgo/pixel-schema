@@ -9,6 +9,7 @@ import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
+import { parseSearchExperiments, parseSearchExpPixels, matchPixel } from '../src/pixel_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -21,17 +22,39 @@ function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const productDef = fileUtils.readProductDef(mainDir);
-    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
+    const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(mainDir);
     const commonParams = fileUtils.readCommonParams(mainDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
     const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
 
     const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-    const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
-    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+    const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);
+
+    let searchExperiments = {
+        enabled: false,
+        expDefs: {},
+        expPixels: []
+    };
+    try {
+        // TODO REMOVE THIS HUGE TRY CATCH
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+        searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
+        const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
+        searchExperiments.expPixels = parseSearchExpPixels(searchPixels);
+        const ignoreAndExperimentParams = { ...ignoreParams, ...searchExperiments };
+
+        const paramsExpValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+        searchExperiments.liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsExpValidator);
+
+        searchExperiments.enabled = true;
+    } catch {
+        console.log('No search_experiments.json found, skipping web experiments validation.');
+    }
+
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -47,6 +70,20 @@ function main(mainDir, csvFile) {
                 parsedParams = parsedParams.concat(row.version.trim());
             }
             const paramsUrlFormat = parsedParams.join('&');
+
+            if (searchExperiments.enabled) {
+                const [expMatch, matchValue] = matchPixel(pixelRequestFormat, searchExperiments.expPixels);
+                console.log('pixelRequestFormat quickMatch expMatch value', pixelRequestFormat, expMatch, matchValue)
+
+                if (matchValue === true) {
+                    console.log(`${pixelRequestFormat} - ${expMatch}: Pixel matches search experiment pixels, validating with experiments enabled.`);
+                    const result = searchExperiments.liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+                    saveResult(pixelRequestFormat, result);
+                    return;
+                }
+            }
+
+            console.log(`${pixelRequestFormat}: Validating without search experiments.`);
             const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             saveResult(pixelRequestFormat, result);
         })

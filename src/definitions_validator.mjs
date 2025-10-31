@@ -12,7 +12,8 @@ const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')));
 const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')));
 const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')));
-const experimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')));
+const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')));
+const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')));
 
 /**
  * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
@@ -67,13 +68,25 @@ export class DefinitionsValidator {
     }
 
     /**
-     * Validates experiments definition
+     * Validates native experiments definition
      *
      * @param {object} experimentsDef should follow the schema defined in native_experiments_schema.json5
      * @returns any validation errors
      */
-    validateExperimentsDefinition(experimentsDef) {
-        const ajvExpSchema = this.#ajv.compile(experimentsSchema);
+    validateNativeExperimentsDefinition(experimentsDef) {
+        const ajvExpSchema = this.#ajv.compile(nativeExperimentsSchema);
+        ajvExpSchema(experimentsDef);
+        return formatAjvErrors(ajvExpSchema.errors);
+    }
+
+     /**
+     * Validates search experiments definition
+     *
+     * @param {object} experimentsDef should follow the schema defined in search_experiments_schema.json5
+     * @returns any validation errors
+     */
+    validateSearchExperimentsDefinition(experimentsDef) {
+        const ajvExpSchema = this.#ajv.compile(searchExperimentsSchema);
         ajvExpSchema(experimentsDef);
         return formatAjvErrors(ajvExpSchema.errors);
     }
