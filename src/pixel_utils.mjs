@@ -97,14 +97,9 @@ export function matchSearchExperiment(pixel, allPixels) {
  * @returns {Array<string|object>} The merged list of parameters.
  */
 export function mergeParameters(parameters, extraParams) {
-try {
     const parameterKeys = new Set(parameters.map(p => (typeof p === 'string' ? p : (p.keyPattern || p.key))));
     return [
         ...parameters,
         ...extraParams.filter(p => !parameterKeys.has(typeof p === 'string' ? p : (p.keyPattern || p.key)))
     ];
-} catch (e) {
-        console.error('Error merging parameters:', parameters, extraParams,e);
-        throw e;
-    }
 }

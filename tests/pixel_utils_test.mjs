@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { parseSearchExperiments, matchPixel, matchSearchExperiment } from '../src/pixel_utils.mjs';
+import { parseSearchExperiments, matchPixel, matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
 import { tokenizePixelDefs } from '../src/tokenizer.mjs';
 import { ROOT_PREFIX } from '../src/constants.mjs';
 
@@ -260,5 +260,80 @@ describe('matchSearchExperiment', () => {
         const [prefix, pixelMatch] = matchSearchExperiment(`m_lp_`, allPixels);
         expect(prefix).to.equal('m_lp');
         expect(pixelMatch).to.deep.equal(allPixels.m_lp);
+    });
+});
+
+describe('mergeParameters', () => {
+    it('should merge two disjoint lists of string parameters', () => {
+        const params1 = ['a', 'b'];
+        const params2 = ['c', 'd'];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal(['a', 'b', 'c', 'd']);
+    });
+
+    it('should not add duplicate string parameters', () => {
+        const params1 = ['a', 'b'];
+        const params2 = ['b', 'c'];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal(['a', 'b', 'c']);
+    });
+
+    it('should merge two disjoint lists of object parameters', () => {
+        const params1 = [{ key: 'a' }, { key: 'b' }];
+        const params2 = [{ key: 'c' }, { key: 'd' }];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal([{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }]);
+    });
+
+    it('should ensure param1 takes precedence over param2', () => {
+        const params1 = [{ key: 'a', value: '1' }, { key: 'b' }];
+        const params2 = [{ key: 'b', value: '2' }, { key: 'c' }];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal([{ key: 'a', value: '1' }, { key: 'b' }, { key: 'c' }]);
+    });
+
+    it('should not add duplicate object parameters based on keyPattern', () => {
+        const params1 = [{ keyPattern: 'a*' }, { key: 'b' }];
+        const params2 = [{ keyPattern: 'a*' }, { key: 'c' }];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal([{ keyPattern: 'a*' }, { key: 'b' }, { key: 'c' }]);
+    });
+
+    it('should handle mixed string and object parameters', () => {
+        const params1 = ['a', { key: 'b' }];
+        const params2 = ['b', { key: 'a' }, 'c'];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal(['a', { key: 'b' }, 'c']);
+    });
+
+    it('should handle an empty parameters list', () => {
+        const params1 = [];
+        const params2 = ['a', 'b'];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal(['a', 'b']);
+    });
+
+    it('should handle an empty extraParams list', () => {
+        const params1 = ['a', 'b'];
+        const params2 = [];
+        const result = mergeParameters(params1, params2);
+        expect(result).to.deep.equal(['a', 'b']);
+    });
+
+    it('should handle both lists being empty', () => {
+        const result = mergeParameters([], []);
+        expect(result).to.deep.equal([]);
+    });
+
+    it('should throw an error if extraParams is not an array', () => {
+        const params1 = ['a', 'b'];
+        const invalidExtraParams = { c: 'd' };
+        expect(() => mergeParameters(params1, invalidExtraParams)).to.throw(TypeError);
+    });
+
+    it('should throw an error if parameters is not an array', () => {
+        const invalidParams = { a: 'b' };
+        const extraParams = ['c', 'd'];
+        expect(() => mergeParameters(invalidParams, extraParams)).to.throw(TypeError);
     });
 });
