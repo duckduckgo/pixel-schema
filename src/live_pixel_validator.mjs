@@ -3,7 +3,7 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from './constants.mjs';
-import { matchPixel } from './pixel_utils.mjs'
+import { matchPixel } from './pixel_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition

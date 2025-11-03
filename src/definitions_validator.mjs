@@ -79,7 +79,7 @@ export class DefinitionsValidator {
         return formatAjvErrors(ajvExpSchema.errors);
     }
 
-     /**
+    /**
      * Validates search experiments definition
      *
      * @param {object} experimentsDef should follow the schema defined in search_experiments_schema.json5

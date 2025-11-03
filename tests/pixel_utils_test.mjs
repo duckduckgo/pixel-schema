@@ -43,7 +43,7 @@ describe('parseSearchExperiments', () => {
         const searchExperiments = {
             num_exp: {
                 description: 'A string experiment',
-                variants: ["a", "b"],
+                variants: ['a', 'b'],
             },
         };
 
@@ -128,8 +128,7 @@ describe('parseSearchExperiments', () => {
                 description: 'A valid experiment',
                 variants: ['on', 'off'],
             },
-            valid_exp_empty: {
-            }
+            valid_exp_empty: {},
         };
 
         expect(() => parseSearchExperiments(searchExperiments)).to.not.throw();
@@ -143,7 +142,6 @@ describe('parseSearchExperiments', () => {
 
         expect(() => parseSearchExperiments(searchExperiments)).to.throw(TypeError);
     });
-
 });
 
 describe('matchPixel', () => {
@@ -159,7 +157,7 @@ describe('matchPixel', () => {
         },
         m_lp_c: {
             // ...
-        }
+        },
     };
 
     const allPixels = {};
@@ -171,7 +169,7 @@ describe('matchPixel', () => {
         m_lp: allPixels.m.lp[ROOT_PREFIX],
         m_lp_c: allPixels.m.lp.c[ROOT_PREFIX],
         none: undefined,
-    }
+    };
 
     it('should return the longest matching prefix and the matched pixel object', () => {
         const [prefix, pixelMatch] = matchPixel('m_lp_a_b', allPixels);
@@ -229,7 +227,7 @@ describe('matchSearchExperiment', () => {
         },
         m_lp_c: {
             // ...
-        }
+        },
     };
 
     it('should return the longest matching prefix and the matched pixel object', () => {

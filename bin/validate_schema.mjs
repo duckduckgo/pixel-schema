@@ -63,10 +63,10 @@ try {
     const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
     logErrors('ERROR in source search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
     // validate parsed file format for search experiments, which should be equivalent to ignore params
-    const searchExperiments = parseSearchExperiments(rawSearchExperiments)
+    const searchExperiments = parseSearchExperiments(rawSearchExperiments);
     const searchExpValidator = new DefinitionsValidator(commonParams, commonSuffixes, searchExperiments);
     logErrors('ERROR in parsed search_experiments.json:', searchExpValidator.validateIgnoreParamsDefinition());
-} catch(e) {
+} catch (e) {
     console.log('No search_experiments.json found, skipping web experiments validation.');
 }
 

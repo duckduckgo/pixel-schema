@@ -513,4 +513,3 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
         expect(errors).to.have.members(expectedErrors);
     });
 });
-

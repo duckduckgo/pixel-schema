@@ -3,7 +3,6 @@ import addFormats from 'ajv-formats';
 import traverse from 'json-schema-traverse';
 import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
 
-
 /**
  * Validator for pixel parameters and suffixes:
  * 1) ensures they can be used as schemas themselves to validate live pixels
@@ -15,7 +14,7 @@ export class ParamsValidator {
     #commonParams;
     #commonSuffixes;
     #ignoreParams;
-    #searchExpParams
+    #searchExpParams;
 
     /**
      *
@@ -152,8 +151,7 @@ export class ParamsValidator {
         let extraParams = this.#ignoreParams || [];
 
         if (this.#searchExpParams?.enabled === true) {
-            const [expMatch, matchValue] = matchSearchExperiment(pixelPrefix, this.#searchExpParams.expPixels);
-            // console.log('pixelPrefix quickMatch expMatch value', pixelPrefix, expMatch, matchValue);
+            const [, matchValue] = matchSearchExperiment(pixelPrefix, this.#searchExpParams.expPixels);
             if (matchValue === true) {
                 extraParams = mergeParameters(extraParams, Object.values(this.#searchExpParams.expDefs));
             }

@@ -31,10 +31,10 @@ function main(mainDir, csvFile) {
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
     const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-    let searchExperiments = {
+    const searchExperiments = {
         enabled: false,
         expDefs: {},
-        expPixels: {}
+        expPixels: {},
     };
     try {
         // TODO REMOVE THIS HUGE TRY CATCH

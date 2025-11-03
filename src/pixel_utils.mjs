@@ -1,5 +1,4 @@
 import { PIXEL_DELIMITER, ROOT_PREFIX } from './constants.mjs';
-import { tokenizePixelDefs } from './tokenizer.mjs';
 
 // Parse experiments matching schemas/search_experiments_schema.json5, remapping them to a format compatible with ignoreParams
 export function parseSearchExperiments(searchExperiments) {
@@ -17,7 +16,7 @@ export function parseSearchExperiments(searchExperiments) {
 function parseExperimentDef(name, def) {
     const experiment = {
         key: name,
-        description: def.description ?? null
+        description: def.description ?? null,
     };
 
     if (Array.isArray(def.variants)) {
@@ -48,23 +47,23 @@ export function getEnabledSearchExperiments(pixels) {
 // tree search for tokenized pixels
 // returns the longest matching pixel prefix and the matched pixel object
 export function matchPixel(pixel, allPixels) {
-        // Match longest prefix:
-        const pixelParts = pixel.split(PIXEL_DELIMITER);
-        let pixelMatch = allPixels;
-        let matchedParts = '';
+    // Match longest prefix:
+    const pixelParts = pixel.split(PIXEL_DELIMITER);
+    let pixelMatch = allPixels;
+    let matchedParts = '';
 
-        for (let i = 0; i < pixelParts.length; i++) {
-            const part = pixelParts[i];
-            if (pixelMatch[part]) {
-                pixelMatch = pixelMatch[part];
-                matchedParts += part + PIXEL_DELIMITER;
-            } else {
-                break;
-            }
+    for (let i = 0; i < pixelParts.length; i++) {
+        const part = pixelParts[i];
+        if (pixelMatch[part]) {
+            pixelMatch = pixelMatch[part];
+            matchedParts += part + PIXEL_DELIMITER;
+        } else {
+            break;
         }
+    }
 
-        if(matchedParts != '') matchedParts = matchedParts.slice(0, -1);
-        return [matchedParts, pixelMatch[ROOT_PREFIX]]
+    if (matchedParts !== '') matchedParts = matchedParts.slice(0, -1);
+    return [matchedParts, pixelMatch[ROOT_PREFIX]];
 }
 
 // flat search for pixels
@@ -97,9 +96,6 @@ export function matchSearchExperiment(pixel, allPixels) {
  * @returns {Array<string|object>} The merged list of parameters.
  */
 export function mergeParameters(parameters, extraParams) {
-    const parameterKeys = new Set(parameters.map(p => (typeof p === 'string' ? p : (p.keyPattern || p.key))));
-    return [
-        ...parameters,
-        ...extraParams.filter(p => !parameterKeys.has(typeof p === 'string' ? p : (p.keyPattern || p.key)))
-    ];
+    const parameterKeys = new Set(parameters.map((p) => (typeof p === 'string' ? p : p.keyPattern || p.key)));
+    return [...parameters, ...extraParams.filter((p) => !parameterKeys.has(typeof p === 'string' ? p : p.keyPattern || p.key))];
 }
