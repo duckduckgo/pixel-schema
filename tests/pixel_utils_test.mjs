@@ -1,6 +1,8 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { parseSearchExperiments, matchPixel } from '../src/pixel_utils.mjs';
+import { parseSearchExperiments, matchPixel, matchSearchExperiment } from '../src/pixel_utils.mjs';
+import { tokenizePixelDefs } from '../src/tokenizer.mjs';
+import { ROOT_PREFIX } from '../src/constants.mjs';
 
 describe('parseSearchExperiments', () => {
     it('should return an empty object for an empty input object', () => {
@@ -145,6 +147,76 @@ describe('parseSearchExperiments', () => {
 });
 
 describe('matchPixel', () => {
+    const testPixels = {
+        m: {
+            // ...
+        },
+        m_l: {
+            // ...
+        },
+        m_lp: {
+            // ...
+        },
+        m_lp_c: {
+            // ...
+        }
+    };
+
+    const allPixels = {};
+    tokenizePixelDefs(testPixels, allPixels);
+
+    const expectedTokens = {
+        m: allPixels.m[ROOT_PREFIX],
+        m_l: allPixels.m.l[ROOT_PREFIX],
+        m_lp: allPixels.m.lp[ROOT_PREFIX],
+        m_lp_c: allPixels.m.lp.c[ROOT_PREFIX],
+        none: undefined,
+    }
+
+    it('should return the longest matching prefix and the matched pixel object', () => {
+        const [prefix, pixelMatch] = matchPixel('m_lp_a_b', allPixels);
+        expect(prefix).to.equal('m_lp');
+        expect(pixelMatch).to.deep.equal(expectedTokens.m_lp);
+    });
+
+    it('should handle a pixel that has no match', () => {
+        const [prefix, pixelMatch] = matchPixel('lp', allPixels);
+        expect(prefix).to.equal('');
+        expect(pixelMatch).to.deep.equal(expectedTokens.none);
+    });
+
+    it('should handle a pixel that is an exact match - shorter', () => {
+        const [prefix, pixelMatch] = matchPixel('m_l', allPixels);
+        expect(prefix).to.equal('m_l');
+        expect(pixelMatch).to.deep.equal(expectedTokens.m_l);
+    });
+
+    it('should handle a pixel that is an exact match - longer', () => {
+        const [prefix, pixelMatch] = matchPixel('m_lp', allPixels);
+        expect(prefix).to.equal('m_lp');
+        expect(pixelMatch).to.deep.equal(expectedTokens.m_lp);
+    });
+
+    it('should handle an empty pixel string', () => {
+        const [prefix, pixelMatch] = matchPixel('', allPixels);
+        expect(prefix).to.equal('');
+        expect(pixelMatch).to.deep.equal(expectedTokens.none);
+    });
+
+    it('should handle an empty allPixels object', () => {
+        const [prefix, pixelMatch] = matchPixel('m_lp_a', {});
+        expect(prefix).to.equal('');
+        expect(pixelMatch).to.deep.equal(expectedTokens.none);
+    });
+
+    it('should handle a pixel with a trailing delimiter', () => {
+        const [prefix, pixelMatch] = matchPixel(`m_lp_`, allPixels);
+        expect(prefix).to.equal('m_lp');
+        expect(pixelMatch).to.deep.equal(expectedTokens.m_lp);
+    });
+});
+
+describe('matchSearchExperiment', () => {
     const allPixels = {
         m: {
             // ...
@@ -161,43 +233,31 @@ describe('matchPixel', () => {
     };
 
     it('should return the longest matching prefix and the matched pixel object', () => {
-        const [prefix, pixelMatch] = matchPixel('m_lp_a_b', allPixels);
+        const [prefix, pixelMatch] = matchSearchExperiment('m_lp_a_b', allPixels);
         expect(prefix).to.equal('m_lp');
         expect(pixelMatch).to.deep.equal(allPixels.m_lp);
     });
 
     it('should handle a pixel that has no match', () => {
-        const [prefix, pixelMatch] = matchPixel('lp', allPixels);
-        expect(prefix).to.be.null;
+        const [prefix, pixelMatch] = matchSearchExperiment('lp', allPixels);
+        expect(prefix).to.deep.equal('');
         expect(pixelMatch).to.deep.equal(allPixels);
     });
 
     it('should handle a pixel that is an exact match - shorter', () => {
-        const [prefix, pixelMatch] = matchPixel('m_l', allPixels);
+        const [prefix, pixelMatch] = matchSearchExperiment('m_l', allPixels);
         expect(prefix).to.equal('m_l');
         expect(pixelMatch).to.deep.equal(allPixels.m_l);
     });
 
     it('should handle a pixel that is an exact match - longer', () => {
-        const [prefix, pixelMatch] = matchPixel('m_lp', allPixels);
+        const [prefix, pixelMatch] = matchSearchExperiment('m_lp', allPixels);
         expect(prefix).to.equal('m_lp');
         expect(pixelMatch).to.deep.equal(allPixels.m_lp);
     });
 
-    it('should handle an empty pixel string', () => {
-        const [prefix, pixelMatch] = matchPixel('', allPixels);
-        expect(prefix).to.be.null;
-        expect(pixelMatch).to.deep.equal(allPixels);
-    });
-
-    it('should handle an empty allPixels object', () => {
-        const [prefix, pixelMatch] = matchPixel('m_lp_a', {});
-        expect(prefix).to.be.null;
-        expect(pixelMatch).to.deep.equal({});
-    });
-
     it('should handle a pixel with a trailing delimiter', () => {
-        const [prefix, pixelMatch] = matchPixel(`m_lp_`, allPixels);
+        const [prefix, pixelMatch] = matchSearchExperiment(`m_lp_`, allPixels);
         expect(prefix).to.equal('m_lp');
         expect(pixelMatch).to.deep.equal(allPixels.m_lp);
     });

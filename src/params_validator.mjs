@@ -1,6 +1,8 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import traverse from 'json-schema-traverse';
+import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
+
 
 /**
  * Validator for pixel parameters and suffixes:
@@ -140,14 +142,27 @@ export class ParamsValidator {
     /**
      * Compiles provided parameters into an AJV schema
      * @param {Object[]} parameters
+     * @param {string} [pixelPrefix] - The pixel prefix, used to check for search experiment params.
      * @returns {Object} schemas - resultant compiled AJV schema
      * @throws if any errors are found
      */
-    compileParamsSchema(parameters) {
+    compileParamsSchema(parameters, pixelPrefix = '') {
         parameters = parameters || []; // handle undefined params
-        // combine params with ignoreParams, avoiding duplicates (parameters take precedence)
-        const combinedParams = [...parameters || [], ...(this.#ignoreParams || []).filter(ip => !parameters.some(p => (typeof p === 'string' ? p : (p.keyPattern || p.key)) === (ip.keyPattern || ip.key)))];
-        if (!combinedParams) return this.#ajv.compile({});
+
+        let extraParams = this.#ignoreParams || [];
+
+        if (this.#searchExpParams?.enabled) {
+            const [expMatch, matchValue] = matchSearchExperiment(pixelPrefix, this.#searchExpParams.expPixels);
+            // console.log('pixelPrefix quickMatch expMatch value', pixelPrefix, expMatch, matchValue);
+            if (matchValue === true) {
+                extraParams = mergeParameters(extraParams, Object.values(this.#searchExpParams.expDefs));
+                console.log(`${pixelPrefix} - ${expMatch}: Pixel matches search experiment pixels, including experiment params.`);
+            }
+        }
+
+        // combine params with extraParams, avoiding duplicates (parameters take precedence)
+        const combinedParams = mergeParameters(parameters, extraParams);
+        if (!combinedParams.length) return this.#ajv.compile({});
 
         const properties = {};
         const patternProperties = {};

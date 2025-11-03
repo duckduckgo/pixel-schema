@@ -3,7 +3,7 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from './constants.mjs';
-import { matchPixel_old } from './pixel_utils.mjs'
+import { matchPixel } from './pixel_utils.mjs'
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -94,10 +94,11 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
-    #compileDefs(tokenizedPixels, paramsValidator) {
-        Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
-            if (prefix !== ROOT_PREFIX) {
-                this.#compileDefs(pixelDef, paramsValidator);
+    #compileDefs(tokenizedPixels, paramsValidator, currentPrefix = '') {
+        Object.entries(tokenizedPixels).forEach(([prefixPart, pixelDef]) => {
+            const newPrefix = currentPrefix ? `${currentPrefix}${PIXEL_DELIMITER}${prefixPart}` : prefixPart;
+            if (prefixPart !== ROOT_PREFIX) {
+                this.#compileDefs(pixelDef, paramsValidator, newPrefix);
                 return;
             }
 
@@ -106,10 +107,10 @@ export class LivePixelsValidator {
             const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
 
             // Pre-compile each schema and remember owners
-            const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
+            const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             const owners = pixelDef.owners;
-            tokenizedPixels[prefix] = {
+            tokenizedPixels[prefixPart] = {
                 paramsSchema,
                 suffixesSchema,
                 owners,
@@ -211,18 +212,18 @@ export class LivePixelsValidator {
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateNativeExperimentPixel(pixel, params);
         }
-        const [prefix, pixelMatch] = matchPixel_old(pixel, this.#compiledPixels);
+        const [prefix, pixelMatch] = matchPixel(pixel, this.#compiledPixels);
 
-        if (!pixelMatch[ROOT_PREFIX]) {
+        if (!pixelMatch) {
             this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.UNDOCUMENTED;
             return this.#currentPixelState;
         }
 
         // Found a match: remember owners
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
-        this.#currentPixelState.owners = pixelMatch[ROOT_PREFIX].owners;
+        this.#currentPixelState.owners = pixelMatch.owners;
 
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
         return this.#currentPixelState;
     }
 
