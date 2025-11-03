@@ -13,6 +13,7 @@ export class ParamsValidator {
     #commonParams;
     #commonSuffixes;
     #ignoreParams;
+    #searchExpParams
 
     /**
      *
@@ -20,10 +21,11 @@ export class ParamsValidator {
      * @param {object} commonSuffixes contains suffixes that follow the schemas/suffix_schema.json5 type.
      * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
      */
-    constructor(commonParams, commonSuffixes, ignoreParams) {
+    constructor(commonParams, commonSuffixes, ignoreParams, searchExpParams = {}) {
         this.#commonParams = commonParams;
         this.#commonSuffixes = commonSuffixes;
         this.#ignoreParams = Object.values(ignoreParams);
+        this.#searchExpParams = searchExpParams;
 
         addFormats(this.#ajv);
         this.#ajv.addKeyword('key');

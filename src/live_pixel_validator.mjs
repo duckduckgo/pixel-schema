@@ -3,6 +3,7 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from './constants.mjs';
+import { matchPixel_old } from './pixel_utils.mjs'
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -210,20 +211,7 @@ export class LivePixelsValidator {
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateNativeExperimentPixel(pixel, params);
         }
-
-        // Match longest prefix:
-        const pixelParts = pixel.split(PIXEL_DELIMITER);
-        let pixelMatch = this.#compiledPixels;
-        let matchedParts = '';
-        for (let i = 0; i < pixelParts.length; i++) {
-            const part = pixelParts[i];
-            if (pixelMatch[part]) {
-                pixelMatch = pixelMatch[part];
-                matchedParts += part + PIXEL_DELIMITER;
-            } else {
-                break;
-            }
-        }
+        const [prefix, pixelMatch] = matchPixel_old(pixel, this.#compiledPixels);
 
         if (!pixelMatch[ROOT_PREFIX]) {
             this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.UNDOCUMENTED;
@@ -232,7 +220,6 @@ export class LivePixelsValidator {
 
         // Found a match: remember owners
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
-        const prefix = matchedParts.slice(0, -1);
         this.#currentPixelState.owners = pixelMatch[ROOT_PREFIX].owners;
 
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
