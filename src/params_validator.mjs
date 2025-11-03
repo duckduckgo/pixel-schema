@@ -151,12 +151,11 @@ export class ParamsValidator {
 
         let extraParams = this.#ignoreParams || [];
 
-        if (this.#searchExpParams?.enabled) {
+        if (this.#searchExpParams?.enabled === true) {
             const [expMatch, matchValue] = matchSearchExperiment(pixelPrefix, this.#searchExpParams.expPixels);
             // console.log('pixelPrefix quickMatch expMatch value', pixelPrefix, expMatch, matchValue);
             if (matchValue === true) {
                 extraParams = mergeParameters(extraParams, Object.values(this.#searchExpParams.expDefs));
-                console.log(`${pixelPrefix} - ${expMatch}: Pixel matches search experiment pixels, including experiment params.`);
             }
         }
 

@@ -389,6 +389,91 @@ describe('ParamsValidator.compileParamsSchema', () => {
         expect(validate({ dup: 'a' })).to.be.true;
         expect(validate({ dup: 1 })).to.be.false; // would have been valid if ignore param took precedence
     });
+
+    describe('with searchExpParams', () => {
+        const ignoreParams = {
+            ignore: { key: 'ignore', description: 'Number only', type: 'number', enum: [1] },
+        };
+        it('adds experiment params when pixel prefix matches and feature is enabled', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test' })).to.be.true;
+            expect(validate({ other_param: 'test' })).to.be.false;
+        });
+
+        it('does not add experiment params when pixel prefix does not match', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.bar.baz');
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+
+        it('does not add experiment params when feature is disabled', () => {
+            const searchExpParams = {
+                enabled: false,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+
+        it('merges experiment params with ignoreParams', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test', ignore: 1 })).to.be.true;
+            expect(validate({ exp_param: 'test' })).to.be.true;
+            expect(validate({ ignore: '1' })).to.be.true;
+        });
+
+        it('pixel parameters take precedence over experiment params', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const parameters = [{ key: 'exp_param', description: 'Pixel-defined param', enum: ['override'] }];
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema(parameters, 'm.foo.exp');
+            expect(validate({ exp_param: 'override' })).to.be.true;
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+    });
 });
 
 // Cover params + ignoreParams merge via DefinitionsValidator
