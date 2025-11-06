@@ -71,7 +71,15 @@ As you read through, you can refer to the [pixel_guide.json](./tests/test_data/v
 Each pixel **must** contain the following properties:
 * `description` - when the pixel fires and its purpose
 * `owners` - Github usernames of who to contact about the pixel
-* `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel
+* `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel:
+  * `page_load`: pixel fires when a webpage is loaded
+  * `new_tab`: pixel fires when a new tab is opened
+  * `search_ddg`: pixel fires when user performs a search
+  * `startup`: pixel fires on app startup
+  * `scheduled`: pixel fires periodically
+  * `user_submitted`: pixel fires when user submits a form
+  * `exception`: pixel fires when an exception/crash occurs
+  * `other`: catch-all
 
 #### Pixels with dynamic names
 If the pixel name is parameterized, you can utilize the `suffixes` property.
