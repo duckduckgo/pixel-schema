@@ -11,7 +11,7 @@ import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
 
 import * as fileUtils from '../src/file_utils.mjs';
-import { parseSearchExperiments } from '../src/pixel_utils.mjs';
+import { parseSearchExperiments, getEnabledSearchExperiments } from '../src/pixel_utils.mjs';
 
 const argv = yargs(hideBin(process.argv))
     .command('$0 [dirPath]', 'validate pixel definitions', (yargs) => {
@@ -58,16 +58,20 @@ logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefiniti
 const experiments = fileUtils.readNativeExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateNativeExperimentsDefinition(experiments));
 
-try {
-    // validate source file format for search experiments
-    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
-    logErrors('ERROR in source search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
-    // validate parsed file format for search experiments, which should be equivalent to ignore params
-    const searchExperiments = parseSearchExperiments(rawSearchExperiments);
-    const searchExpValidator = new DefinitionsValidator(commonParams, commonSuffixes, searchExperiments);
-    logErrors('ERROR in parsed search_experiments.json:', searchExpValidator.validateIgnoreParamsDefinition());
-} catch (e) {
-    console.log('No search_experiments.json found, skipping web experiments validation.');
+const searchExperiments = {
+    enabled: false,
+    expDefs: {},
+    expPixels: {},
+};
+const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+if (rawSearchExperiments) {
+    searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
+    const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
+    searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
+    searchExperiments.enabled = true;
+    logErrors('ERROR in search_experiments.json:', validator.validateNativeExperimentsDefinition(searchExperiments.expDefs));
+} else {
+    console.log('Missing search_experiments.json, skipping search experiments validation.');
 }
 
 // 3) Validate pixels and params

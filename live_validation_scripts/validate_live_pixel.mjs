@@ -36,15 +36,15 @@ function main(mainDir, csvFile) {
         expDefs: {},
         expPixels: {},
     };
-    try {
-        // TODO REMOVE THIS HUGE TRY CATCH
-        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+
+    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+    if (rawSearchExperiments) {
         searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
         const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
         searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
         searchExperiments.enabled = true;
-    } catch {
-        console.log('No search_experiments.json found, skipping search experiments validation.');
+    } else {
+        console.log('Missing search_experiments.json, skipping search experiments validation.');
     }
 
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams, searchExperiments);

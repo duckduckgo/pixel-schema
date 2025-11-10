@@ -99,7 +99,11 @@ export function readNativeExperimentsDef(mainPixelDir) {
  * @returns {object} search experiments definitions
  */
 export function readSearchExperimentsDef(mainPixelDir) {
-    return readSchemaFile(mainPixelDir, 'search_experiments.json');
+    try {
+        return readSchemaFile(mainPixelDir, 'search_experiments.json');
+    } catch {
+        return null;
+    }
 }
 
 /**
