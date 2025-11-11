@@ -73,6 +73,9 @@ Each pixel **must** contain the following properties:
 * `owners` - Github usernames of who to contact about the pixel
 * `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel
 
+Additionally, a pixel **may** contain the following properties:
+* `requireVersion` - when set to `true`, **live validation** will treat any pixel instances without a version param as being out of date.  Defaults to `false`.
+
 #### Pixels with dynamic names
 If the pixel name is parameterized, you can utilize the `suffixes` property.
 
