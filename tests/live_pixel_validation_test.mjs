@@ -431,3 +431,51 @@ describe('Alternative suffix sequences (anyOf)', () => {
         expect(pixelStatus.errors.map((e) => e.example)).to.include(pixel);
     });
 });
+
+describe('Required app version', () => {
+    const productDefWithVersion = {
+        target: {
+            key: 'appVersion',
+            version: '2.0.0',
+        },
+        forceLowerCase: false,
+    };
+
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const pixelDefs = {
+        versionRequiredPixel: {
+            requireVersion: true,
+            parameters: [
+                {
+                    key: 'appVersion',
+                    type: 'string',
+                },
+                {
+                    key: 'param1',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDefWithVersion, {}, paramsValidator);
+
+    it('should return OLD_APP_VERSION status if version param is missing when required', () => {
+        const prefix = 'versionRequiredPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('should proceed with validation if version param is present when required', () => {
+        const prefix = 'versionRequiredPixel';
+        const params = 'appVersion=2.0.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+});

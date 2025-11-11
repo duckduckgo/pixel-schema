@@ -110,10 +110,12 @@ export class LivePixelsValidator {
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             const owners = pixelDef.owners;
+            const requireVersion = pixelDef.requireVersion ?? false;
             tokenizedPixels[prefixPart] = {
                 paramsSchema,
                 suffixesSchema,
                 owners,
+                requireVersion
             };
         });
     }
@@ -222,6 +224,7 @@ export class LivePixelsValidator {
         // Found a match: remember owners
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         this.#currentPixelState.owners = pixelMatch.owners;
+        this.#currentPixelState.requireVersion = pixelMatch.requireVersion;
 
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
         return this.#currentPixelState;
@@ -236,11 +239,19 @@ export class LivePixelsValidator {
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 
-        // 1) Skip outdated pixels based on version
-        if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
-            if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+        if (this.#defsVersionKey) {
+            // 1) Skip pixels where requireVersion is set but version param is absent
+            if (this.#currentPixelState.requireVersion && !paramsStruct[this.#defsVersionKey]) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
+            }
+
+            // 1b) Skip outdated pixels based on version
+            if (paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
+                if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+                    this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
+                    return this.#currentPixelState;
+                }
             }
         }
 
