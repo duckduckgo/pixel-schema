@@ -77,7 +77,7 @@ if (rawSearchExperiments) {
 // 3) Validate pixels and params
 function validateFile(file, userMap) {
     console.log(`Validating pixels definition: ${file}`);
-    const pixelsDef = JSON5.parse(fs.readFileSync(file));
+    const pixelsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
     logErrors(`ERROR in ${file}:`, validator.validatePixelsDefinition(pixelsDef, userMap));
 }
 

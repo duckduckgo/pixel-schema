@@ -10,6 +10,7 @@ const productDef = {
         key: 'appVersion',
         version: '1.0.0',
     },
+    agents: [],
     forceLowerCase: false,
 };
 
@@ -312,6 +313,7 @@ describe('App version outdated', () => {
             key: 'appVersion',
             version: '2.0.0',
         },
+        agents: [],
         forceLowerCase: false,
     };
 
@@ -438,6 +440,7 @@ describe('Require version', () => {
             key: 'appVersion',
             version: '2.0.0',
         },
+        agents: [],
         forceLowerCase: false,
     };
 

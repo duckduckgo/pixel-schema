@@ -8,12 +8,16 @@ import { formatAjvErrors } from './error_utils.mjs';
 import { fileURLToPath } from 'url';
 import { ParamsValidator } from './params_validator.mjs';
 
+/**
+ * @typedef {import('./types.mjs').PixelDefinitions} PixelDefinitions
+ */
+
 const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas');
-const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')));
-const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')));
-const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')));
-const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')));
-const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')));
+const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')).toString());
+const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')).toString());
+const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')).toString());
+const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')).toString());
+const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 
 /**
  * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
@@ -28,7 +32,7 @@ export class DefinitionsValidator {
     #ignoreParams;
 
     #paramsValidator;
-    #ajv = new Ajv2020({ allErrors: true });
+    #ajv = new Ajv2020.default({ allErrors: true });
 
     #definedPrefixes = new Set();
 
@@ -43,7 +47,7 @@ export class DefinitionsValidator {
         this.#ignoreParams = ignoreParams;
         this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes, this.#ignoreParams);
 
-        addFormats(this.#ajv);
+        addFormats.default(this.#ajv);
         this.#ajv.addSchema(paramsSchema);
         this.#ajv.addSchema(suffixSchema);
 
@@ -94,10 +98,11 @@ export class DefinitionsValidator {
     /**
      * Validates the full pixel definition, including shortcuts, parameters, and suffixes
      *
-     * @param {*} pixelsDef - object containing multiple pixel definitions
+     * @param {PixelDefinitions} pixelsDef - object containing multiple pixel definitions
+     * @param {?Record<string, unknown>} [userMap] - map of valid github usernames
      * @returns {Array<string>} - array of error messages
      */
-    validatePixelsDefinition(pixelsDef, userMap) {
+    validatePixelsDefinition(pixelsDef, userMap = null) {
         // 1) Validate that pixel definition conforms to schema
         if (!this.#ajvValidatePixels(pixelsDef)) {
             // Doesn't make sense to check the rest if main definition is invalid
@@ -109,7 +114,7 @@ export class DefinitionsValidator {
         // (b) shortcuts, params, and suffixes can be compiled into a separate schema
         // (c) all owners are valid github usernames in the provided userMap
         const errors = [];
-        Object.entries(pixelsDef).forEach(([pixelName, pixelDef]) => {
+        Object.entries(/** @type {PixelDefinitions} */ (pixelsDef)).forEach(([pixelName, pixelDef]) => {
             if (this.#definedPrefixes.has(pixelName)) {
                 errors.push(`${pixelName} --> Conflicting/duplicated definitions found!`);
                 return;
@@ -117,7 +122,7 @@ export class DefinitionsValidator {
 
             // All owners should be valid github user names in the approved DDG list
             if (userMap) {
-                for (const owner of pixelDef.owners) {
+                for (const owner of pixelDef.owners ?? []) {
                     if (!userMap[owner]) {
                         errors.push(`Owner ${owner} for pixel ${pixelName} not in list of acceptable github user names`);
                     }

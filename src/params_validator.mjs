@@ -3,6 +3,8 @@ import addFormats from 'ajv-formats';
 import traverse from 'json-schema-traverse';
 import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
 
+/** @typedef {import('ajv').ValidateFunction} ValidateFunction */
+
 /**
  * Validator for pixel parameters and suffixes:
  * 1) ensures they can be used as schemas themselves to validate live pixels
@@ -10,7 +12,7 @@ import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
  * 3) validates live pixels
  */
 export class ParamsValidator {
-    #ajv = new Ajv2020({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
+    #ajv = new Ajv2020.default({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
     #commonParams;
     #commonSuffixes;
     #ignoreParams;
@@ -28,7 +30,7 @@ export class ParamsValidator {
         this.#ignoreParams = Object.values(ignoreParams);
         this.#searchExpParams = searchExpParams;
 
-        addFormats(this.#ajv);
+        addFormats.default(this.#ajv);
         this.#ajv.addKeyword('key');
         this.#ajv.addKeyword('keyPattern');
         this.#ajv.addKeyword('encoding');
@@ -90,7 +92,7 @@ export class ParamsValidator {
      *  - a single ordered list of suffixes, e.g. ['a','b','c']
      *  - or a list of alternative ordered lists, e.g. [['a','b','c'], ['b','c']]
      * In the latter case, anyOf is used to allow any of the sequences.
-     * @param {Array|Array[]} suffixes
+     * @param {Array|Array[]|undefined} suffixes
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
      */
@@ -140,7 +142,7 @@ export class ParamsValidator {
 
     /**
      * Compiles provided parameters into an AJV schema
-     * @param {Object[]} parameters
+     * @param {Object[]|undefined} parameters
      * @param {string} [pixelPrefix] - The pixel prefix, used to check for search experiment params.
      * @returns {Object} schemas - resultant compiled AJV schema
      * @throws if any errors are found

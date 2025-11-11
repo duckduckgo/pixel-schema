@@ -4,16 +4,19 @@ import { spawn, spawnSync } from 'child_process';
 import { PIXELS_TMP_CSV } from './constants.mjs';
 import { readTokenizedPixels, readProductDef, readNativeExperimentsDef } from './file_utils.mjs';
 
+/**
+ * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
+ */
+
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TABLE_NAME = 'metrics.pixels_validation';
 const CH_BIN = 'ddg-rw-ch';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 
 /**
- * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
- * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
- * @param {object} productDef schema is a TODO.
- * See tests/test_data/valid/product.json for an example.
+ * @param {string[]} pixelIDs - Pixel identifiers to filter on.
+ * @param {ProductDefinition} productDef - Product metadata driving the query scope.
+ * @returns {string}
  */
 function prepareCSVQuery(pixelIDs, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
@@ -58,6 +61,7 @@ function updatePixelIDs(pixelIDs) {
 async function outputTableToCSV(queryString) {
     console.log('Preparing CSV');
 
+    /** @type {Promise<void>} */
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
 
@@ -98,6 +102,7 @@ async function outputTableToCSV(queryString) {
             outputStream.end();
             if (code !== 0) {
                 reject(new Error(`clickhouse-client process exited with code ${code}`));
+                return;
             }
             resolve();
         });

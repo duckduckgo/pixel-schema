@@ -8,6 +8,7 @@ import { matchPixel } from './pixel_utils.mjs';
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
+ * @typedef {import('ajv').ValidateFunction} ValidateFunction
  */
 
 export class LivePixelsValidator {
@@ -27,7 +28,6 @@ export class LivePixelsValidator {
      * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
      * @param {ProductDefinition} productDef
      * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
-     * @param {ParamsValidator} paramsValidator
      */
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#initPixelState();
@@ -64,11 +64,11 @@ export class LivePixelsValidator {
 
     /**
      * @param {String} paramValue
-     * @param {ValidateFunction} paramSchema - AJV compiled schema
-     * @returns {String} decoded and normalized param value
+     * @param {import('ajv').SchemaObject | undefined} paramSchema - AJV schema fragment
+     * @returns {String|null} decoded and normalized param value
      */
     #getDecodedAndNormalizedVal(paramValue, paramSchema) {
-        if (!paramSchema) return; // will fail validation later
+        if (!paramSchema) return null; // will fail validation later
 
         // Decode before lowercasing
         let updatedVal = paramValue;
