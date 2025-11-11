@@ -115,7 +115,7 @@ export class LivePixelsValidator {
                 paramsSchema,
                 suffixesSchema,
                 owners,
-                requireVersion
+                requireVersion,
             };
         });
     }

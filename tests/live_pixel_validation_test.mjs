@@ -432,7 +432,7 @@ describe('Alternative suffix sequences (anyOf)', () => {
     });
 });
 
-describe('Required app version', () => {
+describe('Require version', () => {
     const productDefWithVersion = {
         target: {
             key: 'appVersion',
