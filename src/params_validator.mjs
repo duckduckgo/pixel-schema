@@ -12,6 +12,7 @@ import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
  * 3) validates live pixels
  */
 export class ParamsValidator {
+    // eslint-disable-next-line new-cap
     #ajv = new Ajv2020.default({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
     #commonParams;
     #commonSuffixes;

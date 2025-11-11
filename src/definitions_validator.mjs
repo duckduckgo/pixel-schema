@@ -32,6 +32,7 @@ export class DefinitionsValidator {
     #ignoreParams;
 
     #paramsValidator;
+    // eslint-disable-next-line new-cap
     #ajv = new Ajv2020.default({ allErrors: true });
 
     #definedPrefixes = new Set();
