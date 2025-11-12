@@ -74,8 +74,18 @@ export class LivePixelsValidator {
         let updatedVal = paramValue;
         try {
             updatedVal = decodeURIComponent(paramValue);
-        } catch (e) {
-            console.warn(`WARNING: Failed to decode param value '${paramValue}'`);
+        } catch (decodeErr) {
+            // Attempt fallback decoding as we fail to decode strings containing unescaped %, eg. "50% off sale"
+            const escapedPercentVal = paramValue.replace(/%/g, '%25');
+            if (escapedPercentVal !== paramValue) {
+                try {
+                    updatedVal = decodeURIComponent(escapedPercentVal);
+                } catch (retryErr) {
+                    console.warn(`WARNING: Failed to decode % escaped param value '${paramValue}'`, retryErr);
+                }
+            } else {
+                console.warn(`WARNING: Failed to decode param value '${paramValue}'`, decodeErr);
+            }
         }
 
         if (paramSchema.encoding === 'base64') {
