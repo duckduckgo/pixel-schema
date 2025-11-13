@@ -22,7 +22,7 @@ function meetsDeletionCriteria(attachment, latestCreationDate) {
     // People may create other attachments when investigating pixel errors
     // We don't want to delete just any attachments. The ones we are concerned with all
     // start with ASANA_ATTACHMENT_PREFIX and end with .json
-    //const startsWithPrefix = attachment.name.startsWith(ASANA_ATTACHMENT_PREFIX);
+    // const startsWithPrefix = attachment.name.startsWith(ASANA_ATTACHMENT_PREFIX);
     const startsWithPrefix = attachment.name.startsWith('pixel');
     const endsWithJson = attachment.name.endsWith('.json');
 

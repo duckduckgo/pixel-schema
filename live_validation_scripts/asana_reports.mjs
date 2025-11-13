@@ -7,7 +7,7 @@ import yaml from 'js-yaml';
 
 import * as fileUtils from '../src/file_utils.mjs';
 import { getArgParserAsanaReports } from '../src/args_utils.mjs';
-import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX } from '../src/constants.mjs';
+import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
 const MAKE_PER_OWNER_SUBTASKS = true;
 
