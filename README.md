@@ -2,7 +2,7 @@
 
 This repository holds the JSON schema and code for validating pixel definitions defined by each of DuckDuckGo's products.
 
-We uses pixels to improve our product and to understand how it is being used. 
+We uses pixels to improve our product and to understand how it is being used.
 Except for cases where users purposefully share sensitive or identifying information with us, such as,
 in a breakage report, DuckDuckGo pixels are anonymous.
 To learn more about our pixels, visit: https://duckduckgo.com/duckduckgo-help-pages/privacy/atb/
@@ -48,9 +48,9 @@ must be documented separately in `native_experiments.json` and adhere to the [na
   * `cohorts`: an array of Strings defining each cohort in the experiment
   * `metrics`: a collection of objects where each object is keyed by the metric name as it would appear in the pixel. Each metric must also provide:
     * `description` of the metric
-    * `enum` of possible values
+    * `enum` of possible values; if you don't specify a corresponding `type` for the enum then `string` is assumed.
 
-**Note**: The following are pre-defined and are automatically taken into account by the pixel schema 
+**Note**: The following are pre-defined and are automatically taken into account by the pixel schema
 (you do not need to worry about defining them):
 * `enrollmentDate` and `conversionWindowDays` parameters
 * `app_use` and `search` metrics
@@ -71,7 +71,15 @@ As you read through, you can refer to the [pixel_guide.json](./tests/test_data/v
 Each pixel **must** contain the following properties:
 * `description` - when the pixel fires and its purpose
 * `owners` - Github usernames of who to contact about the pixel
-* `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel
+* `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel:
+  * `page_load`: pixel fires when a webpage is loaded
+  * `new_tab`: pixel fires when a new tab is opened
+  * `search_ddg`: pixel fires when user performs a search
+  * `startup`: pixel fires on app startup
+  * `scheduled`: pixel fires periodically
+  * `user_submitted`: pixel fires when user submits a form
+  * `exception`: pixel fires when an exception/crash occurs
+  * `other`: catch-all
 
 #### Pixels with dynamic names
 If the pixel name is parameterized, you can utilize the `suffixes` property.
@@ -87,7 +95,13 @@ Note:
 * You can utilize a 'shortcut' to point to a common suffix that's predefined in `suffixes_dictionary.json`
   * See `device_type` in [pixel_guide.json](./tests/test_data/valid/pixels/pixel_guide.json5)
   and [suffixes_dictionary.json](./tests/test_data/valid/suffixes_dictionary.json)
-* Ordering of suffixes matters
+* Ordering of suffixes matters, and all suffixes in a given set *are required*.  To specify optional or different combinations of suffixes, you can represent them as nested arrays:
+```
+suffixes: [
+   ['first_daily_count', 'platform', 'form_factor'],
+   ['platform', 'form_factor']
+]
+```
 
 #### Pixels with parameters
 If the pixel contains parameters, you can utilize the `parameters` property.
@@ -104,7 +118,7 @@ Optional properties for each parameter:
 * You can utilize a 'shortcut' to point to a common parameter that's predefined in `params_dictionary.json`
   * See `appVersion` in [pixel_guide.json](./tests/test_data/valid/pixels/pixel_guide.json5)
   and [params_dictionary.json](./tests/test_data/valid/params_dictionary.json)
-* Ordering of suffixes matters
+* Unlike suffixes, parameters are order independent
 
 #### Temporary pixels
 If the pixel is temporary, set an expiration date in the `expires` property.
@@ -113,7 +127,7 @@ If the pixel is temporary, set an expiration date in the `expires` property.
 **Background**:
 * Validation ensures that pixel definitions conform to the [schema](./schemas/pixel_schema.json5) and follow a consistent format.
 * Validation will run as part of CI, but you can also run it manually - details below.
-* A repository that supports pixel definitions will have a folder setup with `package.json` pointing to this module, referred to as `PackageFolder` below. 
+* A repository that supports pixel definitions will have a folder setup with `package.json` pointing to this module, referred to as `PackageFolder` below.
     * Note: usually `PackageFolder` is the same as the `RepoSpecificPixelFolder` referenced in the previous section.
 
 **Pre-requisites**:
@@ -131,9 +145,9 @@ $ npm run validate-defs
 ```
 Note:
 * If formatting errors are found, you can fix them with `npm run lint.fix`
-* You can check pixel owner names against a valid list of [Github user ids](https://github.com/duckduckgo/internal-github-asana-utils/blob/main/user_map.yml) with the --githubUserMap option 
+* You can check pixel owner names against a valid list of [Github user ids](https://github.com/duckduckgo/internal-github-asana-utils/blob/main/user_map.yml) with the --githubUserMap option
 * For schema validation failures, check the output and apply fixes manually
-* You can also (re)validate a single file: 
+* You can also (re)validate a single file:
     * Schema validation: `npx validate-ddg-pixel-defs . -f ${path to file relative to PackageFolder/pixels/ directory}`
     * Formatting: `npx prettier ${path to file relative to PackageFolder/ directory} --check`
 
