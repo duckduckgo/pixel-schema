@@ -11,3 +11,5 @@ export const PIXEL_VALIDATION_RESULT = Object.freeze({
 
 export const DDG_ASANA_WORKSPACEID = '137249556945';
 export const DAYS_TO_DELETE_ATTACHMENTS = 28;
+export const ASANA_TASK_PREFIX = 'Pixel Validation Report for';
+export const ASANA_ATTACHMENT_PREFIX = 'pixel_errors';
