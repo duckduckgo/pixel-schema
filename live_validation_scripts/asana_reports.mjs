@@ -369,7 +369,6 @@ async function main() {
     // Add attachment after task creation if there are pixels with errors
     if (numPixelsWithErrors > 0) {
         try {
-
             /*  
                 To avoid deleting attachments used for other purposes
                 delete_attachments.mjs looks for attachments that start with ASANA_and end with .json 

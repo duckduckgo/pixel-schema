@@ -11,7 +11,6 @@ const argv = getArgParserDeleteAttachments('Delete attachments from Asana').pars
 const cutoffDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
 function meetsDeletionCriteria(attachment, latestCreationDate) {
-
     // Attachments can have more detailed error messages with the possibility of some more
     // sensitive/identifying details. We only want to retaun those for  DAYS_TO_DELETE_ATTACHMENTS days
     // If an attachment is older than the cutiff date we should delete it
@@ -47,9 +46,6 @@ async function main() {
     const tasks = new asana.TasksApi();
     const attachments = new asana.AttachmentsApi();
 
-   
-   
-
     try {
         let numToDelete = 0;
         const attachmentsToDelete = [];
@@ -75,7 +71,7 @@ async function main() {
                             });
                             numToDelete++;
                             console.log(`Adding attachment ${attachment.name} created at ${attachment.created_at} to delete list`);
-                        } 
+                        }
                     });
                 }
 
@@ -101,7 +97,7 @@ async function main() {
                                         console.log(
                                             `Adding attachment ${attachment.name} created at ${attachment.created_at} to delete list`,
                                         );
-                                    } 
+                                    }
                                 });
                             }
                         });
