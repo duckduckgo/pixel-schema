@@ -30,7 +30,7 @@
             "appVersion=wrongFormat"
         ],
         "/count must be integer": [
-            "appVersion=2.0.0&count=wrongFormat"
+            "count=wrongFormat&appVersion=2.0.0"
         ]
     },
     "experiment_enroll_defaultBrowser_control": {
@@ -71,7 +71,7 @@
         "Experiment metrics pixels must contain 'metric' and 'value' params": [
             "metric=stageImpression"
         ],
-        "Unknown  experiment metric 'unknown'": [
+        "Unknown experiment metric 'unknown'": [
             "metric=unknown&value=x"
         ],
         "must NOT have additional properties. Found extra property 'unexpectedParam'": [

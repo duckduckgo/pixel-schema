@@ -2,30 +2,12 @@ import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { readTokenizedPixels, readProductDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef, readExperimentsDef } from './file_utils.mjs';
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
-const TMP_TABLE_NAME = 'temp.pixel_validation';
+const TABLE_NAME = 'metrics.pixels_validation';
 const CH_BIN = 'ddg-rw-ch';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
-
-function createTempTable() {
-    const queryString = `CREATE TABLE ${TMP_TABLE_NAME}
-        (
-            \`pixel\` String,
-            \`params\` String
-        )
-        ENGINE = MergeTree
-        ORDER BY params;
-        `;
-    const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat(queryString));
-    const resultErr = clickhouseQuery.stderr.toString();
-    if (resultErr) {
-        throw new Error(`Error creating table:\n ${resultErr}`);
-    } else {
-        console.log('Table created');
-    }
-}
 
 /**
  * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
@@ -33,52 +15,70 @@ function createTempTable() {
  * @param {object} productDef schema is a TODO.
  * See tests/test_data/valid/product.json for an example.
  */
-function populateTempTable(tokenizedPixels, productDef) {
-    console.log('Populating table');
-
-    const pixelIDs = Object.keys(tokenizedPixels);
-    pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+function prepareCSVQuery(pixelIDs, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
 
-    const currentDate = new Date();
-    const pastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 28);
-    /* eslint-disable no-unmodified-loop-condition */
-    while (pastDate <= currentDate) {
-        const queryString = `INSERT INTO ${TMP_TABLE_NAME} (pixel, params)
-            WITH extractURLParameters(request) AS params
-            SELECT any(pixel), arrayFilter(x -> not match(x, '^\\\\d+=?$'), params) AS filtered_params
-            FROM metrics.pixels
-            WHERE (${pixelIDsWhereClause}) 
-            AND (${agentWhereClause})
-            AND request NOT ILIKE '%test=1%'
-            AND date = {pDate:Date}
-            GROUP BY filtered_params;`;
-        const params = `--param_pDate=${pastDate.toISOString().split('T')[0]}`;
+    const queryString = `
+        SELECT pixel, params, version
+        FROM ${TABLE_NAME}
+        WHERE (${agentWhereClause})
+        AND (${pixelIDsWhereClause});`;
 
-        console.log(`...Executing query ${queryString}`);
-        console.log(`\t...With params ${params}`);
-
-        const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat([queryString, params]));
-        const resultErr = clickhouseQuery.stderr.toString();
-        if (resultErr) {
-            throw new Error(`Error creating table:\n ${resultErr}`);
-        }
-
-        pastDate.setDate(pastDate.getDate() + 1);
-    }
-    /* eslint-enable no-unmodified-loop-condition */
+    return queryString;
 }
 
-async function outputTableToCSV() {
+function updatePixelIDs(pixelIDs) {
+    const values = pixelIDs
+        .map((id) => `'${id.split('-')[0]}'`)
+        .join(',today()), (')
+        .concat(',today()');
+    const queryString = `
+        INSERT INTO metrics.pixels_validation_pixel_ids (pixel_id, updated_at)
+        VALUES (${values});`;
+
+    console.log('Updating pixels IDs with:', pixelIDs.toString());
+
+    const result = spawnSync(CH_BIN, CH_ARGS.concat([queryString]));
+    if (result.error) {
+        console.error('Error executing clickhouse-client:', result.error);
+        throw new Error('Error inserting pixel IDs. Check logs above.');
+    }
+}
+
+async function outputTableToCSV(queryString) {
     console.log('Preparing CSV');
 
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
-        const queryString = `SELECT DISTINCT pixel, params FROM ${TMP_TABLE_NAME};`;
+
+        // Handle stream errors
+        outputStream.on('error', function (err) {
+            reject(new Error(`Failed to write to file ${PIXELS_TMP_CSV}: ${err.message}`));
+        });
+
         const clickhouseProcess = spawn(CH_BIN, CH_ARGS.concat([queryString, '--format=CSVWithNames']));
+
+        // Handle backpressure properly
+        let isPaused = false;
+
         clickhouseProcess.stdout.on('data', function (data) {
-            outputStream.write(data);
+            try {
+                const writeResult = outputStream.write(data);
+                if (!writeResult && !isPaused) {
+                    // Buffer is full, pause the readable stream to prevent memory buildup
+                    isPaused = true;
+                    clickhouseProcess.stdout.pause();
+
+                    // Wait for drain event to resume
+                    outputStream.once('drain', function () {
+                        isPaused = false;
+                        clickhouseProcess.stdout.resume();
+                    });
+                }
+            } catch (err) {
+                reject(new Error(`Failed to write data to ${PIXELS_TMP_CSV}: ${err.message}`));
+            }
         });
 
         clickhouseProcess.stderr.on('data', function (data) {
@@ -94,7 +94,7 @@ async function outputTableToCSV() {
         });
     });
 
-    await Promise.all([chPromise])
+    await chPromise
         .then(() => {
             console.log('CSV file ready');
         })
@@ -104,24 +104,27 @@ async function outputTableToCSV() {
         });
 }
 
-function deleteTempTable() {
-    console.log('Deleting table');
-    const queryString = `DROP TABLE IF EXISTS ${TMP_TABLE_NAME};`;
-    const clickhouseQuery = spawnSync(CH_BIN, CH_ARGS.concat(queryString));
-    const resultErr = clickhouseQuery.stderr.toString();
-    if (resultErr) {
-        throw new Error(`Error deleting table:\n ${resultErr}`);
+function preparePixelIDs(mainPixelDir) {
+    const tokenizedPixels = readTokenizedPixels(mainPixelDir);
+    const experimentsDef = readExperimentsDef(mainPixelDir);
+    const experimentsDefined = Object.keys(experimentsDef.activeExperiments).length > 0;
+
+    const pixelIDs = Object.keys(tokenizedPixels);
+    if (experimentsDefined) {
+        pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
     }
+
+    return pixelIDs;
 }
 
 export async function preparePixelsCSV(mainPixelDir) {
     try {
-        createTempTable();
-        populateTempTable(readTokenizedPixels(mainPixelDir), readProductDef(mainPixelDir));
-        await outputTableToCSV();
+        const pixelIDs = preparePixelIDs(mainPixelDir);
+
+        updatePixelIDs(pixelIDs);
+        const queryString = prepareCSVQuery(pixelIDs, readProductDef(mainPixelDir));
+        await outputTableToCSV(queryString);
     } catch (err) {
         console.error(err);
-    } finally {
-        deleteTempTable();
     }
 }

@@ -13,5 +13,17 @@
         "description": "Test processing pixels that's 3 levels above the previous one.",
         "owners": ["tester"],
         "triggers": ["other"]
+    },
+    "test_suffixes": {
+        "description": "Test pixel with simple suffixes",
+        "owners": ["tester"],
+        "triggers": ["other"],
+        "suffixes": ["device_type", "first_daily_count"]
+    },
+    "test_nested_suffixes": {
+        "description": "Test pixel with nested suffix arrays",
+        "owners": ["tester"],
+        "triggers": ["other"],
+        "suffixes": [["first_daily_count"], ["device_type", "first_daily_count"]]
     }
 }
