@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import asana from 'asana';
 
 import { getArgParserDeleteAttachments } from '../src/args_utils.mjs';
 import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
-const argv = getArgParserDeleteAttachments('Delete attachments from Asana').parse();
+// Only parse arguments if running as main script
+const argv = process.argv[1] === fileURLToPath(import.meta.url) ? getArgParserDeleteAttachments('Delete attachments from Asana').parse() : {};
 
 const cutoffDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -146,4 +148,7 @@ async function main() {
     }
 }
 
-main().catch(console.error);
+// Only run main if this is the script being executed directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    main().catch(console.error);
+}
