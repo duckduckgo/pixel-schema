@@ -244,6 +244,23 @@ pipeline {
                 }
             }
         }
+        stage('Delete old attachments from Asana'){
+             steps {
+                script {
+                    def result = sh(
+                        script: '''#!/bin/bash
+                            cd pixel-schema
+                            echo "Deleting old attachments from Asana..."
+                            npm run -- delete_attachments.mjs $ASANA_PROJECT
+                        ''',
+                        returnStatus: true
+                    )
+                    if (result != 0) {
+                        error("delete_attachments failed with exit code: ${result}")
+                    }
+                }
+            }
+        }
     }
     post {
         failure {
