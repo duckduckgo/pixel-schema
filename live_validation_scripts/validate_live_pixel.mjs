@@ -37,8 +37,8 @@ function main(mainDir, csvFile) {
         expPixels: {},
     };
 
-    const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
-    if (rawSearchExperiments) {
+    if (productDef.searchExperimentsEnabled) {
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
         searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
         const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
         searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);

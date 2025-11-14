@@ -514,3 +514,44 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
         expect(errors).to.have.members(expectedErrors);
     });
 });
+
+describe('Search experiments validation', () => {
+    const validator = new DefinitionsValidator({}, {}, {});
+    const searchExperiments = {
+        aaspuexp: {
+            allocation: 0,
+            description: 'A/A longitudinal test for searches per user framework',
+            assignment: 'backend_spu',
+            persistent: false,
+            variants: ['a', 'b'],
+            services: ['deep'],
+        },
+        aiheaderexp: {
+            allocation: 1.0,
+            description: 'Show AI chat pill in the header',
+            assignment: 'backend',
+            persistent: false,
+            variants: ['b'],
+        },
+        duckplayerexp: {
+            allocation: 1,
+            description: 'Port Duck Player modal to React',
+            assignment: 'frontend',
+            persistent: false,
+            variants: ['b'],
+        },
+    };
+
+    it('valid search experiments pass schema validation', () => {
+        const errors = validator.validateSearchExperimentsDefinition(searchExperiments);
+        expect(errors).to.be.empty;
+    });
+
+    it('missing required fields surface schema errors', () => {
+        const invalid = JSON.parse(JSON.stringify(searchExperiments));
+        delete invalid.aiheaderexp.allocation;
+
+        const errors = validator.validateSearchExperimentsDefinition(invalid);
+        expect(errors).to.include("/aiheaderexp must have required property 'allocation'");
+    });
+});

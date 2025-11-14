@@ -24,9 +24,12 @@ describe('Invalid defs without user map', () => {
                 `ERROR in ${pixelPath}: Invalid property name 'experiment.invalid'. If this is a pixel:`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'description'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
+                "ERROR in search_experiments.json: /expInvalidA must have required property 'variants'",
+                "ERROR in search_experiments.json: /expInvalidB must have required property 'description'",
             ];
 
             const errors = stderr.trim().split('\n');
+            console.warn('errors', errors)
             expect(errors).to.include.members(expectedErrors);
             expect(error.code).to.equal(1);
 

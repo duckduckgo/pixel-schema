@@ -1,0 +1,22 @@
+{
+    "expInvalidA": {
+        "allocation": 0,
+        "description": "Backend SPU experiment",
+        "assignment": "backend_spu",
+        "persistent": false,
+        "services": ["deep"]
+    },
+    "expInvalidB": {
+        "allocation": 1.0,
+        "assignment": "backend",
+        "persistent": false,
+        "variants": ["b"]
+    },
+    "expValidC": {
+        "allocation": 1,
+        "description": "FE experiment",
+        "assignment": "frontend",
+        "persistent": false,
+        "variants": ["b"]
+    }
+}

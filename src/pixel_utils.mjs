@@ -1,7 +1,26 @@
 import { PIXEL_DELIMITER, ROOT_PREFIX } from './constants.mjs';
 
-// Parse experiments matching schemas/search_experiments_schema.json5, remapping them to a format compatible with ignoreParams
+/**
+ * @typedef {Object} SearchExperimentDefinition
+ * @property {string} [description]
+ * @property {Array<string|number|boolean>} [variants]
+ */
+
+/**
+ * @typedef {Object} ParsedExperiment
+ * @property {string} key
+ * @property {string|null} description
+ * @property {Array<string|number|boolean>} [enum]
+ * @property {string} [type]
+ */
+
+/**
+ * Parses experiments matching schemas/search_experiments_schema.json5, remapping them to a format compatible with ignoreParams.
+ * @param {Record<string, SearchExperimentDefinition>} searchExperiments The raw search experiments.
+ * @returns {Record<string, ParsedExperiment>} Parsed experiments keyed by name and alternate name.
+ */
 export function parseSearchExperiments(searchExperiments) {
+    /** @type {Record<string, ParsedExperiment>} */
     const out = {};
 
     for (const [name, def] of Object.entries(searchExperiments)) {
@@ -13,6 +32,12 @@ export function parseSearchExperiments(searchExperiments) {
     return out;
 }
 
+/**
+ * Normalizes a single search experiment definition into the schema param representation.
+ * @param {string} name The experiment key.
+ * @param {SearchExperimentDefinition} def The raw experiment definition from SERP.
+ * @returns {ParsedExperiment} Experiment in pixel schema params format.
+ */
 function parseExperimentDef(name, def) {
     const experiment = {
         key: name,
@@ -22,7 +47,6 @@ function parseExperimentDef(name, def) {
     if (Array.isArray(def.variants)) {
         experiment.enum = def.variants;
         if (def.variants.length > 0) {
-            // infer type from first variant
             experiment.type = typeof def.variants[0];
         }
     }
@@ -30,9 +54,13 @@ function parseExperimentDef(name, def) {
     return experiment;
 }
 
-// return list of search pixels with associated experiments status
-// consumes output from parseSearchExperiments()
+/**
+ * Returns a lookup of search experiments with their enabled status.
+ * @param {Record<string, { addSearchExperimentParams?: boolean }>} pixels Parsed pixels keyed by experiment.
+ * @returns {Record<string, boolean>} A pixel mapping indicating which experiments are enabled.
+ */
 export function getEnabledSearchExperiments(pixels) {
+    /** @type {Record<string, boolean>} */
     const out = {};
 
     for (const [name, def] of Object.entries(pixels)) {
@@ -44,10 +72,13 @@ export function getEnabledSearchExperiments(pixels) {
     return out;
 }
 
-// tree search for tokenized pixels
-// returns the longest matching pixel prefix and the matched pixel object
+/**
+ * Performs a tree-based match for tokenized pixels, returning the longest prefix and matched node.
+ * @param {string} pixel The pixel identifier to match.
+ * @param {Record<string, any>} allPixels The hierarchical pixel map.
+ * @returns {[string, any]} A tuple of the matched prefix and associated pixel object.
+ */
 export function matchPixel(pixel, allPixels) {
-    // Match longest prefix:
     const pixelParts = pixel.split(PIXEL_DELIMITER);
     let pixelMatch = allPixels;
     let matchedParts = '';
@@ -66,8 +97,12 @@ export function matchPixel(pixel, allPixels) {
     return [matchedParts, pixelMatch[ROOT_PREFIX]];
 }
 
-// flat search for pixels
-// return the longest matching pixel prefix and the matched pixel object
+/**
+ * Performs a flat search for pixel prefixes, returning the longest match.
+ * @param {string} pixel The pixel identifier to match.
+ * @param {Record<string, any>} allPixels The flat map of pixel definitions.
+ * @returns {[string, any]} A tuple of the matched prefix and the matched pixel object.
+ */
 export function matchSearchExperiment(pixel, allPixels) {
     let longestPrefix = null;
 

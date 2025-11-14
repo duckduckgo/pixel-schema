@@ -47,6 +47,8 @@ const commonParams = fileUtils.readCommonParams(mainDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
 const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
+const productDef = fileUtils.readProductDef(mainDir);
+
 const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
 const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
@@ -58,20 +60,14 @@ logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefiniti
 const experiments = fileUtils.readNativeExperimentsDef(mainDir);
 logErrors('ERROR in native_experiments.json:', validator.validateNativeExperimentsDefinition(experiments));
 
-const searchExperiments = {
-    enabled: false,
-    expDefs: {},
-    expPixels: {},
-};
-const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
-if (rawSearchExperiments) {
-    searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
-    const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
-    searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
-    searchExperiments.enabled = true;
-    logErrors('ERROR in search_experiments.json:', validator.validateNativeExperimentsDefinition(searchExperiments.expDefs));
-} else {
-    console.log('Missing search_experiments.json, skipping search experiments validation.');
+if (productDef.searchExperimentsEnabled === true) {
+    console.log('Validating search_experiments.json');
+    try {
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+        logErrors('ERROR in search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
+    } catch (error) {
+        console.error('Failed to parse search_experiments.json:', error.message);
+    }
 }
 
 // 3) Validate pixels and params
