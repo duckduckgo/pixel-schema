@@ -4,13 +4,13 @@ import fs from 'fs';
 import asana from 'asana';
 
 import { getArgParserDeleteAttachments } from '../src/args_utils.mjs';
-import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX } from '../src/constants.mjs';
+import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
 const argv = getArgParserDeleteAttachments('Delete attachments from Asana').parse();
 
 const cutoffDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-function meetsDeletionCriteria(attachment, latestCreationDate) {
+export function meetsDeletionCriteria(attachment, latestCreationDate) {
     // Attachments can have more detailed error messages with the possibility of some more
     // sensitive/identifying details. We only want to retaun those for  DAYS_TO_DELETE_ATTACHMENTS days
     // If an attachment is older than the cutiff date we should delete it
@@ -21,8 +21,7 @@ function meetsDeletionCriteria(attachment, latestCreationDate) {
     // People may create other attachments when investigating pixel errors
     // We don't want to delete just any attachments. The ones we are concerned with all
     // start with ASANA_ATTACHMENT_PREFIX and end with .json
-    // const startsWithPrefix = attachment.name.startsWith(ASANA_ATTACHMENT_PREFIX);
-    const startsWithPrefix = attachment.name.startsWith('pixel');
+    const startsWithPrefix = attachment.name.startsWith(ASANA_ATTACHMENT_PREFIX);
     const endsWithJson = attachment.name.endsWith('.json');
 
     return isOldEnough && startsWithPrefix && endsWithJson;
