@@ -8,7 +8,8 @@ import { getArgParserDeleteAttachments } from '../src/args_utils.mjs';
 import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
 // Only parse arguments if running as main script
-const argv = process.argv[1] === fileURLToPath(import.meta.url) ? getArgParserDeleteAttachments('Delete attachments from Asana').parse() : {};
+const argv =
+    process.argv[1] === fileURLToPath(import.meta.url) ? getArgParserDeleteAttachments('Delete attachments from Asana').parse() : {};
 
 const cutoffDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
