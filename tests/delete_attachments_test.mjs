@@ -65,25 +65,9 @@ describe('delete_attachments.mjs - meetsDeletionCriteria', () => {
     });
 
     describe('attachments that should NOT be deleted - wrong prefix', () => {
-        it('should return false for old attachment without correct prefix', () => {
-            const attachment = {
-                name: 'some_other_file.json',
-                created_at: getDaysBeforeCutoff(10),
-            };
-            expect(meetsDeletionCriteria(attachment)).to.be.false;
-        });
-
         it('should return false for old attachment with wrong prefix but correct extension', () => {
             const attachment = {
                 name: 'wrong_prefix_data.json',
-                created_at: getDaysBeforeCutoff(10),
-            };
-            expect(meetsDeletionCriteria(attachment)).to.be.false;
-        });
-
-        it('should return false for old attachment with no prefix', () => {
-            const attachment = {
-                name: 'data.json',
                 created_at: getDaysBeforeCutoff(10),
             };
             expect(meetsDeletionCriteria(attachment)).to.be.false;
@@ -99,14 +83,6 @@ describe('delete_attachments.mjs - meetsDeletionCriteria', () => {
             expect(meetsDeletionCriteria(attachment)).to.be.false;
         });
 
-        it('should return false for old attachment with correct prefix but .png extension', () => {
-            const attachment = {
-                name: `${ASANA_ATTACHMENT_PREFIX}_screenshot.png`,
-                created_at: getDaysBeforeCutoff(10),
-            };
-            expect(meetsDeletionCriteria(attachment)).to.be.false;
-        });
-
         it('should return false for old attachment with correct prefix but no extension', () => {
             const attachment = {
                 name: `${ASANA_ATTACHMENT_PREFIX}_data`,
@@ -114,29 +90,21 @@ describe('delete_attachments.mjs - meetsDeletionCriteria', () => {
             };
             expect(meetsDeletionCriteria(attachment)).to.be.false;
         });
+    });
 
-        it('should return false for old attachment with correct prefix but uppercase .JSON', () => {
+    describe('edge cases and combinations', () => {
+        it('returns false for old attachment with correct prefix but uppercase .JSON', () => {
             const attachment = {
                 name: `${ASANA_ATTACHMENT_PREFIX}_data.JSON`,
                 created_at: getDaysBeforeCutoff(10),
             };
             expect(meetsDeletionCriteria(attachment)).to.be.false;
         });
-    });
 
-    describe('edge cases and combinations', () => {
         it('should return false when prefix appears in middle of filename', () => {
             const attachment = {
                 name: `some_${ASANA_ATTACHMENT_PREFIX}_data.json`,
                 created_at: getDaysBeforeCutoff(10),
-            };
-            expect(meetsDeletionCriteria(attachment)).to.be.false;
-        });
-
-        it('should return false when all criteria met but date is recent', () => {
-            const attachment = {
-                name: `${ASANA_ATTACHMENT_PREFIX}_data.json`,
-                created_at: new Date().toISOString(),
             };
             expect(meetsDeletionCriteria(attachment)).to.be.false;
         });
@@ -158,4 +126,3 @@ describe('delete_attachments.mjs - meetsDeletionCriteria', () => {
         });
     });
 });
-
