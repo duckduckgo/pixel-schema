@@ -1,12 +1,34 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import asana from 'asana';
 
 import { getArgParserDeleteAttachments } from '../src/args_utils.mjs';
-import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS } from '../src/constants.mjs';
+import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
-const argv = getArgParserDeleteAttachments('Delete attachments from Asana').parse();
+// Only parse arguments if running as main script
+const argv =
+    process.argv[1] === fileURLToPath(import.meta.url) ? getArgParserDeleteAttachments('Delete attachments from Asana').parse() : {};
+
+const cutoffDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+export function meetsDeletionCriteria(attachment, latestCreationDate) {
+    // Attachments can have more detailed error messages with the possibility of some more
+    // sensitive/identifying details. We only want to retaun those for  DAYS_TO_DELETE_ATTACHMENTS days
+    // If an attachment is older than the cutiff date we should delete it
+    const attachmentDate = new Date(attachment.created_at);
+    const cutoffDateObj = new Date(cutoffDate);
+    const isOldEnough = attachmentDate < cutoffDateObj;
+
+    // People may create other attachments when investigating pixel errors
+    // We don't want to delete just any attachments. The ones we are concerned with all
+    // start with ASANA_ATTACHMENT_PREFIX and end with .json
+    const startsWithPrefix = attachment.name.startsWith(ASANA_ATTACHMENT_PREFIX);
+    const endsWithJson = attachment.name.endsWith('.json');
+
+    return isOldEnough && startsWithPrefix && endsWithJson;
+}
 
 async function main() {
     console.log('AsanaWorkspace ID: ' + DDG_ASANA_WORKSPACEID);
@@ -26,15 +48,6 @@ async function main() {
     const tasks = new asana.TasksApi();
     const attachments = new asana.AttachmentsApi();
 
-    const latestCreationDate = new Date(Date.now() - DAYS_TO_DELETE_ATTACHMENTS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    // Helper function to determine if an attachment meets deletion criteria
-    function meetsDeletionCriteria(attachment, latestCreationDate) {
-        return (
-            attachment.created_at < latestCreationDate && attachment.name.startsWith('pixel_errors') && attachment.name.endsWith('.json')
-        );
-    }
-
     try {
         let numToDelete = 0;
         const attachmentsToDelete = [];
@@ -45,13 +58,13 @@ async function main() {
         console.log(`Number of tasks in the project ${DDG_ASANA_PIXEL_VALIDATION_PROJECT}: ${result.data.length}`);
 
         for (const task of result.data) {
-            // Only delete attachments from tasks whose name includes Pixel Validation Reports
-            if (task.name.includes('Pixel Validation Report')) {
+            // Only delete attachments from tasks whose name includes ASANA_TASK_PREFIX
+            if (task.name.includes(ASANA_TASK_PREFIX)) {
                 console.log(`Task ${task.name} has ${task.attachments.length} attachments`);
 
                 if (task.attachments && task.attachments.length > 0) {
                     task.attachments.forEach((attachment) => {
-                        if (meetsDeletionCriteria(attachment, latestCreationDate)) {
+                        if (meetsDeletionCriteria(attachment, cutoffDate)) {
                             attachmentsToDelete.push({
                                 gid: attachment.gid,
                                 name: attachment.name,
@@ -59,6 +72,7 @@ async function main() {
                                 createdAt: attachment.created_at,
                             });
                             numToDelete++;
+                            console.log(`Adding attachment ${attachment.name} created at ${attachment.created_at} to delete list`);
                         }
                     });
                 }
@@ -74,7 +88,7 @@ async function main() {
                             if (subtask.attachments && subtask.attachments.length > 0) {
                                 console.log(`Subtask ${subtask.name} has ${subtask.attachments.length} attachments`);
                                 subtask.attachments.forEach((attachment) => {
-                                    if (meetsDeletionCriteria(attachment, latestCreationDate)) {
+                                    if (meetsDeletionCriteria(attachment, cutoffDate)) {
                                         attachmentsToDelete.push({
                                             gid: attachment.gid,
                                             name: attachment.name,
@@ -82,6 +96,9 @@ async function main() {
                                             createdAt: attachment.created_at,
                                         });
                                         numToDelete++;
+                                        console.log(
+                                            `Adding attachment ${attachment.name} created at ${attachment.created_at} to delete list`,
+                                        );
                                     }
                                 });
                             }
@@ -92,6 +109,9 @@ async function main() {
                 }
             }
         }
+
+        console.log('Attachments to delete:', attachmentsToDelete);
+        console.log('Number of attachments to delete:', numToDelete);
 
         if (numToDelete > 0) {
             // If running with --dry-run flag, don't actually delete
@@ -129,4 +149,7 @@ async function main() {
     }
 }
 
-main().catch(console.error);
+// Only run main if this is the script being executed directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    main().catch(console.error);
+}

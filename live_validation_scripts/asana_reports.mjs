@@ -7,7 +7,7 @@ import yaml from 'js-yaml';
 
 import * as fileUtils from '../src/file_utils.mjs';
 import { getArgParserAsanaReports } from '../src/args_utils.mjs';
-import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS } from '../src/constants.mjs';
+import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 
 const MAKE_PER_OWNER_SUBTASKS = true;
 
@@ -127,7 +127,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
     const ownerName = await getOwnerName(owner);
 
     // Write thisOwnersPixelsWithErrors to a temporary file
-    const tempFilePath = path.join(dirPath, `pixel_errors_${owner}.json`);
+    const tempFilePath = path.join(dirPath, `${ASANA_ATTACHMENT_PREFIX}_${owner}.json`);
     fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 4));
 
     const numPixels = Object.keys(ownersPixelData).length;
@@ -230,7 +230,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
             .post('https://app.asana.com/api/1.0/attachments')
             .set('Authorization', `Bearer ${token.accessToken}`)
             .field('parent', subtaskResult.data.gid)
-            .field('name', `pixel_errors_${owner}.json`)
+            .field('name', `${ASANA_ATTACHMENT_PREFIX}_${owner}.json`)
             .attach('file', tempFilePath);
 
         console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
@@ -318,7 +318,7 @@ async function main() {
 
     // Create the top level Pixel Validation Report task
     const currentDateTime = new Date().toISOString().replace('T', ' ').split('.')[0]; // Format: YYYY-MM-DD HH:MM:SS
-    const taskName = `Pixel Validation Report for ${dirPath} - ${currentDateTime}`;
+    const taskName = `${ASANA_TASK_PREFIX} ${dirPath} - ${currentDateTime}`;
 
     console.log(taskName);
 
@@ -369,11 +369,16 @@ async function main() {
     // Add attachment after task creation if there are pixels with errors
     if (numPixelsWithErrors > 0) {
         try {
+            /*  
+                To avoid deleting attachments used for other purposes
+                delete_attachments.mjs looks for attachments that start with ASANA_and end with .json 
+                if we change that modify delete_attachments
+            */
             const attachmentResult = await superagent.default
                 .post('https://app.asana.com/api/1.0/attachments')
                 .set('Authorization', `Bearer ${token.accessToken}`)
                 .field('parent', taskGid)
-                .field('name', `pixel_with_errors.json`)
+                .field('name', `${ASANA_ATTACHMENT_PREFIX}.json`)
                 .attach('file', pixelsErrorsPath);
 
             console.log(`Attachment successfully created: ${attachmentResult.body.data.gid}`);
