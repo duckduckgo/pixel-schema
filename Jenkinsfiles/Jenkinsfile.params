@@ -251,12 +251,12 @@ pipeline {
                         script: '''#!/bin/bash
                             cd pixel-schema
                             echo "Deleting old attachments from Asana..."
-                            fnm exec npm run -- delete_attachments $ASANA_PROJECT
+                            fnm exec npm run -- delete-attachments $ASANA_PROJECT
                         ''',
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("delete_attachments failed with exit code: ${result}")
+                        error("delete-attachments failed with exit code: ${result}")
                     }
                 }
             }
