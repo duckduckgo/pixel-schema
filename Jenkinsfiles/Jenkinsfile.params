@@ -251,7 +251,7 @@ pipeline {
                         script: '''#!/bin/bash
                             cd pixel-schema
                             echo "Deleting old attachments from Asana..."
-                            fnm exec npm run -- delete-attachments $ASANA_PROJECT
+                            fnm exec npm run delete-attachments $ASANA_PROJECT
                         ''',
                         returnStatus: true
                     )
