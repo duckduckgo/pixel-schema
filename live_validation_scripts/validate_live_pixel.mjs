@@ -42,9 +42,10 @@ function main(mainDir, csvFile) {
         searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
         const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
         searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
+        console.log(`Loaded ${Object.keys(searchExperiments.expDefs).length} search experiments.`);
         searchExperiments.enabled = true;
     } else {
-        console.log('Missing search_experiments.json, skipping search experiments validation.');
+        console.log('Skipping search experiments.');
     }
 
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams, searchExperiments);
@@ -60,6 +61,16 @@ function main(mainDir, csvFile) {
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
             let parsedParams = JSON5.parse(row.params);
+
+            // filter out SERP nounces in the form "7128788=7128788"
+            try {
+                // console.log(parsedParams)
+                parsedParams = parsedParams.filter((p) => !p.match(/^\d+=\d*$/));
+            } catch (e) {
+                console.error(`Error filtering params for pixel ${pixelRequestFormat}: ${parsedParams}`);
+                console.error(e);
+            }
+
             // Append version param (e.g. appVersion=1.2.3) if present in a dedicated CSV column.
             if (typeof row.version === 'string' && row.version.trim() !== '') {
                 parsedParams = parsedParams.concat(row.version.trim());
