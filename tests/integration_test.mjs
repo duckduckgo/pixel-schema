@@ -29,7 +29,6 @@ describe('Invalid defs without user map', () => {
             ];
 
             const errors = stderr.trim().split('\n');
-            console.warn('errors', errors)
             expect(errors).to.include.members(expectedErrors);
             expect(error.code).to.equal(1);
 
