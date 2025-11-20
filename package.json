@@ -19,7 +19,7 @@
         "test": "mocha ./tests/**/*.mjs",
         "test.one": "mocha",
         "test.coverage": "c8 mocha ./tests/**/*.mjs",
-        "lint": "eslint . && prettier . --check",
+        "lint": "eslint . && prettier . --check && tsc",
         "lint.fix": "eslint . --fix && prettier . --write",
         "tsc": "tsc",
         "tsc-watch": "tsc --watch",
