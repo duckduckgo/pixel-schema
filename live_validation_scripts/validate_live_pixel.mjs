@@ -64,16 +64,19 @@ function main(mainDir, csvFile) {
 
             // filter out SERP nounces in the form "7128788=7128788"
             try {
-                // console.log(parsedParams)
                 parsedParams = parsedParams.filter((p) => !p.match(/^\d+=\d*$/));
             } catch (e) {
                 console.error(`Error filtering params for pixel ${pixelRequestFormat}: ${parsedParams}`);
                 console.error(e);
             }
 
-            // Append version param (e.g. appVersion=1.2.3) if present in a dedicated CSV column.
-            if (typeof row.version === 'string' && row.version.trim() !== '') {
-                parsedParams = parsedParams.concat(row.version.trim());
+            // Append version param (e.g. appVersion=1.2.3) when defined in product.json
+            const versionKey = productDef.target.key ?? null;
+            if (versionKey) {
+                // ensure version present in a dedicated CSV column and not already in params
+                if (typeof row.version === 'string' && row.version.trim() !== '' && parsedParams.every(p => !p.startsWith(versionKey + '='))) {
+                    parsedParams = parsedParams.concat(row.version.trim());
+                }
             }
             const paramsUrlFormat = parsedParams.join('&');
 
