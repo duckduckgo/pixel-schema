@@ -4,12 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import {
-    getArgParser,
-    getArgParserWithCsv,
-    getArgParserAsanaReports,
-    getArgParserDeleteAttachments,
-} from '../src/args_utils.mjs';
+import { getArgParser, getArgParserWithCsv, getArgParserAsanaReports, getArgParserDeleteAttachments } from '../src/args_utils.mjs';
 import { PIXELS_TMP_CSV } from '../src/constants.mjs';
 
 const ORIGINAL_EXISTS_SYNC = fs.existsSync;

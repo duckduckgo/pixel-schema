@@ -11,7 +11,6 @@ import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
 
 import * as fileUtils from '../src/file_utils.mjs';
-import { parseSearchExperiments, getEnabledSearchExperiments } from '../src/pixel_utils.mjs';
 
 const argv = yargs(hideBin(process.argv))
     .command('$0 [dirPath]', 'validate pixel definitions', (yargs) => {

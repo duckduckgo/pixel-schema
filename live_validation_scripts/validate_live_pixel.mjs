@@ -74,7 +74,11 @@ function main(mainDir, csvFile) {
             const versionKey = productDef.target.key ?? null;
             if (versionKey) {
                 // ensure version present in a dedicated CSV column and not already in params
-                if (typeof row.version === 'string' && row.version.trim() !== '' && parsedParams.every(p => !p.startsWith(versionKey + '='))) {
+                if (
+                    typeof row.version === 'string' &&
+                    row.version.trim() !== '' &&
+                    parsedParams.every((p) => !p.startsWith(versionKey + '='))
+                ) {
                     parsedParams = parsedParams.concat(row.version.trim());
                 }
             }
