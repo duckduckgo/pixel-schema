@@ -24,10 +24,10 @@ export class LivePixelsValidator {
     #currentPixelState;
 
     /**
-     * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
-     * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
-     * @param {ProductDefinition} productDef
-     * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
+     * @param {object} tokenizedPixels tokenized pixel definitions keyed by prefix segments.
+     * @param {ProductDefinition} productDef product configuration for validation rules.
+     * @param {object} experimentsDef experiment definitions matching native_experiments_schema.json5.
+     * @param {ParamsValidator} paramsValidator validator instance used to compile schemas.
      */
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#initPixelState();
@@ -104,6 +104,13 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
+    /**
+     * Recursively compiles pixel definitions into AJV validators.
+     * @param {object} tokenizedPixels tokenized pixel subtree.
+     * @param {ParamsValidator} paramsValidator validator used for schema compilation.
+     * @param {string} [currentPrefix] accumulated pixel prefix.
+     * @returns {void}
+     */
     #compileDefs(tokenizedPixels, paramsValidator, currentPrefix = '') {
         Object.entries(tokenizedPixels).forEach(([prefixPart, pixelDef]) => {
             const newPrefix = currentPrefix ? `${currentPrefix}${PIXEL_DELIMITER}${prefixPart}` : prefixPart;
@@ -132,6 +139,7 @@ export class LivePixelsValidator {
 
     /**
      * (Re)initializes the current pixel state.
+     * @returns {void}
      */
     #initPixelState() {
         this.#currentPixelState = {
@@ -142,6 +150,12 @@ export class LivePixelsValidator {
         };
     }
 
+    /**
+     * Validates a native experiment pixel name and parameters.
+     * @param {string} pixel full pixel name.
+     * @param {string} paramsUrlFormat query string without cache buster.
+     * @returns {object} current validation state.
+     */
     validateNativeExperimentPixel(pixel, paramsUrlFormat) {
         const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
@@ -240,6 +254,14 @@ export class LivePixelsValidator {
         return this.#currentPixelState;
     }
 
+    /**
+     * Validates pixel parameters and suffixes against compiled schemas.
+     * @param {string} prefix matched pixel prefix.
+     * @param {string} pixel full pixel name.
+     * @param {string} paramsUrlFormat query string without cache buster.
+     * @param {object} pixelSchemas compiled schemas for the pixel.
+     * @returns {object} resulting validation state.
+     */
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
@@ -285,6 +307,13 @@ export class LivePixelsValidator {
         return this.#currentPixelState;
     }
 
+    /**
+     * Persists validation errors on the current pixel state.
+     * @param {string} prefix prefix used in error reporting.
+     * @param {string} example source example for the error.
+     * @param {string[]|null|undefined} errors AJV error messages.
+     * @returns {void}
+     */
     #saveErrors(prefix, example, errors) {
         if (!errors || !errors.length) return;
 

@@ -193,10 +193,19 @@ export class ParamsValidator {
     }
 
     /** EXPERIMENTS */
+    /**
+     * Compiles a single experiment metric definition into an AJV validator.
+     * @param {object} metricDef - Schema fragment describing the metric parameters.
+     * @returns {ValidateFunction} AJV validator for the supplied metric definition.
+     */
     compileExperimentMetricSchema(metricDef) {
         return this.#ajv.compile(this.getUpdatedItem(metricDef, {}));
     }
 
+    /**
+     * Compiles the set of shared experiment parameters into an AJV validator.
+     * @returns {ValidateFunction} AJV validator for the common experiment params.
+     */
     compileCommonExperimentParamsSchema() {
         const expPrams = [
             {

@@ -38,9 +38,9 @@ export class DefinitionsValidator {
     #definedPrefixes = new Set();
 
     /**
-     * @param {*} commonParams - object containing common parameters
-     * @param {*} commonSuffixes - object containing common suffixes
-     * @param {*} ignoreParams - object containing parameters to ignore
+     * @param {Record<string, unknown>} commonParams - object containing common parameters
+     * @param {Record<string, unknown>} commonSuffixes - object containing common suffixes
+     * @param {Record<string, unknown>} ignoreParams - object containing parameters to ignore
      */
     constructor(commonParams, commonSuffixes, ignoreParams) {
         this.#commonParams = commonParams;
@@ -57,16 +57,28 @@ export class DefinitionsValidator {
         this.#ajvValidateSuffixes = this.#ajv.compile(suffixSchema);
     }
 
+    /**
+     * Validates the parameter dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
     validateCommonParamsDefinition() {
         this.#ajvValidateParams(this.#commonParams);
         return formatAjvErrors(this.#ajvValidateParams.errors);
     }
 
+    /**
+     * Validates the shared dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
     validateCommonSuffixesDefinition() {
         this.#ajvValidateSuffixes(this.#commonSuffixes);
         return formatAjvErrors(this.#ajvValidateSuffixes.errors);
     }
 
+    /**
+     * Validates the ignore parameter definitions against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
     validateIgnoreParamsDefinition() {
         this.#ajvValidateParams(this.#ignoreParams);
         return formatAjvErrors(this.#ajvValidateParams.errors);
