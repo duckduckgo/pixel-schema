@@ -112,7 +112,7 @@ export class LivePixelsValidator {
 
         // Fall back to checking for keyPattern matches
         const patternSchemas = paramsSchema.patternProperties;
-        if(Object.keys(patternSchemas).length > 0) {
+        if (Object.keys(patternSchemas).length > 0) {
             for (const [pattern, schema] of Object.entries(patternSchemas)) {
                 if (new RegExp(pattern).test(paramKey)) {
                     return schema;
