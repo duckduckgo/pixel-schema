@@ -104,6 +104,25 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
+    #getParamSchemaForKey(paramKey, paramsSchema) {
+        if (!paramsSchema) return null;
+
+        const directMatch = paramsSchema.properties?.[paramKey];
+        if (directMatch) return directMatch;
+
+        // Fall back to checking for keyPattern matches
+        const patternSchemas = paramsSchema.patternProperties;
+        if(Object.keys(patternSchemas).length > 0) {
+            for (const [pattern, schema] of Object.entries(patternSchemas)) {
+                if (new RegExp(pattern).test(paramKey)) {
+                    return schema;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Recursively compiles pixel definitions into AJV validators.
      * @param {object} tokenizedPixels tokenized pixel subtree.
@@ -267,7 +286,7 @@ export class LivePixelsValidator {
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
             const normalizedKey = this.#getNormalizedVal(key);
-            const paramSchema = pixelSchemas.paramsSchema.schema.properties[normalizedKey];
+            const paramSchema = this.#getParamSchemaForKey(normalizedKey, pixelSchemas.paramsSchema.schema);
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 

@@ -482,3 +482,55 @@ describe('Require version', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 });
+
+describe('Key pattern parameters with explicit types', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const prefix = 'patternPixel';
+    const pixelDefs = {
+        patternPixel: {
+            parameters: [
+                {
+                    key: 'requiredParam',
+                    type: 'string',
+                },
+                {
+                    keyPattern: '^intParam\\d+$',
+                    type: 'integer',
+                },
+                {
+                    keyPattern: '^strParam\\d+$',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+    it('accepts params matching typed keyPattern definitions', () => {
+        const params = 'requiredParam=ok&intParam1=-42&strParam2=value';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('rejects integer keyPattern with non-integer value', () => {
+        const params = 'requiredParam=ok&intParam1=notAnInt';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        const errors = pixelStatus.errors.map((e) => e.error);
+        expect(errors).to.include('/intParam1 must be integer');
+        expect(pixelStatus.errors.map((e) => e.example)).to.include(params);
+    });
+
+    it('rejects additional params not matching keyPattern', () => {
+        const params = 'requiredParam=ok&strParam2=value&unexpected=1';
+        const expectedErrors = ["must NOT have additional properties. Found extra property 'unexpected'"];
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(expectedErrors);
+        expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
+    });
+});
