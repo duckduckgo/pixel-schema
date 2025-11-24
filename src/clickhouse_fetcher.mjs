@@ -15,7 +15,9 @@ const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--quer
 
 /**
  * @param {string[]} pixelIDs - Pixel identifiers to filter on.
+ * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
  * @param {ProductDefinition} productDef - Product metadata driving the query scope.
+ * See tests/test_data/valid/product.json for an example.
  * @returns {string}
  */
 function prepareCSVQuery(pixelIDs, productDef) {
