@@ -57,7 +57,7 @@ function parseExperimentDef(name, def) {
 /**
  * Returns a lookup of search experiments with their enabled status.
  * @param {Record<string, { addSearchExperimentParams?: boolean }>} pixels Parsed pixels keyed by experiment.
- * @returns {Record<string, boolean>} A pixel mapping indicating which experiments are enabled.
+ * @returns {Record<string, boolean>} A pixel mapping indicating which pixels have experiments enabled.
  */
 export function getEnabledSearchExperiments(pixels) {
     /** @type {Record<string, boolean>} */
@@ -66,7 +66,8 @@ export function getEnabledSearchExperiments(pixels) {
     for (const [name, def] of Object.entries(pixels)) {
         // only "addSearchExperimentParams: false" present in pixels.json
         // so default to true
-        out[name] = def.addSearchExperimentParams ?? true;
+        const enabled = def.addSearchExperimentParams ?? true;
+        if (enabled) out[name] = true;
     }
 
     return out;
