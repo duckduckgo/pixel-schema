@@ -4,6 +4,13 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { PIXELS_TMP_CSV } from './constants.mjs';
 
+/** @typedef {import('yargs').Argv} Argv */
+
+/**
+ * Builds a yargs parser for commands that require a directory path.
+ * @param {string} description - CLI command description.
+ * @returns {Argv} Configured yargs parser.
+ */
 export function getArgParser(description) {
     return yargs(hideBin(process.argv))
         .command('$0 [dirPath]', description, (yargs) => {
@@ -22,6 +29,12 @@ export function getArgParser(description) {
         .demandOption('dirPath');
 }
 
+/**
+ * Builds a yargs parser for commands that require a directory path and optional CSV file.
+ * @param {string} description - CLI command description.
+ * @param {string} csvFileDescription - Help text for the CSV file argument.
+ * @returns {Argv} Configured yargs parser.
+ */
 export function getArgParserWithCsv(description, csvFileDescription) {
     return yargs(hideBin(process.argv))
         .command('$0 [dirPath] [csvFile]', description, (yargs) => {
@@ -46,6 +59,11 @@ export function getArgParserWithCsv(description, csvFileDescription) {
         .demandOption('dirPath');
 }
 
+/**
+ * Builds a yargs parser for generating Asana reports.
+ * @param {string} description - CLI command description.
+ * @returns {Argv} Configured yargs parser.
+ */
 export function getArgParserAsanaReports(description) {
     return yargs(hideBin(process.argv))
         .command('$0 dirPath userMapFile asanaProjectID', description, (yargs) => {
@@ -75,6 +93,11 @@ export function getArgParserAsanaReports(description) {
         .demandOption('dirPath');
 }
 
+/**
+ * Builds a yargs parser for deleting Asana attachments.
+ * @param {string} description - CLI command description.
+ * @returns {Argv} Configured yargs parser.
+ */
 export function getArgParserDeleteAttachments(description) {
     return yargs(hideBin(process.argv))
         .command('$0 asanaProjectID', description, (yargs) => {

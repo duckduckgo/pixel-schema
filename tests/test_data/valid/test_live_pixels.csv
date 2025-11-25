@@ -2,6 +2,7 @@ pixel,params,version
 m.my.first.unknown-pixel,[],
 second-unknown-pixel,[],
 m.my.first.pixel.test,[],
+m.my.first.pixel.test,['expValidA=a'],
 m.my.first.pixel.test,['extraParam=10'],
 m.my.first.pixel.test.extra-suffix,[],
 m.my.first.pixel.unexpected-suffix,[],

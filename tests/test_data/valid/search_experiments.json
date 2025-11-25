@@ -1,0 +1,24 @@
+{
+    "expValidA": {
+        "allocation": 0,
+        "description": "Backend SPU experiment",
+        "assignment": "backend_spu",
+        "persistent": false,
+        "variants": ["a", "b"],
+        "services": ["deep"]
+    },
+    "expValidB": {
+        "allocation": 1.0,
+        "description": "BE experiment",
+        "assignment": "backend",
+        "persistent": false,
+        "variants": ["b"]
+    },
+    "expValidC": {
+        "allocation": 1,
+        "description": "FE experiment",
+        "assignment": "frontend",
+        "persistent": false,
+        "variants": ["b"]
+    }
+}

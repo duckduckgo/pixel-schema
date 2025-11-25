@@ -5,11 +5,11 @@
 /**
  * Formats AJV validation errors
  *
- * @param {Array<import("ajv").ErrorObject>} validationErrors - array of AJV error objects
+ * @param {Array<import("ajv").ErrorObject> | null | undefined} validationErrors - array of AJV error objects
  * @param {*} suffixes - object containing request suffixes
  * @returns {Array<string>} - array of formatted error messages
  */
-function formatAjvErrors(validationErrors, suffixes) {
+function formatAjvErrors(validationErrors, suffixes = null) {
     const errors = [];
     if (!Array.isArray(validationErrors)) {
         return errors;
@@ -48,7 +48,7 @@ function formatAjvErrors(validationErrors, suffixes) {
  *
  * @param prefix {string} - prefix for the error messages
  * @param {Array<string>} errors
- * @returns {string} the same error (for chaining)
+ * @returns
  */
 function logErrors(prefix, errors) {
     if (errors.length <= 0) return;

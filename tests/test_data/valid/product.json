@@ -4,5 +4,6 @@
         "key": "appVersion",
         "version": "1.00.0"
     },
-    "forceLowerCase": false
+    "forceLowerCase": false,
+    "searchExperimentsEnabled": true
 }

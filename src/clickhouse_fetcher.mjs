@@ -2,7 +2,11 @@ import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { readTokenizedPixels, readProductDef, readExperimentsDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef, readNativeExperimentsDef } from './file_utils.mjs';
+
+/**
+ * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
+ */
 
 const MAX_MEMORY = 2 * 1024 * 1024 * 1024; // 2GB
 const TABLE_NAME = 'metrics.pixels_validation';
@@ -10,24 +14,39 @@ const CH_BIN = 'ddg-rw-ch';
 const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--query'];
 
 /**
- * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
+ * @param {string[]} pixelIDs - Pixel identifiers to filter on.
  * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
- * @param {object} productDef schema is a TODO.
+ * @param {ProductDefinition} productDef - Product metadata driving the query scope.
  * See tests/test_data/valid/product.json for an example.
+ * @returns {string}
  */
 function prepareCSVQuery(pixelIDs, productDef) {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
+    let dateFilter = '';
+
+    if (productDef.target.queryWindowInDays) {
+        const days = productDef.target.queryWindowInDays;
+        console.log(`Query window: ${days} days`);
+        // Append date filter to the where clause
+        dateFilter = `AND (updated_at >= today() - ${days})`;
+    }
 
     const queryString = `
         SELECT pixel, params, version
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
-        AND (${pixelIDsWhereClause});`;
+        AND (${pixelIDsWhereClause})
+        ${dateFilter};`;
 
     return queryString;
 }
 
+/**
+ * UPdate pixel identifiers in ClickHouse for future queries.
+ * @param {string[]} pixelIDs - Pixel identifiers to upsert.
+ * @returns {void}
+ */
 function updatePixelIDs(pixelIDs) {
     const values = pixelIDs
         .map((id) => `'${id.split('-')[0]}'`)
@@ -46,9 +65,15 @@ function updatePixelIDs(pixelIDs) {
     }
 }
 
+/**
+ * Executes a ClickHouse query and streams the result into a CSV file.
+ * @param {string} queryString - ClickHouse query string.
+ * @returns {Promise<void>} Resolves when the CSV file has been written.
+ */
 async function outputTableToCSV(queryString) {
     console.log('Preparing CSV');
 
+    /** @type {Promise<void>} */
     const chPromise = new Promise((resolve, reject) => {
         const outputStream = fs.createWriteStream(PIXELS_TMP_CSV);
 
@@ -89,6 +114,7 @@ async function outputTableToCSV(queryString) {
             outputStream.end();
             if (code !== 0) {
                 reject(new Error(`clickhouse-client process exited with code ${code}`));
+                return;
             }
             resolve();
         });
@@ -104,19 +130,29 @@ async function outputTableToCSV(queryString) {
         });
 }
 
+/**
+ * Collects pixel identifiers derived from tokenized definitions and native experiments.
+ * @param {string} mainPixelDir - Path to the pixel definitions directory.
+ * @returns {string[]} Pixel identifiers used in the ClickHouse query.
+ */
 function preparePixelIDs(mainPixelDir) {
     const tokenizedPixels = readTokenizedPixels(mainPixelDir);
-    const experimentsDef = readExperimentsDef(mainPixelDir);
-    const experimentsDefined = Object.keys(experimentsDef.activeExperiments).length > 0;
+    const nativeExperimentsDef = readNativeExperimentsDef(mainPixelDir);
+    const nativeExperimentsDefined = Object.keys(nativeExperimentsDef.activeExperiments).length > 0;
 
     const pixelIDs = Object.keys(tokenizedPixels);
-    if (experimentsDefined) {
-        pixelIDs.push('experiment'); // add experiment to the list of pixel IDs (defined outside tokenized defs)
+    if (nativeExperimentsDefined) {
+        pixelIDs.push('experiment'); // add native "experiment.*" pixels to the list of pixel IDs (defined outside tokenized defs)
     }
 
     return pixelIDs;
 }
 
+/**
+ * Builds CSV containing recent pixel data from Clickhouse for validation workflows.
+ * @param {string} mainPixelDir - Path to the pixel definitions directory.
+ * @returns {Promise<void>} Resolves when the CSV preparation is complete.
+ */
 export async function preparePixelsCSV(mainPixelDir) {
     try {
         const pixelIDs = preparePixelIDs(mainPixelDir);

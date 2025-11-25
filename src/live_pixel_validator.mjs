@@ -3,10 +3,12 @@ import { compareVersions, validate as validateVersion } from 'compare-versions';
 
 import { formatAjvErrors } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from './constants.mjs';
+import { matchPixel } from './pixel_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
  * @typedef {import('./params_validator.mjs').ParamsValidator} ParamsValidator
+ * @typedef {import('ajv').ValidateFunction} ValidateFunction
  */
 
 export class LivePixelsValidator {
@@ -22,11 +24,10 @@ export class LivePixelsValidator {
     #currentPixelState;
 
     /**
-     * @param {object} tokenizedPixels similar in format to schemas/pixel_schema.json5.
-     * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
-     * @param {ProductDefinition} productDef
-     * @param {object} experimentsDef experiment definitions, following schemas/native_experiments_schema.json5 type.
-     * @param {ParamsValidator} paramsValidator
+     * @param {object} tokenizedPixels tokenized pixel definitions keyed by prefix segments.
+     * @param {ProductDefinition} productDef product configuration for validation rules.
+     * @param {object} experimentsDef experiment definitions matching native_experiments_schema.json5.
+     * @param {ParamsValidator} paramsValidator validator instance used to compile schemas.
      */
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#initPixelState();
@@ -63,18 +64,28 @@ export class LivePixelsValidator {
 
     /**
      * @param {String} paramValue
-     * @param {ValidateFunction} paramSchema - AJV compiled schema
-     * @returns {String} decoded and normalized param value
+     * @param {import('ajv').SchemaObject | undefined} paramSchema - AJV schema fragment
+     * @returns {String|null} decoded and normalized param value
      */
     #getDecodedAndNormalizedVal(paramValue, paramSchema) {
-        if (!paramSchema) return; // will fail validation later
+        if (!paramSchema) return null; // will fail validation later
 
         // Decode before lowercasing
         let updatedVal = paramValue;
         try {
             updatedVal = decodeURIComponent(paramValue);
-        } catch (e) {
-            console.warn(`WARNING: Failed to decode param value '${paramValue}'`);
+        } catch (decodeErr) {
+            // Attempt fallback decoding as we fail to decode strings containing unescaped %, eg. "50% off sale"
+            const escapedPercentVal = paramValue.replace(/%/g, '%25');
+            if (escapedPercentVal !== paramValue) {
+                try {
+                    updatedVal = decodeURIComponent(escapedPercentVal);
+                } catch (retryErr) {
+                    console.warn(`WARNING: Failed to decode % escaped param value '${paramValue}'`, retryErr);
+                }
+            } else {
+                console.warn(`WARNING: Failed to decode param value '${paramValue}'`, decodeErr);
+            }
         }
 
         if (paramSchema.encoding === 'base64') {
@@ -93,10 +104,42 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
-    #compileDefs(tokenizedPixels, paramsValidator) {
-        Object.entries(tokenizedPixels).forEach(([prefix, pixelDef]) => {
-            if (prefix !== ROOT_PREFIX) {
-                this.#compileDefs(pixelDef, paramsValidator);
+    /**
+     * Retrieves the schema fragment matching the provided parameter key.
+     * @param {string} paramKey - Normalized parameter key.
+     * @param {{ properties?: Record<string, unknown>, patternProperties?: Record<string, unknown> }|null} paramsSchema - Compiled AJV schema for pixel parameters.
+     * @returns {object|null} Matching schema fragment or null when not found.
+     */
+    #getParamSchemaForKey(paramKey, paramsSchema) {
+        if (!paramsSchema) return null;
+
+        const directMatch = paramsSchema.properties?.[paramKey];
+        if (directMatch) return directMatch;
+
+        const patternSchemas = paramsSchema.patternProperties ?? {};
+        if (Object.keys(patternSchemas).length > 0) {
+            for (const [pattern, schema] of Object.entries(patternSchemas)) {
+                if (new RegExp(pattern).test(paramKey)) {
+                    return schema;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Recursively compiles pixel definitions into AJV validators.
+     * @param {object} tokenizedPixels tokenized pixel subtree.
+     * @param {ParamsValidator} paramsValidator validator used for schema compilation.
+     * @param {string} [currentPrefix] accumulated pixel prefix.
+     * @returns {void}
+     */
+    #compileDefs(tokenizedPixels, paramsValidator, currentPrefix = '') {
+        Object.entries(tokenizedPixels).forEach(([prefixPart, pixelDef]) => {
+            const newPrefix = currentPrefix ? `${currentPrefix}${PIXEL_DELIMITER}${prefixPart}` : prefixPart;
+            if (prefixPart !== ROOT_PREFIX) {
+                this.#compileDefs(pixelDef, paramsValidator, newPrefix);
                 return;
             }
 
@@ -105,19 +148,22 @@ export class LivePixelsValidator {
             const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
 
             // Pre-compile each schema and remember owners
-            const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams);
+            const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
             const owners = pixelDef.owners;
-            tokenizedPixels[prefix] = {
+            const requireVersion = pixelDef.requireVersion ?? false;
+            tokenizedPixels[prefixPart] = {
                 paramsSchema,
                 suffixesSchema,
                 owners,
+                requireVersion,
             };
         });
     }
 
     /**
      * (Re)initializes the current pixel state.
+     * @returns {void}
      */
     #initPixelState() {
         this.#currentPixelState = {
@@ -128,7 +174,13 @@ export class LivePixelsValidator {
         };
     }
 
-    validateExperimentPixel(pixel, paramsUrlFormat) {
+    /**
+     * Validates a native experiment pixel name and parameters.
+     * @param {string} pixel full pixel name.
+     * @param {string} paramsUrlFormat query string without cache buster.
+     * @returns {object} current validation state.
+     */
+    validateNativeExperimentPixel(pixel, paramsUrlFormat) {
         const pixelParts = pixel.split(`experiment${PIXEL_DELIMITER}`)[1].split(PIXEL_DELIMITER);
 
         const pixelPrefixLen = 3;
@@ -208,51 +260,54 @@ export class LivePixelsValidator {
     validatePixel(pixel, params) {
         this.#initPixelState();
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
-            return this.validateExperimentPixel(pixel, params);
+            return this.validateNativeExperimentPixel(pixel, params);
         }
+        const [prefix, pixelMatch] = matchPixel(pixel, this.#compiledPixels);
 
-        // Match longest prefix:
-        const pixelParts = pixel.split(PIXEL_DELIMITER);
-        let pixelMatch = this.#compiledPixels;
-        let matchedParts = '';
-        for (let i = 0; i < pixelParts.length; i++) {
-            const part = pixelParts[i];
-            if (pixelMatch[part]) {
-                pixelMatch = pixelMatch[part];
-                matchedParts += part + PIXEL_DELIMITER;
-            } else {
-                break;
-            }
-        }
-
-        if (!pixelMatch[ROOT_PREFIX]) {
+        if (!pixelMatch) {
             this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.UNDOCUMENTED;
             return this.#currentPixelState;
         }
 
         // Found a match: remember owners
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
-        const prefix = matchedParts.slice(0, -1);
-        this.#currentPixelState.owners = pixelMatch[ROOT_PREFIX].owners;
+        this.#currentPixelState.owners = pixelMatch.owners;
+        this.#currentPixelState.requireVersion = pixelMatch.requireVersion;
 
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch[ROOT_PREFIX]);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
         return this.#currentPixelState;
     }
 
+    /**
+     * Validates pixel parameters and suffixes against compiled schemas.
+     * @param {string} prefix matched pixel prefix.
+     * @param {string} pixel full pixel name.
+     * @param {string} paramsUrlFormat query string without cache buster.
+     * @param {object} pixelSchemas compiled schemas for the pixel.
+     * @returns {object} resulting validation state.
+     */
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
             const normalizedKey = this.#getNormalizedVal(key);
-            const paramSchema = pixelSchemas.paramsSchema.schema.properties[normalizedKey];
+            const paramSchema = this.#getParamSchemaForKey(normalizedKey, pixelSchemas.paramsSchema.schema);
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 
-        // 1) Skip outdated pixels based on version
-        if (this.#defsVersionKey && paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
-            if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+        if (this.#defsVersionKey) {
+            // 1) Skip pixels where requireVersion is set but version param is absent
+            if (this.#currentPixelState.requireVersion && !paramsStruct[this.#defsVersionKey]) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
+            }
+
+            // 1b) Skip outdated pixels based on version
+            if (paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
+                if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+                    this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
+                    return this.#currentPixelState;
+                }
             }
         }
 
@@ -276,6 +331,13 @@ export class LivePixelsValidator {
         return this.#currentPixelState;
     }
 
+    /**
+     * Persists validation errors on the current pixel state.
+     * @param {string} prefix prefix used in error reporting.
+     * @param {string} example source example for the error.
+     * @param {string[]|null|undefined} errors AJV error messages.
+     * @returns {void}
+     */
     #saveErrors(prefix, example, errors) {
         if (!errors || !errors.length) return;
 

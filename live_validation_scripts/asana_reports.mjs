@@ -60,7 +60,7 @@ function readAsanaNotifyFile() {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
     if (!fs.existsSync(notifyFile)) {
         console.log(`Notify file ${dirPath}/asana_notify.json does not exist, skipping assignees and followers`);
-        return false;
+        return;
     }
 
     const notify = JSON.parse(fs.readFileSync(notifyFile, 'utf8'));
@@ -96,8 +96,6 @@ function readAsanaNotifyFile() {
         toNotify.tagPixelOwners = notify.tagPixelOwners;
         console.log(`...Will Assign per-owner subtasks to pixel owners`);
     }
-
-    return true;
 }
 
 async function getOwnerName(ownersGithubUsername) {
@@ -267,11 +265,7 @@ async function main() {
     }
 
     // Load the asana notify file
-    const success = readAsanaNotifyFile(dirPath);
-    if (!success) {
-        console.log(`Error: Failed to read asana notify file ${dirPath}/asana_notify.json`);
-        process.exit(1);
-    }
+    readAsanaNotifyFile(dirPath);
 
     // Load the pixelsWithErrors object produced by validate_live_pixel.mjs
     const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);

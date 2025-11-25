@@ -9,6 +9,7 @@ import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
+import { parseSearchExperiments, getEnabledSearchExperiments } from '../src/pixel_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -21,17 +22,35 @@ function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const productDef = fileUtils.readProductDef(mainDir);
-    const experimentsDef = fileUtils.readExperimentsDef(mainDir);
+    const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(mainDir);
     const commonParams = fileUtils.readCommonParams(mainDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
     const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
 
     const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-    const ignoreParams = [...(Object.values(pixelIgnoreParams) || []), ...Object.values(globalIgnoreParams)];
-    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams);
+    const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, experimentsDef, paramsValidator);
+    const searchExperiments = {
+        enabled: false,
+        expDefs: {},
+        expPixels: {},
+    };
+
+    if (productDef.searchExperimentsEnabled) {
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+        searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
+        const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
+        searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
+        console.log(`Loaded ${Object.keys(searchExperiments.expDefs).length} search experiments.`);
+        searchExperiments.enabled = true;
+    } else {
+        console.log('Skipping search experiments.');
+    }
+
+    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams, searchExperiments);
+    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);
+
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -42,11 +61,30 @@ function main(mainDir, csvFile) {
             }
             const pixelRequestFormat = row.pixel.replaceAll('.', PIXEL_DELIMITER);
             let parsedParams = JSON5.parse(row.params);
-            // Append version param (e.g. appVersion=1.2.3) if present in a dedicated CSV column.
-            if (typeof row.version === 'string' && row.version.trim() !== '') {
-                parsedParams = parsedParams.concat(row.version.trim());
+
+            // filter out SERP nounces in the form "7128788=7128788"
+            // TODO: move this to https://dub.duckduckgo.com/duckduckgo/prefect-etl/blob/main/deployments/pixels_validation.py#L27
+            try {
+                parsedParams = parsedParams.filter((p) => !p.match(/^\d+=\d*$/));
+            } catch (e) {
+                console.error(`Error filtering params for pixel ${pixelRequestFormat}: ${parsedParams}`);
+                console.error(e);
+            }
+
+            // Append version param (e.g. appVersion=1.2.3) when defined in product.json
+            const versionKey = productDef.target.key ?? null;
+            if (versionKey) {
+                // ensure version present in a dedicated CSV column and not already in params
+                if (
+                    typeof row.version === 'string' &&
+                    row.version.trim() !== '' &&
+                    parsedParams.every((p) => !p.startsWith(versionKey + '='))
+                ) {
+                    parsedParams = parsedParams.concat(row.version.trim());
+                }
             }
             const paramsUrlFormat = parsedParams.join('&');
+
             const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             saveResult(pixelRequestFormat, result);
         })

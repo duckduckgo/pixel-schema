@@ -1,0 +1,9 @@
+{
+    "m_my_first_pixel_test": {
+        "description": "Experiments enabled"
+    },
+    "test_suffixes": {
+        "description": "Experiments disabled",
+        "addSearchExperimentParams": false
+    }
+}

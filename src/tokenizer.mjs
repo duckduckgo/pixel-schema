@@ -28,9 +28,10 @@ export function tokenizePixelDefs(pixelDefs, existingTokenizedDefs) {
             throw new Error(`Duplicate pixel definition found for ${prefix}`);
         }
 
-        // We only care about saving owners, params, and suffixes
+        // We only care about saving owners, requireVersion, params, and suffixes
         pixelParent[lastPart][ROOT_PREFIX] = {};
         pixelParent[lastPart][ROOT_PREFIX].owners = pixelDefs[prefix].owners;
+        pixelParent[lastPart][ROOT_PREFIX].requireVersion = pixelDefs[prefix].requireVersion;
         pixelParent[lastPart][ROOT_PREFIX].parameters = pixelDefs[prefix].parameters;
         pixelParent[lastPart][ROOT_PREFIX].suffixes = pixelDefs[prefix].suffixes;
     }

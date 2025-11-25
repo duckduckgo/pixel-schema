@@ -17,9 +17,12 @@
     },
     "scripts": {
         "test": "mocha ./tests/**/*.mjs",
+        "test.one": "mocha",
         "test.coverage": "c8 mocha ./tests/**/*.mjs",
-        "lint": "eslint . && prettier . --check",
+        "lint": "eslint . && prettier . --check && tsc",
         "lint.fix": "eslint . --fix && prettier . --write",
+        "tsc": "tsc",
+        "tsc-watch": "tsc --watch",
         "validate-ddg-pixel-defs": "node ./bin/validate_schema.mjs",
         "preprocess-defs": "node ./live_validation_scripts/preprocess_defs.mjs",
         "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs",
@@ -30,12 +33,15 @@
     "license": "Apache-2.0",
     "devDependencies": {
         "@duckduckgo/eslint-config": "github:duckduckgo/eslint-config#v0.1.0",
+        "@types/ajv": "^0.0.5",
+        "@types/mocha": "^10.0.10",
         "c8": "^10.1.2",
         "chai": "^4.3.4",
         "mocha": "^11.2.2",
         "prettier": "^3.3.3"
     },
     "dependencies": {
+        "@types/node": "^24.10.0",
         "ajv": "^8.17.1",
         "ajv-formats": "^3.0.1",
         "asana": "^3.1.0",
@@ -44,6 +50,7 @@
         "eslint": "^9.14.0",
         "json-schema-traverse": "^1.0.0",
         "json5": "^2.2.3",
+        "typescript": "^5.9.3",
         "yargs": "^17.7.2"
     },
     "prettier": {

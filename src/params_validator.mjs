@@ -1,6 +1,9 @@
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import traverse from 'json-schema-traverse';
+import { matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
+
+/** @typedef {import('ajv').ValidateFunction} ValidateFunction */
 
 /**
  * Validator for pixel parameters and suffixes:
@@ -9,10 +12,12 @@ import traverse from 'json-schema-traverse';
  * 3) validates live pixels
  */
 export class ParamsValidator {
-    #ajv = new Ajv2020({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
+    // eslint-disable-next-line new-cap
+    #ajv = new Ajv2020.default({ allErrors: true, coerceTypes: true, strict: true, allowUnionTypes: true });
     #commonParams;
     #commonSuffixes;
     #ignoreParams;
+    #searchExpParams;
 
     /**
      *
@@ -20,12 +25,13 @@ export class ParamsValidator {
      * @param {object} commonSuffixes contains suffixes that follow the schemas/suffix_schema.json5 type.
      * @param {object} ignoreParams contains params that follow the schemas/param_schema.json5 type.
      */
-    constructor(commonParams, commonSuffixes, ignoreParams) {
+    constructor(commonParams, commonSuffixes, ignoreParams, searchExpParams = {}) {
         this.#commonParams = commonParams;
         this.#commonSuffixes = commonSuffixes;
         this.#ignoreParams = Object.values(ignoreParams);
+        this.#searchExpParams = searchExpParams;
 
-        addFormats(this.#ajv);
+        addFormats.default(this.#ajv);
         this.#ajv.addKeyword('key');
         this.#ajv.addKeyword('keyPattern');
         this.#ajv.addKeyword('encoding');
@@ -87,7 +93,7 @@ export class ParamsValidator {
      *  - a single ordered list of suffixes, e.g. ['a','b','c']
      *  - or a list of alternative ordered lists, e.g. [['a','b','c'], ['b','c']]
      * In the latter case, anyOf is used to allow any of the sequences.
-     * @param {Array|Array[]} suffixes
+     * @param {Array|Array[]|undefined} suffixes
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
      */
@@ -137,13 +143,26 @@ export class ParamsValidator {
 
     /**
      * Compiles provided parameters into an AJV schema
-     * @param {Object[]} parameters
+     * @param {Object[]|undefined} parameters
+     * @param {string} [pixelPrefix] - The pixel prefix, used to check for search experiment params.
      * @returns {Object} schemas - resultant compiled AJV schema
      * @throws if any errors are found
      */
-    compileParamsSchema(parameters) {
-        const combinedParams = [...(parameters || []), ...this.#ignoreParams];
-        if (!combinedParams) return this.#ajv.compile({});
+    compileParamsSchema(parameters, pixelPrefix = '') {
+        parameters = parameters || []; // handle undefined params
+
+        let extraParams = this.#ignoreParams || [];
+
+        if (this.#searchExpParams?.enabled === true) {
+            const [, matchValue] = matchSearchExperiment(pixelPrefix, this.#searchExpParams.expPixels);
+            if (matchValue === true) {
+                extraParams = mergeParameters(extraParams, Object.values(this.#searchExpParams.expDefs));
+            }
+        }
+
+        // combine params with extraParams, avoiding duplicates (parameters take precedence)
+        const combinedParams = mergeParameters(parameters, extraParams);
+        if (!combinedParams.length) return this.#ajv.compile({});
 
         const properties = {};
         const patternProperties = {};
@@ -174,10 +193,19 @@ export class ParamsValidator {
     }
 
     /** EXPERIMENTS */
+    /**
+     * Compiles a single experiment metric definition into an AJV validator.
+     * @param {object} metricDef - Schema fragment describing the metric parameters.
+     * @returns {ValidateFunction} AJV validator for the supplied metric definition.
+     */
     compileExperimentMetricSchema(metricDef) {
         return this.#ajv.compile(this.getUpdatedItem(metricDef, {}));
     }
 
+    /**
+     * Compiles the set of shared experiment parameters into an AJV validator.
+     * @returns {ValidateFunction} AJV validator for the common experiment params.
+     */
     compileCommonExperimentParamsSchema() {
         const expPrams = [
             {

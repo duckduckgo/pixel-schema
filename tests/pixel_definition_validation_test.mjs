@@ -363,3 +363,194 @@ describe('castEnumsToString (ParamsValidator)', () => {
         expect(item.enum).to.deep.equal([1, 2, 3]);
     });
 });
+
+describe('ParamsValidator.compileParamsSchema', () => {
+    it('merges ignoreParams with parameters and allows ignored keys', () => {
+        const ignoreParams = {
+            ignored: { key: 'ignored', description: 'Ignored param' },
+        };
+        const validator = new ParamsValidator({}, {}, ignoreParams);
+
+        const validate = validator.compileParamsSchema([]);
+
+        expect(validate({ ignored: 'value' })).to.be.true;
+        expect(validate({ other: 'value' })).to.be.false;
+    });
+
+    it('parameters take precedence over ignoreParams on duplicate keys', () => {
+        const ignoreParams = {
+            dup: { key: 'dup', description: 'Number only', type: 'number', enum: [1] },
+        };
+        const parameters = [{ key: 'dup', description: 'String dup', enum: ['a', 'b'] }];
+        const validator = new ParamsValidator({}, {}, ignoreParams);
+
+        const validate = validator.compileParamsSchema(parameters);
+
+        expect(validate({ dup: 'a' })).to.be.true;
+        expect(validate({ dup: 1 })).to.be.false; // would have been valid if ignore param took precedence
+    });
+
+    describe('with searchExpParams', () => {
+        const ignoreParams = {
+            ignore: { key: 'ignore', description: 'Number only', type: 'number', enum: [1] },
+        };
+        it('adds experiment params when pixel prefix matches and feature is enabled', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test' })).to.be.true;
+            expect(validate({ other_param: 'test' })).to.be.false;
+        });
+
+        it('does not add experiment params when pixel prefix does not match', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.bar.baz');
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+
+        it('does not add experiment params when feature is disabled', () => {
+            const searchExpParams = {
+                enabled: false,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+
+        it('merges experiment params with ignoreParams', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema([], 'm.foo.exp');
+            expect(validate({ exp_param: 'test', ignore: 1 })).to.be.true;
+            expect(validate({ exp_param: 'test' })).to.be.true;
+            expect(validate({ ignore: '1' })).to.be.true;
+        });
+
+        it('pixel parameters take precedence over experiment params', () => {
+            const searchExpParams = {
+                enabled: true,
+                expPixels: {
+                    'm.foo.exp': true,
+                },
+                expDefs: {
+                    exp_param: { key: 'exp_param', description: 'Experiment param' },
+                },
+            };
+            const parameters = [{ key: 'exp_param', description: 'Pixel-defined param', enum: ['override'] }];
+            const validator = new ParamsValidator({}, {}, ignoreParams, searchExpParams);
+            const validate = validator.compileParamsSchema(parameters, 'm.foo.exp');
+            expect(validate({ exp_param: 'override' })).to.be.true;
+            expect(validate({ exp_param: 'test' })).to.be.false;
+        });
+    });
+});
+
+// Cover params + ignoreParams merge via DefinitionsValidator
+describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
+    it('parameters take precedence over ignoreParams (no duplicate key error)', () => {
+        const ignoreParams = {
+            duplicate: { key: 'duplicate', description: 'ignored param' },
+        };
+        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+
+        const pixel = {
+            description: 'Pixel with param also present in ignoreParams',
+            owners: ['owner'],
+            triggers: ['other'],
+            parameters: [{ key: 'duplicate', description: 'custom overrides' }],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel });
+        expect(errors).to.be.empty;
+    });
+
+    it('ignoreParams keyPattern collides with concrete key (strict mode error)', () => {
+        const ignoreParams = {
+            patterned: { keyPattern: '^param[0-9]$', description: 'pattern in ignore' },
+        };
+        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+
+        const pixel = {
+            description: 'Pixel where key matches ignore pattern',
+            owners: ['owner'],
+            triggers: ['other'],
+            parameters: [{ key: 'param1', description: 'concrete key' }],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel });
+        const expectedErrors = ['pixel --> strict mode: property param1 matches pattern ^param[0-9]$ (use allowMatchingProperties)'];
+        expect(errors).to.have.members(expectedErrors);
+    });
+});
+
+describe('Search experiments validation', () => {
+    const validator = new DefinitionsValidator({}, {}, {});
+    const searchExperiments = {
+        aaspuexp: {
+            allocation: 0,
+            description: 'A/A longitudinal test for searches per user framework',
+            assignment: 'backend_spu',
+            persistent: false,
+            variants: ['a', 'b'],
+            services: ['deep'],
+        },
+        aiheaderexp: {
+            allocation: 1.0,
+            description: 'Show AI chat pill in the header',
+            assignment: 'backend',
+            persistent: false,
+            variants: ['b'],
+        },
+        duckplayerexp: {
+            allocation: 1,
+            description: 'Port Duck Player modal to React',
+            assignment: 'frontend',
+            persistent: false,
+            variants: ['b'],
+        },
+    };
+
+    it('valid search experiments pass schema validation', () => {
+        const errors = validator.validateSearchExperimentsDefinition(searchExperiments);
+        expect(errors).to.be.empty;
+    });
+
+    it('missing required fields surface schema errors', () => {
+        const invalid = JSON.parse(JSON.stringify(searchExperiments));
+        delete invalid.aiheaderexp.allocation;
+
+        const errors = validator.validateSearchExperimentsDefinition(invalid);
+        expect(errors).to.include("/aiheaderexp must have required property 'allocation'");
+    });
+});

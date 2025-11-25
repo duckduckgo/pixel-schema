@@ -24,6 +24,8 @@ describe('Invalid defs without user map', () => {
                 `ERROR in ${pixelPath}: Invalid property name 'experiment.invalid'. If this is a pixel:`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'description'`,
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
+                "ERROR in search_experiments.json: /expInvalidA must have required property 'variants'",
+                "ERROR in search_experiments.json: /expInvalidB must have required property 'description'",
             ];
 
             const errors = stderr.trim().split('\n');
@@ -81,8 +83,8 @@ describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
         exec(`npm run preprocess-defs ${validDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
-            const tokenizedPixels = JSON5.parse(fs.readFileSync(fileUtils.getTokenizedPixelsPath(validDefsPath)));
-            const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')));
+            const tokenizedPixels = JSON5.parse(fs.readFileSync(fileUtils.getTokenizedPixelsPath(validDefsPath)).toString());
+            const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')).toString());
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
 
@@ -90,19 +92,21 @@ describe('Validate live pixels', () => {
             expect(error).to.equal(null);
 
             // Check output files
-            const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)));
-            const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')));
+            const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validDefsPath)).toString());
+            const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
             expect(pixelErrors).to.deep.equal(expectedErrors);
 
-            const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)));
-            const expectedUndocumented = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')));
+            const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validDefsPath)).toString());
+            const expectedUndocumented = JSON5.parse(
+                fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')).toString(),
+            );
             expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
             done();
         });
     }).timeout(timeout);
 
-    it('case insensitive - should produce expected errors', (done) => {
+    it('case insensitive - should produce zero errors', (done) => {
         exec(`npm run preprocess-defs ${validCaseInsensitiveDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
         });
@@ -113,10 +117,12 @@ describe('Validate live pixels', () => {
                 expect(error).to.equal(null);
 
                 // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validCaseInsensitiveDefsPath)));
+                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(validCaseInsensitiveDefsPath)).toString());
                 expect(pixelErrors).to.be.empty;
 
-                const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)));
+                const undocumentedPixels = JSON5.parse(
+                    fs.readFileSync(fileUtils.getUndocumentedPixelsPath(validCaseInsensitiveDefsPath)).toString(),
+                );
                 expect(undocumentedPixels).to.be.empty;
 
                 done();

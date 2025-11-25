@@ -10,6 +10,7 @@ const productDef = {
         key: 'appVersion',
         version: '1.0.0',
     },
+    agents: [],
     forceLowerCase: false,
 };
 
@@ -312,6 +313,7 @@ describe('App version outdated', () => {
             key: 'appVersion',
             version: '2.0.0',
         },
+        agents: [],
         forceLowerCase: false,
     };
 
@@ -429,5 +431,106 @@ describe('Alternative suffix sequences (anyOf)', () => {
         expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
         expect(pixelStatus.errors).to.not.be.empty;
         expect(pixelStatus.errors.map((e) => e.example)).to.include(pixel);
+    });
+});
+
+describe('Require version', () => {
+    const productDefWithVersion = {
+        target: {
+            key: 'appVersion',
+            version: '2.0.0',
+        },
+        agents: [],
+        forceLowerCase: false,
+    };
+
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const pixelDefs = {
+        versionRequiredPixel: {
+            requireVersion: true,
+            parameters: [
+                {
+                    key: 'appVersion',
+                    type: 'string',
+                },
+                {
+                    key: 'param1',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDefWithVersion, {}, paramsValidator);
+
+    it('should return OLD_APP_VERSION status if version param is missing when required', () => {
+        const prefix = 'versionRequiredPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('should proceed with validation if version param is present when required', () => {
+        const prefix = 'versionRequiredPixel';
+        const params = 'appVersion=2.0.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+});
+
+describe('Key pattern parameters with explicit types', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const prefix = 'patternPixel';
+    const pixelDefs = {
+        patternPixel: {
+            parameters: [
+                {
+                    key: 'requiredParam',
+                    type: 'string',
+                },
+                {
+                    keyPattern: '^intParam\\d+$',
+                    type: 'integer',
+                },
+                {
+                    keyPattern: '^strParam\\d+$',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+    it('accepts params matching typed keyPattern definitions', () => {
+        const params = 'requiredParam=ok&intParam1=-42&strParam2=value';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('rejects integer keyPattern with non-integer value', () => {
+        const params = 'requiredParam=ok&intParam1=notAnInt';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        const errors = pixelStatus.errors.map((e) => e.error);
+        expect(errors).to.include('/intParam1 must be integer');
+        expect(pixelStatus.errors.map((e) => e.example)).to.include(params);
+    });
+
+    it('rejects additional params not matching keyPattern', () => {
+        const params = 'requiredParam=ok&strParam2=value&unexpected=1';
+        const expectedErrors = ["must NOT have additional properties. Found extra property 'unexpected'"];
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(expectedErrors);
+        expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
     });
 });
