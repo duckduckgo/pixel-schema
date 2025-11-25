@@ -104,14 +104,19 @@ export class LivePixelsValidator {
         return updatedVal;
     }
 
+    /**
+     * Retrieves the schema fragment matching the provided parameter key.
+     * @param {string} paramKey - Normalized parameter key.
+     * @param {{ properties?: Record<string, unknown>, patternProperties?: Record<string, unknown> }|null} paramsSchema - Compiled AJV schema for pixel parameters.
+     * @returns {object|null} Matching schema fragment or null when not found.
+     */
     #getParamSchemaForKey(paramKey, paramsSchema) {
         if (!paramsSchema) return null;
 
         const directMatch = paramsSchema.properties?.[paramKey];
         if (directMatch) return directMatch;
 
-        // Fall back to checking for keyPattern matches
-        const patternSchemas = paramsSchema.patternProperties;
+        const patternSchemas = paramsSchema.patternProperties ?? {};
         if (Object.keys(patternSchemas).length > 0) {
             for (const [pattern, schema] of Object.entries(patternSchemas)) {
                 if (new RegExp(pattern).test(paramKey)) {

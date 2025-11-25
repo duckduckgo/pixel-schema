@@ -147,16 +147,20 @@ describe('parseSearchExperiments', () => {
 describe('matchPixel', () => {
     const testPixels = {
         m: {
-            // ...
+            description: 'm',
+            type: 'string',
         },
         m_l: {
-            // ...
+            description: 'm_l',
+            type: 'integer',
         },
         m_lp: {
-            // ...
+            description: 'm_lp',
+            type: 'boolean',
         },
         m_lp_c: {
-            // ...
+            description: 'm_lp_c',
+            type: 'number',
         },
     };
 
@@ -217,16 +221,20 @@ describe('matchPixel', () => {
 describe('matchSearchExperiment', () => {
     const allPixels = {
         m: {
-            // ...
+            description: 'm',
+            type: 'string',
         },
         m_l: {
-            // ...
+            description: 'm_l',
+            type: 'integer',
         },
         m_lp: {
-            // ...
+            description: 'm_lp',
+            type: 'boolean',
         },
         m_lp_c: {
-            // ...
+            description: 'm_lp_c',
+            type: 'number',
         },
     };
 

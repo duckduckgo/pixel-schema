@@ -63,6 +63,7 @@ function main(mainDir, csvFile) {
             let parsedParams = JSON5.parse(row.params);
 
             // filter out SERP nounces in the form "7128788=7128788"
+            // TODO: move this to https://dub.duckduckgo.com/duckduckgo/prefect-etl/blob/main/deployments/pixels_validation.py#L27
             try {
                 parsedParams = parsedParams.filter((p) => !p.match(/^\d+=\d*$/));
             } catch (e) {

@@ -112,7 +112,7 @@ export class DefinitionsValidator {
      * Validates the full pixel definition, including shortcuts, parameters, and suffixes
      *
      * @param {PixelDefinitions} pixelsDef - object containing multiple pixel definitions
-     * @param {?Record<string, unknown>} [userMap] - map of valid github usernames
+     * @param {?Record<string, string>} [userMap] - map of valid github usernames
      * @returns {Array<string>} - array of error messages
      */
     validatePixelsDefinition(pixelsDef, userMap = null) {

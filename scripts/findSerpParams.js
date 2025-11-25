@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+// Searches for matching files where parameters names appear in a given codebase
+// ex. searching for experimenmt names in SERP repo
+// Consumes a CSV file consisting of pixel data like: "ad.bingv7aa","['ama5exp=b']",""
+// Extracts parameter names from 2nd field (ex. "ama5exp") and searches for them in the given directory
+// Usage: node find_params.js <live_pixels.csv> <search_dir>
+
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 
@@ -20,7 +26,7 @@ if (!fs.existsSync(searchDir) || !fs.statSync(searchDir).isDirectory()) {
 }
 
 // Read CSV and extract param names from 2nd field.
-// Handles lines like: "ad.bingv7aa","['atbva=b']",""
+// Handles lines like: "ad.bingv7aa","['ama5exp=b']",""
 const text = fs.readFileSync(inputPath, 'utf8');
 
 // Simple CSV 3-field split by commas at top level (your sample is consistent).

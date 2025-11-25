@@ -126,6 +126,7 @@ export function matchSearchExperiment(pixel, allPixels) {
 
 /**
  * Merges two lists of parameters, ensuring no duplicates based on key or keyPattern.
+ * Supports full and shortcut parameter definitions.
  * @param {Array<string|object>} parameters The base list of parameters.
  * @param {Array<string|object>} extraParams The list of parameters to merge from.
  * @returns {Array<string|object>} The merged list of parameters.

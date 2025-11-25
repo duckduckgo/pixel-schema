@@ -73,7 +73,6 @@ describe('Pixel with no params and no suffixes', () => {
         };
 
         const errors = validator.validatePixelsDefinition({ pixel });
-        console.log('errors', errors);
         expect(errors).to.be.empty;
     });
 
