@@ -38,7 +38,7 @@ pipeline {
                                 name: 'APPLE_BROWSERS_BRANCH'
                             ),
                             string(
-                                defaultValue: 'main',
+                                defaultValue: 'develop',
                                 description: 'Android',
                                 name: 'ANDROID_BRANCH'
                             ),
