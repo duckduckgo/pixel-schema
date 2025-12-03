@@ -1,0 +1,5 @@
+{
+    "chat.implicitContext.enabled": {
+        "open editors": "always"
+    }
+}
