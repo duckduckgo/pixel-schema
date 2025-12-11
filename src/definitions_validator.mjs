@@ -116,7 +116,7 @@ export class DefinitionsValidator {
      * @returns any validation errors
      */
     validateJourneysDefinition(journeysDef) {
-        console.log('Validating journeys schema...')
+        console.log('Validating journeys schema...');
         const ajvExpSchema = this.#ajv.compile(journeysSchema);
         ajvExpSchema(journeysDef);
         return formatAjvErrors(ajvExpSchema.errors);

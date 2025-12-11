@@ -21,7 +21,7 @@
         }
     },
     "$defs": {
-        "global" : {
+        "global": {
             "type": "object",
             "description": "Global properties for a wide event",
             "required": ["id", "platform", "type", "sample_rate"],
@@ -45,7 +45,7 @@
                     "type": "number",
                     "description": "Sample rate for the wide event, indicating how often it should be recorded"
                 }
-            },
+            }
         },
         "app": {
             "type": "object",
@@ -169,7 +169,7 @@
                     "type": "object",
                     "description": "Context (aka journey) is a concept that encompasses multiple features. A specific feature may be entered from different context. For example, Import could be triggered by onboarding or by selecting the feature manually.",
                     "$ref": "#/$defs/context"
-                },
+                }
             }
         }
     }
