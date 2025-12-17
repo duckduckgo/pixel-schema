@@ -116,12 +116,12 @@ export function readSearchPixelsDef(mainPixelDir) {
 }
 
 /**
- * Read journey definitions
+ * Read wide event definitions
  * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {object} journey definitions
+ * @returns {object} wide event definitions
  */
-export function readJourneysDef(mainPixelDir) {
-    return readSchemaFile(mainPixelDir, 'journeys.json');
+export function readWideEventDef(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'wide_events.json');
 }
 
 /**

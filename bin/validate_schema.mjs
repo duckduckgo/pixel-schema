@@ -69,10 +69,9 @@ if (productDef.searchExperimentsEnabled === true) {
     }
 }
 
-// 3) Validate journeys
-// This needs rethinking, we may want to only validate the feature.data.custom part
-// const journeys = fileUtils.readJourneysDef(mainDir);
-// logErrors('ERROR in journeys.json:', validator.validateJourneysDefinition(journeys));
+// 3) Validate wide events
+const wideEvents = fileUtils.readWideEventDef(mainDir);
+logErrors('ERROR in wide_events.json:', validator.validateWideEventDefinition(wideEvents));
 
 // 4) Validate pixels and params
 function validateFile(file, userMap) {
