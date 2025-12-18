@@ -3,6 +3,7 @@
 import csv from 'csv-parser';
 import fs from 'fs';
 import JSON5 from 'json5';
+import path from 'path';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -27,7 +28,7 @@ function main(mainDir, csvFile) {
     const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
     const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
-    const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
+    const tokenizedPixels = fileUtils.readTokenizedPixels(pixelsConfigDir);
 
     const pixelIgnoreParams = fileUtils.readIgnoreParams(pixelsConfigDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
@@ -95,9 +96,9 @@ function main(mainDir, csvFile) {
             console.log(`Undocumented pixels: ${undocumentedPixels.size.toLocaleString('en-US')}`);
             console.log(`Pixels with validation errors: ${Object.keys(pixelErrors).length.toLocaleString('en-US')}`);
 
-            fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(mainDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
-            fs.writeFileSync(fileUtils.getPixelErrorsPath(mainDir), JSON.stringify(pixelErrors, setReplacer, 4));
-            console.log(`Validation results saved to ${fileUtils.getResultsDir(mainDir)}`);
+            fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(pixelsConfigDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
+            fs.writeFileSync(fileUtils.getPixelErrorsPath(pixelsConfigDir), JSON.stringify(pixelErrors, setReplacer, 4));
+            console.log(`Validation results saved to ${fileUtils.getResultsDir(pixelsConfigDir)}`);
         });
 }
 

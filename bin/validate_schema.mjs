@@ -35,7 +35,7 @@ const argv = yargs(hideBin(process.argv))
     .option('file', {
         alias: 'f',
         type: 'string',
-        description: 'Relative path to a single definition file within {dirPath}/pixels/pixels',
+        description: 'Relative path to a single definition file within {dirPath}/pixels/definitions',
     })
     .parse();
 
@@ -43,7 +43,7 @@ const argv = yargs(hideBin(process.argv))
 const mainDir = argv.dirPath;
 const pixelsConfigDir = path.join(mainDir, 'pixels');
 const wideEventsConfigDir = path.join(mainDir, 'wide_events');
-const pixelsDir = path.join(pixelsConfigDir, 'pixels');
+const pixelsDir = path.join(pixelsConfigDir, 'definitions');
 
 const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
 const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
@@ -73,14 +73,28 @@ if (productDef.searchExperimentsEnabled === true) {
 }
 
 // 3) Validate wide events
-try {
-    const wideEvents = fileUtils.readWideEventDef(wideEventsConfigDir);
+const wideEventsDir = path.join(wideEventsConfigDir, 'definitions');
+if (fs.existsSync(wideEventsDir)) {
     const wideEventParams = fileUtils.readCommonParams(wideEventsConfigDir);
     const wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
     logErrors('ERROR in wide_events/params_dictionary.json:', wideEventValidator.validateCommonParamsDefinition());
-    logErrors('ERROR in wide_events.json:', wideEventValidator.validateWideEventDefinition(wideEvents));
-} catch (error) {
-    console.warn('Skipping wide events validation:', error.message);
+
+    function validateWideEventFile(file) {
+        console.log(`Validating wide events definition: ${file}`);
+        const wideEventsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
+        logErrors(`ERROR in ${file}:`, wideEventValidator.validateWideEventDefinition(wideEventsDef));
+    }
+
+    function validateWideEventFolder(folder) {
+        fs.readdirSync(folder, { recursive: true }).forEach((file) => {
+            const fullPath = path.join(folder, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                return;
+            }
+            validateWideEventFile(fullPath);
+        });
+    }
+    validateWideEventFolder(wideEventsDir);
 }
 
 // 4) Validate pixels and params

@@ -59,10 +59,6 @@
                 ],
             },
             data: {
-                latency_ms_bucketed: {
-                    type: 'integer',
-                    description: 'How long the import operation took in milliseconds, bucketed to preserve privacy',
-                },
                 ext: {
                     import_from: {
                         type: 'string',
@@ -102,17 +98,6 @@
                         type: 'integer',
                         description: 'Number of errors encountered during import, bucketed to preserve privacy',
                     },
-                },
-                failure_detail: {
-                    type: 'string',
-                    description: 'Details about the error if one occurred',
-                    enum: [
-                        'DecryptionFailed',
-                        'TimeoutFailure',
-                        'FileFormatFailure',
-                        'AccessDenied',
-                        'UnknownFailure',
-                    ],
                 },
             },
         },
@@ -172,10 +157,6 @@
                 ],
             },
             data: {
-                latency_ms_bucketed: {
-                    type: 'integer',
-                    description: 'How long the bookmark import took in milliseconds, bucketed to preserve privacy',
-                },
                 ext: {
                     import_from: {
                         type: 'string',
@@ -198,16 +179,6 @@
                         type: 'integer',
                         description: 'If status is FAILURE, number of failed bookmark imports, bucketed to preserve privacy',
                     },
-                },
-                failure_detail: {
-                    type: 'string',
-                    description: 'Details about the error if one occurred',
-                    enum: [
-                        'FileFormatFailure',
-                        'AccessDenied',
-                        'ParsingFailure',
-                        'UnknownFailure',
-                    ],
                 },
             },
         },
@@ -267,10 +238,6 @@
                 ],
             },
             data: {
-                latency_ms_bucketed: {
-                    type: 'integer',
-                    description: 'How long the credential import took in milliseconds, bucketed to preserve privacy',
-                },
                 ext: {
                     import_from: {
                         type: 'string',
@@ -296,16 +263,6 @@
                         type: 'integer',
                         description: 'If status is FAILURE, number of failed credential imports, bucketed to preserve privacy',
                     },
-                },
-                failure_detail: {
-                    type: 'string',
-                    description: 'Details about the error if one occurred',
-                    enum: [
-                        'DecryptionFailed',
-                        'FileFormatFailure',
-                        'AccessDenied',
-                        'UnknownFailure',
-                    ],
                 },
             },
         },
@@ -364,13 +321,6 @@
                 ],
             },
             data: {
-                failure_detail: {
-                    type: 'string',
-                    description: 'Failure detail for timeout',
-                    enum: [
-                        'TimeoutFailure',
-                    ],
-                },
                 ext: {
                     import_from: {
                         type: 'string',
