@@ -8,15 +8,15 @@ import * as fileUtils from '../src/file_utils.mjs';
 
 const timeout = 10000;
 const validDefsPath = path.join('tests', 'test_data', 'valid');
-const liveValidationResultsPath = path.join(validDefsPath, 'expected_processing_results');
+const liveValidationResultsPath = path.join(validDefsPath, 'pixels', 'expected_processing_results');
 const validCaseInsensitiveDefsPath = path.join('tests', 'test_data', 'valid_case_insensitive');
 const invalidDefsPath = path.join('tests', 'test_data', 'invalid');
-const validUserMapPath = path.join('tests', 'test_data', 'valid', 'user_map.yml');
+const validUserMapPath = path.join('tests', 'test_data', 'valid', 'pixels', 'user_map.yml');
 
 describe('Invalid defs without user map', () => {
     it('should output all required params', (done) => {
         exec(`npm run validate-ddg-pixel-defs ${invalidDefsPath}`, (error, _, stderr) => {
-            const pixelPath = path.join(invalidDefsPath, 'pixels', 'pixels.json');
+            const pixelPath = path.join(invalidDefsPath, 'pixels', 'pixels', 'pixels.json');
             const expectedErrors = [
                 'ERROR in native_experiments.json: /defaultSuffixes must be array',
                 "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'cohorts'",
@@ -41,7 +41,7 @@ describe('Invalid owner with user map', () => {
     it('should output error for invalid owner', (done) => {
         // Careful: We need the -- to pass the -g flag to the script
         exec(`npm run validate-ddg-pixel-defs -- ${invalidDefsPath} -g ${validUserMapPath}`, (error, _, stderr) => {
-            const pixelPath = path.join(invalidDefsPath, 'pixels', 'invalid_owner.json');
+            const pixelPath = path.join(invalidDefsPath, 'pixels', 'pixels', 'invalid_owner.json');
 
             // All of these should be present in the output
             const expectedErrors = [
@@ -88,7 +88,7 @@ describe('Validate live pixels', () => {
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
 
-        exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/test_live_pixels.csv`, (error, _, stderr) => {
+        exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/pixels/test_live_pixels.csv`, (error, _, stderr) => {
             expect(error).to.equal(null);
 
             // Check output files
@@ -112,7 +112,7 @@ describe('Validate live pixels', () => {
         });
 
         exec(
-            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/test_live_pixels.csv`,
+            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/pixels/test_live_pixels.csv`,
             (error, _, stderr) => {
                 expect(error).to.equal(null);
 

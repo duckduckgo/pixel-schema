@@ -21,13 +21,15 @@ const pixelErrors = {};
 function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
+    const pixelsConfigDir = path.join(mainDir, 'pixels');
+
     const productDef = fileUtils.readProductDef(mainDir);
-    const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(mainDir);
-    const commonParams = fileUtils.readCommonParams(mainDir);
-    const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
+    const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
+    const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
+    const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
     const tokenizedPixels = fileUtils.readTokenizedPixels(mainDir);
 
-    const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+    const pixelIgnoreParams = fileUtils.readIgnoreParams(pixelsConfigDir);
     const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
     const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
@@ -38,9 +40,9 @@ function main(mainDir, csvFile) {
     };
 
     if (productDef.searchExperimentsEnabled) {
-        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(pixelsConfigDir);
         searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
-        const searchPixels = fileUtils.readSearchPixelsDef(mainDir);
+        const searchPixels = fileUtils.readSearchPixelsDef(pixelsConfigDir);
         searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
         console.log(`Loaded ${Object.keys(searchExperiments.expDefs).length} search experiments.`);
         searchExperiments.enabled = true;

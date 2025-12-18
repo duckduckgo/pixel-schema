@@ -35,16 +35,19 @@ const argv = yargs(hideBin(process.argv))
     .option('file', {
         alias: 'f',
         type: 'string',
-        description: 'Relative path to a single definition file within {dirPath}/pixels',
+        description: 'Relative path to a single definition file within {dirPath}/pixels/pixels',
     })
     .parse();
 
 // 1) Validate common params and suffixes
 const mainDir = argv.dirPath;
-const pixelsDir = path.join(mainDir, 'pixels');
-const commonParams = fileUtils.readCommonParams(mainDir);
-const commonSuffixes = fileUtils.readCommonSuffixes(mainDir);
-const pixelIgnoreParams = fileUtils.readIgnoreParams(mainDir);
+const pixelsConfigDir = path.join(mainDir, 'pixels');
+const wideEventsConfigDir = path.join(mainDir, 'wide_events');
+const pixelsDir = path.join(pixelsConfigDir, 'pixels');
+
+const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
+const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
+const pixelIgnoreParams = fileUtils.readIgnoreParams(pixelsConfigDir);
 const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
 const productDef = fileUtils.readProductDef(mainDir);
 
@@ -56,13 +59,13 @@ logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixes
 logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
 
 // 2) Validate experiments
-const experiments = fileUtils.readNativeExperimentsDef(mainDir);
+const experiments = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
 logErrors('ERROR in native_experiments.json:', validator.validateNativeExperimentsDefinition(experiments));
 
 if (productDef.searchExperimentsEnabled === true) {
     console.log('Validating search_experiments.json');
     try {
-        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(mainDir);
+        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(pixelsConfigDir);
         logErrors('ERROR in search_experiments.json:', validator.validateSearchExperimentsDefinition(rawSearchExperiments));
     } catch (error) {
         console.error('Failed to parse search_experiments.json:', error.message);
@@ -70,8 +73,15 @@ if (productDef.searchExperimentsEnabled === true) {
 }
 
 // 3) Validate wide events
-const wideEvents = fileUtils.readWideEventDef(mainDir);
-logErrors('ERROR in wide_events.json:', validator.validateWideEventDefinition(wideEvents));
+try {
+    const wideEvents = fileUtils.readWideEventDef(wideEventsConfigDir);
+    const wideEventParams = fileUtils.readCommonParams(wideEventsConfigDir);
+    const wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
+    logErrors('ERROR in wide_events/params_dictionary.json:', wideEventValidator.validateCommonParamsDefinition());
+    logErrors('ERROR in wide_events.json:', wideEventValidator.validateWideEventDefinition(wideEvents));
+} catch (error) {
+    console.warn('Skipping wide events validation:', error.message);
+}
 
 // 4) Validate pixels and params
 function validateFile(file, userMap) {
