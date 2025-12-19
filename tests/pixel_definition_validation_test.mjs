@@ -665,7 +665,7 @@ describe('Wide Event Validation', () => {
         const event = { w_test_event_invalid_shortcut: withInvalidShortcut.w_test_event };
 
         const errors = validator.validateWideEventDefinition(event);
-        expect(errors).to.include("Invalid shortcut 'invalidShortcut' in w_test_event_invalid_shortcut.app.name");
+        expect(errors).to.include('/w_test_event_invalid_shortcut/app/name must be object');
     });
 
     it('duplicate meta.type', () => {

@@ -9,242 +9,162 @@
     },
     "$defs": {
         "propertyDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description"],
-                    "properties": {
-                        "type": {
-                            "type": "string",
-                            "enum": ["string", "number", "integer", "boolean", "array", "object"]
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "enum": {
-                            "type": "array"
-                        },
-                        "items": {
-                            "type": "object"
-                        },
-                        "pattern": {
-                            "type": "string"
-                        },
-                        "examples": {
-                            "type": "array"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                {
+            "type": "object",
+            "required": ["type", "description"],
+            "properties": {
+                "type": {
                     "type": "string",
-                    "description": "Shortcut to a common parameter"
+                    "enum": ["string", "number", "integer", "boolean", "array", "object"]
+                },
+                "description": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array"
+                },
+                "items": {
+                    "type": "object"
+                },
+                "pattern": {
+                    "type": "string"
+                },
+                "examples": {
+                    "type": "array"
                 }
-            ]
+            },
+            "additionalProperties": false
         },
         "stringDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description"],
-                    "properties": {
-                        "type": { "const": "string" },
-                        "description": { "type": "string" },
-                        "enum": { "type": "array", "items": { "type": "string" } },
-                        "pattern": { "type": "string" },
-                        "examples": { "type": "array" }
-                    },
-                    "additionalProperties": false
-                },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
-                }
-            ]
+            "type": "object",
+            "required": ["type", "description"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "string" } },
+                "pattern": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
         },
         "numberDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description"],
-                    "properties": {
-                        "type": { "const": "number" },
-                        "description": { "type": "string" },
-                        "enum": { "type": "array", "items": { "type": "number" } },
-                        "examples": { "type": "array" }
-                    },
-                    "additionalProperties": false
-                },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
-                }
-            ]
+            "type": "object",
+            "required": ["type", "description"],
+            "properties": {
+                "type": { "const": "number" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "number" } },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
         },
         "integerDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description"],
-                    "properties": {
-                        "type": { "const": "integer" },
-                        "description": { "type": "string" },
-                        "enum": { "type": "array", "items": { "type": "integer" } },
-                        "examples": { "type": "array" }
-                    },
-                    "additionalProperties": false
-                },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
-                }
-            ]
+            "type": "object",
+            "required": ["type", "description"],
+            "properties": {
+                "type": { "const": "integer" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "integer" } },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
         },
         "booleanDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description"],
-                    "properties": {
-                        "type": { "const": "boolean" },
-                        "description": { "type": "string" },
-                        "enum": { "type": "array", "items": { "type": "boolean" } },
-                        "examples": { "type": "array" }
-                    },
-                    "additionalProperties": false
-                },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
-                }
-            ]
+            "type": "object",
+            "required": ["type", "description"],
+            "properties": {
+                "type": { "const": "boolean" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "boolean" } },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
         },
         "arrayDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description", "items"],
-                    "properties": {
-                        "type": { "const": "array" },
-                        "description": { "type": "string" },
-                        "items": { "type": "object" },
-                        "examples": { "type": "array" }
-                    },
-                    "additionalProperties": false
-                },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
-                }
-            ]
+            "type": "object",
+            "required": ["type", "description", "items"],
+            "properties": {
+                "type": { "const": "array" },
+                "description": { "type": "string" },
+                "items": { "type": "object" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
         },
         "platformDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description", "enum"],
-                    "properties": {
-                        "type": {
-                            "const": "string"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "enum": {
-                            "type": "array",
-                            "items": {
-                                "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"]
-                            }
-                        }
-                    },
-                    "additionalProperties": false
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": {
+                    "const": "string"
                 },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
+                "description": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array",
+                    "items": {
+                        "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"]
+                    }
                 }
-            ]
+            },
+            "additionalProperties": false
         },
         "typeDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description", "enum"],
-                    "properties": {
-                        "type": {
-                            "const": "string"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "enum": {
-                            "type": "array",
-                            "items": {
-                                "enum": ["app", "web", "mobile"]
-                            }
-                        }
-                    },
-                    "additionalProperties": false
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": {
+                    "const": "string"
                 },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
+                "description": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array",
+                    "items": {
+                        "enum": ["app", "web", "mobile"]
+                    }
                 }
-            ]
+            },
+            "additionalProperties": false
         },
         "statusDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description", "enum"],
-                    "properties": {
-                        "type": {
-                            "const": "string"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "enum": {
-                            "type": "array",
-                            "items": {
-                                "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"]
-                            }
-                        }
-                    },
-                    "additionalProperties": false
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": {
+                    "const": "string"
                 },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
+                "description": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array",
+                    "items": {
+                        "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"]
+                    }
                 }
-            ]
+            },
+            "additionalProperties": false
         },
         "form_factorDefinition": {
-            "anyOf": [
-                {
-                    "type": "object",
-                    "required": ["type", "description", "enum"],
-                    "properties": {
-                        "type": {
-                            "const": "string"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "enum": {
-                            "type": "array",
-                            "items": {
-                                "enum": ["phone", "tablet"]
-                            }
-                        }
-                    },
-                    "additionalProperties": false
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": {
+                    "const": "string"
                 },
-                {
-                    "type": "string",
-                    "description": "Shortcut to a common parameter"
+                "description": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array",
+                    "items": {
+                        "enum": ["phone", "tablet"]
+                    }
                 }
-            ]
+            },
+            "additionalProperties": false
         },
         "global": {
             "type": "object",
@@ -381,7 +301,7 @@
         "wideEvent": {
             "type": "object",
             "description": "A specific wide event that encapsulates a set of traditional pixels for a single round-trip user interaction, API call, etc",
-            "required": ["description", "owners", "global", "feature", "meta" ],
+            "required": ["description", "owners", "global", "feature", "meta"],
             "additionalProperties": false,
             "properties": {
                 "description": {

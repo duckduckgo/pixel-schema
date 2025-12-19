@@ -92,7 +92,9 @@ describe('Validate live pixels', () => {
     it('case sensitive - should produce expected errors', (done) => {
         exec(`npm run preprocess-defs ${validDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
-            const tokenizedPixels = JSON5.parse(fs.readFileSync(fileUtils.getTokenizedPixelsPath(path.join(validDefsPath, 'pixels'))).toString());
+            const tokenizedPixels = JSON5.parse(
+                fs.readFileSync(fileUtils.getTokenizedPixelsPath(path.join(validDefsPath, 'pixels'))).toString(),
+            );
             const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')).toString());
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
         });
@@ -105,7 +107,9 @@ describe('Validate live pixels', () => {
             const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
             expect(pixelErrors).to.deep.equal(expectedErrors);
 
-            const undocumentedPixels = JSON5.parse(fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels'))).toString());
+            const undocumentedPixels = JSON5.parse(
+                fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels'))).toString(),
+            );
             const expectedUndocumented = JSON5.parse(
                 fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')).toString(),
             );
@@ -126,7 +130,9 @@ describe('Validate live pixels', () => {
                 expect(error).to.equal(null);
 
                 // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString());
+                const pixelErrors = JSON5.parse(
+                    fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
+                );
                 expect(pixelErrors).to.be.empty;
 
                 const undocumentedPixels = JSON5.parse(

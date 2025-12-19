@@ -125,31 +125,46 @@ export class DefinitionsValidator {
     /**
      * Expands shortcuts in wide event definitions
      * @param {object} wideEvents
-     * @returns {any} expanded wide events
+     * @returns {object} expanded wideEvents
      */
     #expandWideEventShortcuts(wideEvents) {
-        const sectionsToExpand = ['global', 'context', 'feature', 'app'];
+        const rootSectionsToSkip = ['description', 'owners', 'meta'];
+        const expandedEvents = JSON.parse(JSON.stringify(wideEvents));
 
-        for (const eventName of Object.keys(wideEvents)) {
-            const eventDef = wideEvents[eventName];
-
-            for (const section of sectionsToExpand) {
-                if (!eventDef[section]) continue;
-
-                for (const [propName, propDef] of Object.entries(eventDef[section])) {
-                    if (typeof propDef === 'string') {
-                        if (!Object.prototype.hasOwnProperty.call(this.#commonParams, propDef)) {
-                            throw new Error(`Invalid shortcut '${propDef}' in ${eventName}.${section}.${propName}`);
-                        }
-
-                        const expanded = this.#paramsValidator.getUpdatedItem(propDef, this.#commonParams);
-                        eventDef[section][propName] = expanded;
-                    }
-                }
+        for (const eventName of Object.keys(expandedEvents)) {
+            const eventDef = expandedEvents[eventName];
+            for (const [key, val] of Object.entries(eventDef)) {
+                if (rootSectionsToSkip.includes(key)) continue;
+                eventDef[key] = this.#recursivelyExpandShortcuts(val);
             }
         }
 
-        return wideEvents;
+        return expandedEvents;
+    }
+
+    /**
+     * Recursively expands shortcuts in an object
+     * @param {any} obj
+     * @returns {any} expanded object
+     */
+    #recursivelyExpandShortcuts(obj) {
+        if (Array.isArray(obj)) return obj;
+
+        if (typeof obj === 'object' && obj !== null) {
+            for (const [key, val] of Object.entries(obj)) {
+                obj[key] = this.#recursivelyExpandShortcuts(val);
+            }
+            return obj;
+        }
+
+        if (typeof obj === 'string') {
+            if (Object.prototype.hasOwnProperty.call(this.#commonParams, obj)) {
+                return this.#paramsValidator.getUpdatedItem(obj, this.#commonParams);
+            }
+            return obj;
+        }
+
+        return obj;
     }
 
     /**
@@ -177,7 +192,7 @@ export class DefinitionsValidator {
         }
 
         // 3. Iterate events for additional checks
-        Object.entries(expandedEvents).forEach(([eventName, eventDef]) => {
+        Object.entries(/** @type {Record<string, any>} */ (expandedEvents)).forEach(([eventName, eventDef]) => {
             // Check duplicates using meta.type
             const type = eventDef.meta?.type;
             if (type) {
@@ -228,7 +243,7 @@ export class DefinitionsValidator {
             return obj;
         }
 
-        throw(`${obj} --> unexpected type ${typeof obj}`);
+        throw TypeError(`${obj} --> unexpected prop of type ${typeof obj}`);
     }
 
     /**
