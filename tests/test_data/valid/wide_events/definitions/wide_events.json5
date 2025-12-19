@@ -2,23 +2,14 @@
     w_wide_import_summary: {
         description: 'Fires at the conclusion of an import process to provide a summary of all imported data. For multi-stage imports (e.g., browser + CSV), this fires only once at the end with combined results.',
         owners: [
-            'jhlouw-dev',
+            'tester',
         ],
-        "meta": {
-            "type": "w_wide_import_summary"
+        meta: {
+            type: "w_wide_import_summary"
         },
         app: {
-            name: {
-                type: 'string',
-                description: 'The name of the application',
-                enum: [
-                    'Windows',
-                ],
-            },
-            version: {
-                type: 'string',
-                description: 'The version of the application',
-            },
+            name: "appName",
+            version: "appVersion",
         },
         global: {
             platform: {
@@ -115,10 +106,10 @@
     w_wide_import_bookmarks: {
         description: 'Fires when bookmarks are imported, providing metrics about the bookmark import component of an import operation.',
         owners: [
-            'jhlouw-dev',
+            'tester',
         ],
         "meta": {
-            "type": "w_wide_import_summary"
+            "type": "w_wide_import_bookmarks"
         },
         global: {
             platform: {
@@ -171,13 +162,11 @@
                             'HTML Bookmarks File',
                         ],
                     },
-                    item_count_bucketed: {
-                        type: 'integer',
-                        description: 'Number of bookmarks imported, bucketed to preserve privacy',
-                    },
+                    item_count_bucketed: "itemCountBucketed",
                     bookmark_failure_count_bucketed: {
                         type: 'integer',
                         description: 'If status is FAILURE, number of failed bookmark imports, bucketed to preserve privacy',
+                        enum: [0, 1, 2, 3, 4, 5]
                     },
                 },
             },
@@ -196,10 +185,10 @@
     w_wide_import_credentials: {
         description: 'Fires when credentials are imported, providing metrics about the credential import component of an import operation.',
         owners: [
-            'jhlouw-dev',
+            'tester',
         ],
         "meta": {
-            "type": "w_wide_import_summary"
+            "type": "w_wide_import_credentials"
         },
         global: {
             platform: {
@@ -255,13 +244,11 @@
                             '1Password 7',
                         ],
                     },
-                    item_count_bucketed: {
-                        type: 'integer',
-                        description: 'Number of credentials imported, bucketed to preserve privacy',
-                    },
+                    item_count_bucketed: "itemCountBucketed",
                     credential_failure_count_bucketed: {
                         type: 'integer',
                         description: 'If status is FAILURE, number of failed credential imports, bucketed to preserve privacy',
+                        enum: [0, 1, 2, 3, 4, 5]
                     },
                 },
             },
@@ -280,10 +267,10 @@
     w_wide_import_timeout: {
         description: 'Fires when an import operation takes longer than expected and times out.',
         owners: [
-            'jhlouw-dev',
+            'tester',
         ],
         "meta": {
-            "type": "w_wide_import_summary"
+            "type": "w_wide_import_timeout"
         },
         global: {
             platform: {
@@ -361,10 +348,10 @@
     w_wide_import_cancelled: {
         description: 'Fires when an import operation is cancelled by the user.',
         owners: [
-            'jhlouw-dev',
+            'tester',
         ],
         "meta": {
-            "type": "w_wide_import_summary"
+            "type": "w_wide_import_cancelled"
         },
         global: {
             platform: {

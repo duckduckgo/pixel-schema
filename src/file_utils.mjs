@@ -58,6 +58,15 @@ export function readCommonParams(mainPixelDir) {
 }
 
 /**
+ * Read common properties
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {object} common properties
+ */
+export function readCommonProps(mainPixelDir) {
+    return readSchemaFile(mainPixelDir, 'props_dictionary.json');
+}
+
+/**
  * Read common suffixes
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {object} common suffixes

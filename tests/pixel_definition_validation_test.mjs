@@ -554,3 +554,141 @@ describe('Search experiments validation', () => {
         expect(errors).to.include("/aiheaderexp must have required property 'allocation'");
     });
 });
+
+describe('Wide Event Validation', () => {
+    const commonProps = {
+        appName: {
+            type: 'string',
+            description: 'Name of the application',
+        },
+    };
+    const validator = new DefinitionsValidator(commonProps, {}, {});
+
+    const validWideEvent = {
+        w_test_event: {
+            description: 'A test wide event',
+            owners: ['tester'],
+            meta: {
+                type: 'w_test_event',
+            },
+            global: {
+                platform: {
+                    type: 'string',
+                    description: 'Platform',
+                    enum: ['Windows'],
+                },
+                type: {
+                    type: 'string',
+                    description: 'Type',
+                    enum: ['app'],
+                },
+                sample_rate: {
+                    type: 'number',
+                    description: 'Sample rate',
+                },
+            },
+            feature: {
+                name: {
+                    type: 'string',
+                    description: 'Feature name',
+                    enum: ['test-feature'],
+                },
+                status: {
+                    type: 'string',
+                    description: 'Status',
+                    enum: ['SUCCESS'],
+                },
+                data: {
+                    ext: {
+                        extra_data: {
+                            type: 'string',
+                            description: 'Extra data',
+                        },
+                    },
+                },
+            },
+            app: {
+                name: {
+                    type: 'string',
+                    description: 'App name',
+                },
+                version: {
+                    type: 'string',
+                    description: 'App version',
+                },
+            },
+            context: {
+                name: {
+                    type: 'string',
+                    description: 'Context name',
+                },
+            },
+        },
+    };
+
+    it('valid wide event', () => {
+        const errors = validator.validateWideEventDefinition(validWideEvent);
+        expect(errors).to.be.empty;
+    });
+
+    it('missing required property', () => {
+        const invalid = JSON.parse(JSON.stringify(validWideEvent));
+        delete invalid.w_test_event.description;
+        const errors = validator.validateWideEventDefinition(invalid);
+        expect(errors).to.include("/w_test_event must have required property 'description'");
+    });
+
+    it('invalid property type', () => {
+        const invalid = JSON.parse(JSON.stringify(validWideEvent));
+        invalid.w_test_event.description = 123;
+        const errors = validator.validateWideEventDefinition(invalid);
+        expect(errors).to.include('/w_test_event/description must be string');
+    });
+
+    it('valid shortcut expansion', () => {
+        const withShortcut = JSON.parse(JSON.stringify(validWideEvent));
+        withShortcut.w_test_event.meta.type = 'w_test_event_shortcut'; // Unique type
+        withShortcut.w_test_event.app.name = 'appName'; // Shortcut to commonParams.appName
+
+        // We need to rename the key too, although validation iterates over keys, duplicate check uses meta.type
+        const event = { w_test_event_shortcut: withShortcut.w_test_event };
+
+        const errors = validator.validateWideEventDefinition(event);
+        expect(errors).to.be.empty;
+    });
+
+    it('invalid shortcut', () => {
+        const withInvalidShortcut = JSON.parse(JSON.stringify(validWideEvent));
+        withInvalidShortcut.w_test_event.meta.type = 'w_test_event_invalid_shortcut'; // Unique type
+        withInvalidShortcut.w_test_event.app.name = 'invalidShortcut';
+
+        const event = { w_test_event_invalid_shortcut: withInvalidShortcut.w_test_event };
+
+        const errors = validator.validateWideEventDefinition(event);
+        expect(errors).to.include("Invalid shortcut 'invalidShortcut' in w_test_event_invalid_shortcut.app.name");
+    });
+
+    it('duplicate meta.type', () => {
+        const duplicate = {
+            event1: JSON.parse(JSON.stringify(validWideEvent.w_test_event)),
+            event2: JSON.parse(JSON.stringify(validWideEvent.w_test_event)),
+        };
+        duplicate.event1.meta.type = 'w_test_event_dup';
+        duplicate.event2.meta.type = 'w_test_event_dup';
+
+        const errors = validator.validateWideEventDefinition(duplicate);
+        expect(errors).to.include('w_test_event_dup --> Conflicting/duplicated definitions found!');
+    });
+
+    it('invalid owner with userMap', () => {
+        const userMap = { validUser: '123' };
+        const invalidOwner = JSON.parse(JSON.stringify(validWideEvent));
+        invalidOwner.w_test_event.meta.type = 'w_test_event_owner';
+        invalidOwner.w_test_event.owners = ['invalidUser'];
+
+        const event = { w_test_event_owner: invalidOwner.w_test_event };
+
+        const errors = validator.validateWideEventDefinition(event, userMap);
+        expect(errors).to.include('Owner invalidUser for wide event w_test_event_owner not in list of acceptable github user names');
+    });
+});

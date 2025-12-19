@@ -9,147 +9,242 @@
     },
     "$defs": {
         "propertyDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
-            "properties": {
-                "type": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description"],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": ["string", "number", "integer", "boolean", "array", "object"]
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "enum": {
+                            "type": "array"
+                        },
+                        "items": {
+                            "type": "object"
+                        },
+                        "pattern": {
+                            "type": "string"
+                        },
+                        "examples": {
+                            "type": "array"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                {
                     "type": "string",
-                    "enum": ["string", "number", "integer", "boolean", "array", "object"]
-                },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array"
-                },
-                "items": {
-                    "type": "object"
+                    "description": "Shortcut to a common parameter"
                 }
-            },
-            "additionalProperties": false
+            ]
         },
         "stringDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
-            "properties": {
-                "type": { "const": "string" },
-                "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "string" } }
-            },
-            "additionalProperties": false
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description"],
+                    "properties": {
+                        "type": { "const": "string" },
+                        "description": { "type": "string" },
+                        "enum": { "type": "array", "items": { "type": "string" } },
+                        "pattern": { "type": "string" },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
+                }
+            ]
         },
         "numberDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
-            "properties": {
-                "type": { "const": "number" },
-                "description": { "type": "string" }
-            },
-            "additionalProperties": false
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description"],
+                    "properties": {
+                        "type": { "const": "number" },
+                        "description": { "type": "string" },
+                        "enum": { "type": "array", "items": { "type": "number" } },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
+                }
+            ]
         },
         "integerDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
-            "properties": {
-                "type": { "const": "integer" },
-                "description": { "type": "string" }
-            },
-            "additionalProperties": false
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description"],
+                    "properties": {
+                        "type": { "const": "integer" },
+                        "description": { "type": "string" },
+                        "enum": { "type": "array", "items": { "type": "integer" } },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
+                }
+            ]
         },
         "booleanDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
-            "properties": {
-                "type": { "const": "boolean" },
-                "description": { "type": "string" }
-            },
-            "additionalProperties": false
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description"],
+                    "properties": {
+                        "type": { "const": "boolean" },
+                        "description": { "type": "string" },
+                        "enum": { "type": "array", "items": { "type": "boolean" } },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
+                }
+            ]
         },
         "arrayDefinition": {
-            "type": "object",
-            "required": ["type", "description", "items"],
-            "properties": {
-                "type": { "const": "array" },
-                "description": { "type": "string" },
-                "items": { "type": "object" }
-            },
-            "additionalProperties": false
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description", "items"],
+                    "properties": {
+                        "type": { "const": "array" },
+                        "description": { "type": "string" },
+                        "items": { "type": "object" },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
+                }
+            ]
         },
         "platformDefinition": {
-            "type": "object",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": {
-                    "const": "string"
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description", "enum"],
+                    "properties": {
+                        "type": {
+                            "const": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "enum": {
+                            "type": "array",
+                            "items": {
+                                "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"]
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array",
-                    "items": {
-                        "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"]
-                    }
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
                 }
-            },
-            "additionalProperties": false
+            ]
         },
         "typeDefinition": {
-            "type": "object",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": {
-                    "const": "string"
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description", "enum"],
+                    "properties": {
+                        "type": {
+                            "const": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "enum": {
+                            "type": "array",
+                            "items": {
+                                "enum": ["app", "web", "mobile"]
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array",
-                    "items": {
-                        "enum": ["app", "web", "mobile"]
-                    }
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
                 }
-            },
-            "additionalProperties": false
+            ]
         },
         "statusDefinition": {
-            "type": "object",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": {
-                    "const": "string"
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description", "enum"],
+                    "properties": {
+                        "type": {
+                            "const": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "enum": {
+                            "type": "array",
+                            "items": {
+                                "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"]
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array",
-                    "items": {
-                        "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"]
-                    }
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
                 }
-            },
-            "additionalProperties": false
+            ]
         },
         "form_factorDefinition": {
-            "type": "object",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": {
-                    "const": "string"
+            "anyOf": [
+                {
+                    "type": "object",
+                    "required": ["type", "description", "enum"],
+                    "properties": {
+                        "type": {
+                            "const": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "enum": {
+                            "type": "array",
+                            "items": {
+                                "enum": ["phone", "tablet"]
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array",
-                    "items": {
-                        "enum": ["phone", "tablet"]
-                    }
+                {
+                    "type": "string",
+                    "description": "Shortcut to a common parameter"
                 }
-            },
-            "additionalProperties": false
+            ]
         },
         "global": {
             "type": "object",

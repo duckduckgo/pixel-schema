@@ -15,6 +15,7 @@ import { ParamsValidator } from './params_validator.mjs';
 const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas');
 const pixelSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'pixel_schema.json5')).toString());
 const paramsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'param_schema.json5')).toString());
+const propSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'prop_schema.json5')).toString());
 const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_schema.json5')).toString());
 const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')).toString());
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
@@ -26,6 +27,7 @@ const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide
 export class DefinitionsValidator {
     #ajvValidatePixels;
     #ajvValidateParams;
+    #ajvValidateProps;
     #ajvValidateSuffixes;
 
     #commonParams;
@@ -51,10 +53,12 @@ export class DefinitionsValidator {
 
         addFormats.default(this.#ajv);
         this.#ajv.addSchema(paramsSchema);
+        this.#ajv.addSchema(propSchema);
         this.#ajv.addSchema(suffixSchema);
 
         this.#ajvValidatePixels = this.#ajv.compile(pixelSchema);
         this.#ajvValidateParams = this.#ajv.compile(paramsSchema);
+        this.#ajvValidateProps = this.#ajv.compile(propSchema);
         this.#ajvValidateSuffixes = this.#ajv.compile(suffixSchema);
     }
 
@@ -65,6 +69,15 @@ export class DefinitionsValidator {
     validateCommonParamsDefinition() {
         this.#ajvValidateParams(this.#commonParams);
         return formatAjvErrors(this.#ajvValidateParams.errors);
+    }
+
+    /**
+     * Validates the properties dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateCommonPropsDefinition() {
+        this.#ajvValidateProps(this.#commonParams);
+        return formatAjvErrors(this.#ajvValidateProps.errors);
     }
 
     /**
@@ -110,15 +123,112 @@ export class DefinitionsValidator {
     }
 
     /**
+     * Expands shortcuts in wide event definitions
+     * @param {object} wideEvents
+     * @returns {any} expanded wide events
+     */
+    #expandWideEventShortcuts(wideEvents) {
+        const sectionsToExpand = ['global', 'context', 'feature', 'app'];
+
+        for (const eventName of Object.keys(wideEvents)) {
+            const eventDef = wideEvents[eventName];
+
+            for (const section of sectionsToExpand) {
+                if (!eventDef[section]) continue;
+
+                for (const [propName, propDef] of Object.entries(eventDef[section])) {
+                    if (typeof propDef === 'string') {
+                        if (!Object.prototype.hasOwnProperty.call(this.#commonParams, propDef)) {
+                            throw new Error(`Invalid shortcut '${propDef}' in ${eventName}.${section}.${propName}`);
+                        }
+
+                        const expanded = this.#paramsValidator.getUpdatedItem(propDef, this.#commonParams);
+                        eventDef[section][propName] = expanded;
+                    }
+                }
+            }
+        }
+
+        return wideEvents;
+    }
+
+    /**
      * Validates wide event definition
      *
      * @param {object} wideEvents should follow the schema defined in wide_event_schema.json5
+     * @param {?Record<string, string>} [userMap] - map of valid github usernames
      * @returns any validation errors
      */
-    validateWideEventDefinition(wideEvents) {
+    validateWideEventDefinition(wideEvents, userMap = null) {
+        const errors = [];
+
+        // 1. Expand shortcuts
+        let expandedEvents;
+        try {
+            expandedEvents = this.#expandWideEventShortcuts(wideEvents);
+        } catch (error) {
+            return [error.message];
+        }
+
+        // 2. Validate schema
         const ajvExpSchema = this.#ajv.compile(wideEventSchema);
-        ajvExpSchema(wideEvents);
-        return formatAjvErrors(ajvExpSchema.errors);
+        if (!ajvExpSchema(expandedEvents)) {
+            return formatAjvErrors(ajvExpSchema.errors);
+        }
+
+        // 3. Iterate events for additional checks
+        Object.entries(expandedEvents).forEach(([eventName, eventDef]) => {
+            // Check duplicates using meta.type
+            const type = eventDef.meta?.type;
+            if (type) {
+                if (this.#definedPrefixes.has(type)) {
+                    errors.push(`${type} --> Conflicting/duplicated definitions found!`);
+                } else {
+                    this.#definedPrefixes.add(type);
+                }
+            }
+
+            // Check owners
+            if (userMap) {
+                for (const owner of eventDef.owners ?? []) {
+                    if (!userMap[owner]) {
+                        errors.push(`Owner ${owner} for wide event ${eventName} not in list of acceptable github user names`);
+                    }
+                }
+            }
+        });
+
+        return errors;
+    }
+
+    /**
+     * Recursively expands shortcuts
+     * @param {any} obj
+     * @returns {any}
+     */
+    #expandShortcuts(obj) {
+        if (!obj) return obj;
+
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this.#expandShortcuts(item));
+        }
+
+        if (typeof obj === 'object') {
+            const newObj = {};
+            for (const [key, value] of Object.entries(obj)) {
+                newObj[key] = this.#expandShortcuts(value);
+            }
+            return newObj;
+        }
+
+        if (typeof obj === 'string') {
+            if (Object.prototype.hasOwnProperty.call(this.#commonParams, obj)) {
+                return this.#paramsValidator.getUpdatedItem(obj, this.#commonParams);
+            }
+            return obj;
+        }
+
+        throw(`${obj} --> unexpected type ${typeof obj}`);
     }
 
     /**

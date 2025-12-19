@@ -74,46 +74,48 @@ if (productDef.searchExperimentsEnabled === true) {
 
 // 3) Validate wide events
 const wideEventsDir = path.join(wideEventsConfigDir, 'definitions');
+let wideEventValidator;
+
 if (fs.existsSync(wideEventsDir)) {
-    const wideEventParams = fileUtils.readCommonParams(wideEventsConfigDir);
-    const wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
-    logErrors('ERROR in wide_events/params_dictionary.json:', wideEventValidator.validateCommonParamsDefinition());
+    const wideEventParams = fileUtils.readCommonProps(wideEventsConfigDir);
+    wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
+    logErrors('ERROR in wide_events/props_dictionary.json:', wideEventValidator.validateCommonPropsDefinition());
+}
 
-    function validateWideEventFile(file) {
-        console.log(`Validating wide events definition: ${file}`);
-        const wideEventsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
-        logErrors(`ERROR in ${file}:`, wideEventValidator.validateWideEventDefinition(wideEventsDef));
-    }
+function validateWideEventFile(file, userMap) {
+    console.log(`Validating wide events definition: ${file}`);
+    const wideEventsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
+    logErrors(`ERROR in ${file}:`, wideEventValidator.validateWideEventDefinition(wideEventsDef, userMap));
+}
 
-    function validateWideEventFolder(folder) {
-        fs.readdirSync(folder, { recursive: true }).forEach((file) => {
-            const fullPath = path.join(folder, file);
-            if (fs.statSync(fullPath).isDirectory()) {
-                return;
-            }
-            validateWideEventFile(fullPath);
-        });
-    }
-    validateWideEventFolder(wideEventsDir);
+function validateWideEventFolder(folder, userMap) {
+    fs.readdirSync(folder, { recursive: true }).forEach((file) => {
+        const fullPath = path.join(folder, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+            return;
+        }
+        validateWideEventFile(fullPath, userMap);
+    });
 }
 
 // 4) Validate pixels and params
-function validateFile(file, userMap) {
+function validatePixelFile(file, userMap) {
     console.log(`Validating pixels definition: ${file}`);
     const pixelsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
     logErrors(`ERROR in ${file}:`, validator.validatePixelsDefinition(pixelsDef, userMap));
 }
 
-function validateFolder(folder, userMap) {
+function validatePixelFolder(folder, userMap) {
     fs.readdirSync(folder, { recursive: true }).forEach((file) => {
         const fullPath = path.join(folder, file);
         if (fs.statSync(fullPath).isDirectory()) {
             return;
         }
 
-        validateFile(fullPath, userMap);
+        validatePixelFile(fullPath, userMap);
     });
 }
+
 let userMap = null;
 
 if (argv.githubUserMap) {
@@ -129,7 +131,20 @@ if (argv.githubUserMap) {
 }
 
 if (argv.file) {
-    validateFile(path.join(pixelsDir, argv.file), userMap);
+    const pixelPath = path.join(pixelsDir, argv.file);
+    const wideEventPath = path.join(wideEventsDir, argv.file);
+
+    if (fs.existsSync(pixelPath)) {
+        validatePixelFile(pixelPath, userMap);
+    } else if (fs.existsSync(wideEventPath) && wideEventValidator) {
+        validateWideEventFile(wideEventPath, userMap);
+    } else {
+        console.error(`File not found in pixels or wide_events definitions: ${argv.file}`);
+        process.exit(1);
+    }
 } else {
-    validateFolder(pixelsDir, userMap);
+    validatePixelFolder(pixelsDir, userMap);
+    if (wideEventValidator) {
+        validateWideEventFolder(wideEventsDir, userMap);
+    }
 }
