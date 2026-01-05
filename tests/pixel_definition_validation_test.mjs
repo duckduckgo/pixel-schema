@@ -570,6 +570,7 @@ describe('Wide Event Validation', () => {
             owners: ['tester'],
             meta: {
                 type: 'w_test_event',
+                version: '1.0.0',
             },
             global: {
                 platform: {

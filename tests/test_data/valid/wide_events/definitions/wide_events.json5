@@ -3,7 +3,8 @@
         "description": "Fires at the conclusion of an import process to provide a summary of all imported data. For multi-stage imports (e.g., browser + CSV), this fires only once at the end with combined results.",
         "owners": ["tester"],
         "meta": {
-            "type": "w_wide_import_summary"
+            "type": "w_wide_import_summary",
+            "version": "1.0.0"
         },
         "app": {
             "name": "appName",
@@ -91,7 +92,8 @@
         "description": "Fires when bookmarks are imported, providing metrics about the bookmark import component of an import operation.",
         "owners": ["tester"],
         "meta": {
-            "type": "w_wide_import_bookmarks"
+            "type": "w_wide_import_bookmarks",
+            "version": "123.456.789"
         },
         "global": {
             "platform": {
@@ -156,7 +158,8 @@
         "description": "Fires when credentials are imported, providing metrics about the credential import component of an import operation.",
         "owners": ["tester"],
         "meta": {
-            "type": "w_wide_import_credentials"
+            "type": "w_wide_import_credentials",
+            "version": "1.0.1"
         },
         "global": {
             "platform": {
@@ -224,7 +227,8 @@
         "description": "Fires when an import operation takes longer than expected and times out.",
         "owners": ["tester"],
         "meta": {
-            "type": "w_wide_import_timeout"
+            "type": "w_wide_import_timeout",
+            "version": "1.0.0"
         },
         "global": {
             "platform": {
@@ -292,7 +296,8 @@
         "description": "Fires when an import operation is cancelled by the user.",
         "owners": ["tester"],
         "meta": {
-            "type": "w_wide_import_cancelled"
+            "type": "w_wide_import_cancelled",
+            "version": "1.0.0"
         },
         "global": {
             "platform": {

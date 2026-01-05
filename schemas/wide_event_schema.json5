@@ -265,12 +265,17 @@
         "meta": {
             "type": "object",
             "description": "Meta information for the wide event",
-            "required": ["type"],
+            "required": ["type", "version"],
             "additionalProperties": false,
             "properties": {
                 "type": {
                     "description": "Unique type identifier for the wide event, equivalent to pixel name",
                     "type": "string"
+                },
+                "version": {
+                    "description": "Schema version for the wide event definition, following semantic versioning",
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
                 }
             }
         },
