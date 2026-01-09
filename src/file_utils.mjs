@@ -192,3 +192,55 @@ export function getTokenizedPixelsPath(mainPixelDir) {
 export function readTokenizedPixels(mainPixelDir) {
     return parseFile(getTokenizedPixelsPath(mainPixelDir));
 }
+
+/**
+ * Read base event definition for wide events
+ * @param {string} wideEventsDir - path to the wide_events directory
+ * @returns {object | null} base event definition or null if not found
+ */
+export function readBaseEvent(wideEventsDir) {
+    const baseEventPath = path.join(wideEventsDir, 'base_event.json');
+    if (fs.existsSync(baseEventPath)) {
+        return JSON5.parse(fs.readFileSync(baseEventPath, 'utf8'));
+    }
+    return null;
+}
+
+/**
+ * Get generated schemas directory path and create it if it doesn't exist
+ * @param {string} wideEventsDir - path to the wide_events directory
+ * @returns {string} generated schemas directory path
+ */
+export function getGeneratedSchemasDir(wideEventsDir) {
+    const generatedSchemasDir = path.join(wideEventsDir, 'generated_schemas');
+    if (!fs.existsSync(generatedSchemasDir)) {
+        fs.mkdirSync(generatedSchemasDir, { recursive: true });
+    }
+    return generatedSchemasDir;
+}
+
+/**
+ * Write a generated wide event schema to the generated_schemas directory
+ * @param {string} wideEventsDir - path to the wide_events directory
+ * @param {string} eventName - name of the wide event
+ * @param {object} schema - the generated schema to write
+ */
+export function writeGeneratedSchema(wideEventsDir, eventName, schema) {
+    const generatedSchemasDir = getGeneratedSchemasDir(wideEventsDir);
+    // Extract version from schema to include in filename
+    const version = schema[eventName]?.meta?.version;
+    const filename = version ? `${eventName}-${version}.json` : `${eventName}.json`;
+    const schemaPath = path.join(generatedSchemasDir, filename);
+    fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 4));
+}
+
+/**
+ * Write all generated wide event schemas to the generated_schemas directory
+ * @param {string} wideEventsDir - path to the wide_events directory
+ * @param {object} schemas - object containing all generated schemas keyed by event name
+ */
+export function writeAllGeneratedSchemas(wideEventsDir, schemas) {
+    for (const [eventName, schema] of Object.entries(schemas)) {
+        writeGeneratedSchema(wideEventsDir, eventName, schema);
+    }
+}

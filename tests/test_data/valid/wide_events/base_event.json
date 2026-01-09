@@ -1,0 +1,54 @@
+{
+    "meta": {
+        "version": {
+            "description": "Version of the base_event schema. During processing this is combined with the two-octet version of each event schema to form the full schema version in the form of <base_version>.<event_major_version>.<event_minor_version>",
+            "value": 1
+        }
+    },
+    "app": {
+        "name": {
+            "type": "string",
+            "description": "The name of the application",
+            "enum": ["Windows"]
+        },
+        "version": {
+            "type": "string",
+            "description": "The version of the application"
+        }
+    },
+    "global": {
+        "platform": {
+            "type": "string",
+            "description": "The platform the app is running on",
+            "enum": ["Windows"]
+        },
+        "type": {
+            "type": "string",
+            "description": "The type of application",
+            "enum": ["app"]
+        },
+        "sample_rate": {
+            "type": "number",
+            "description": "Sample rate for this event"
+        }
+    },
+    "feature": {
+        "name": {
+            "type": "string",
+            "description": "The feature name for this event"
+            // "enum:" value will be merged here from event definition
+        },
+        "status": {
+            "type": "string",
+            "description": "The overall status of the operation"
+            // "enum:" value will be merged here from event definition
+        }
+    },
+    "context": {
+        "name": {
+            "type": "string",
+            "description": "Context name for the event"
+            // "enum:" value will be merged here from event definition
+        }
+    }
+}

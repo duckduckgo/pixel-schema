@@ -128,7 +128,7 @@ export class DefinitionsValidator {
      * @returns {object} expanded wideEvents
      */
     #expandWideEventShortcuts(wideEvents) {
-        const rootSectionsToSkip = ['description', 'owners', 'meta'];
+        const rootSectionsToSkip = ['description', 'owners', 'meta', 'context'];
         const expandedEvents = JSON.parse(JSON.stringify(wideEvents));
 
         for (const eventName of Object.keys(expandedEvents)) {
@@ -140,6 +140,165 @@ export class DefinitionsValidator {
         }
 
         return expandedEvents;
+    }
+
+    /**
+     * Deep merges source into target, where source values override target values.
+     * For arrays, source replaces target entirely.
+     * @param {any} target - The base object
+     * @param {any} source - The object to merge in
+     * @returns {any} merged object
+     */
+    #deepMerge(target, source) {
+        if (source === undefined || source === null) {
+            return target;
+        }
+        if (target === undefined || target === null) {
+            return source;
+        }
+        if (Array.isArray(source)) {
+            return source;
+        }
+        if (typeof source !== 'object' || typeof target !== 'object') {
+            return source;
+        }
+
+        const result = { ...target };
+        for (const key of Object.keys(source)) {
+            result[key] = this.#deepMerge(target[key], source[key]);
+        }
+        return result;
+    }
+
+    /**
+     * Merges an event definition with the base event template.
+     * Handles special transformations for the new format:
+     * - context array becomes context.name.enum
+     * - feature.name string becomes feature.name.enum with single value
+     * - feature.status array becomes feature.status.enum
+     * @param {object} eventDef - The event-specific definition
+     * @param {object} baseEvent - The base event template
+     * @returns {object} merged event definition
+     */
+    #mergeWithBaseEvent(eventDef, baseEvent) {
+        const merged = JSON.parse(JSON.stringify(baseEvent));
+
+        // Remove meta from merged - it's handled separately in generateWideEventSchemas
+        delete merged.meta;
+
+        // Handle context transformation: array -> context.name.enum (at root level)
+        if (Array.isArray(eventDef.context)) {
+            merged.context = {
+                name: {
+                    ...merged.context?.name,
+                    enum: eventDef.context,
+                },
+            };
+        } else if (eventDef.context) {
+            merged.context = this.#deepMerge(merged.context, eventDef.context);
+        }
+
+        // Handle feature transformation
+        if (eventDef.feature) {
+            // feature.name: string -> enum with single value
+            if (typeof eventDef.feature.name === 'string') {
+                merged.feature.name = {
+                    ...merged.feature.name,
+                    enum: [eventDef.feature.name],
+                };
+            } else if (eventDef.feature.name) {
+                merged.feature.name = this.#deepMerge(merged.feature.name, eventDef.feature.name);
+            }
+
+            // feature.status: array -> enum
+            if (Array.isArray(eventDef.feature.status)) {
+                merged.feature.status = {
+                    ...merged.feature.status,
+                    enum: eventDef.feature.status,
+                };
+            } else if (eventDef.feature.status) {
+                merged.feature.status = this.#deepMerge(merged.feature.status, eventDef.feature.status);
+            }
+
+            // feature.data: deep merge
+            if (eventDef.feature.data) {
+                merged.feature.data = this.#deepMerge(merged.feature.data, eventDef.feature.data);
+            }
+        }
+
+        // Merge app section
+        if (eventDef.app) {
+            merged.app = this.#deepMerge(merged.app, eventDef.app);
+        }
+
+        // Merge global section
+        if (eventDef.global) {
+            merged.global = this.#deepMerge(merged.global, eventDef.global);
+        }
+
+        return merged;
+    }
+
+    /**
+     * Generates the full wide event schema by merging event definition with base event
+     * and expanding shortcuts.
+     * @param {object} wideEvents - The wide event definitions
+     * @param {object} baseEvent - The base event template (required)
+     * @returns {object} Object containing { expandedEvents, generatedSchemas }
+     */
+    generateWideEventSchemas(wideEvents, baseEvent) {
+        const generatedSchemas = {};
+
+        // Get base version for combining with event versions
+        const baseVersion = baseEvent.meta?.version?.value;
+        if (baseVersion === undefined) {
+            throw new Error("base_event.json must have 'meta.version.value' defined");
+        }
+
+        // Merge each event with base event
+        const mergedEvents = {};
+        for (const [eventName, eventDef] of Object.entries(wideEvents)) {
+            // Validate that event doesn't redefine base properties (app, global)
+            // These should come from base_event.json only
+            if (eventDef.app) {
+                throw new Error(`${eventName}: 'app' section should not be defined in event - it comes from base_event.json`);
+            }
+            if (eventDef.global) {
+                throw new Error(`${eventName}: 'global' section should not be defined in event - it comes from base_event.json`);
+            }
+
+            // Validate that event has a version for combining with base version
+            if (!eventDef.meta?.version) {
+                throw new Error(`${eventName}: 'meta.version' is required to generate versioned schema filename`);
+            }
+
+            const mergedEventContent = this.#mergeWithBaseEvent(eventDef, baseEvent);
+
+            // Combine versions: base version + event two-octet version -> semver
+            const eventVersion = eventDef.meta.version;
+            const combinedVersion = `${baseVersion}.${eventVersion}`;
+            const combinedMeta = {
+                ...eventDef.meta,
+                version: combinedVersion,
+            };
+
+            mergedEvents[eventName] = {
+                description: eventDef.description,
+                owners: eventDef.owners,
+                meta: combinedMeta,
+                ...mergedEventContent,
+            };
+        }
+
+        // Then expand shortcuts (props_dictionary references)
+        const expandedEvents = this.#expandWideEventShortcuts(mergedEvents);
+
+        // Store generated schemas keyed by event name
+        for (const [eventName, eventDef] of Object.entries(expandedEvents)) {
+            generatedSchemas[eventName] = { [eventName]: eventDef };
+        }
+
+        return { expandedEvents, generatedSchemas };
     }
 
     /**
@@ -171,24 +330,32 @@ export class DefinitionsValidator {
      * Validates wide event definition
      *
      * @param {object} wideEvents should follow the schema defined in wide_event_schema.json5
+     * @param {object} baseEvent - base event template (required)
      * @param {?Record<string, string>} [userMap] - map of valid github usernames
-     * @returns any validation errors
+     * @returns {{ errors: string[], generatedSchemas: object }} validation errors and generated schemas
      */
-    validateWideEventDefinition(wideEvents, userMap = null) {
+    validateWideEventDefinition(wideEvents, baseEvent, userMap = null) {
         const errors = [];
 
-        // 1. Expand shortcuts
+        if (!baseEvent) {
+            return { errors: ['base_event.json is required for wide event validation'], generatedSchemas: {} };
+        }
+
+        // 1. Generate schemas by merging with base event and expanding shortcuts
         let expandedEvents;
+        let generatedSchemas = {};
         try {
-            expandedEvents = this.#expandWideEventShortcuts(wideEvents);
+            const result = this.generateWideEventSchemas(wideEvents, baseEvent);
+            expandedEvents = result.expandedEvents;
+            generatedSchemas = result.generatedSchemas;
         } catch (error) {
-            return [error.message];
+            return { errors: [error.message], generatedSchemas: {} };
         }
 
         // 2. Validate schema
         const ajvExpSchema = this.#ajv.compile(wideEventSchema);
         if (!ajvExpSchema(expandedEvents)) {
-            return formatAjvErrors(ajvExpSchema.errors);
+            return { errors: formatAjvErrors(ajvExpSchema.errors), generatedSchemas };
         }
 
         // 3. Iterate events for additional checks
@@ -213,7 +380,7 @@ export class DefinitionsValidator {
             }
         });
 
-        return errors;
+        return { errors, generatedSchemas };
     }
 
     /**

@@ -17,7 +17,7 @@ describe('Invalid defs without user map', () => {
     it('should output all required params', (done) => {
         exec(`npm run validate-ddg-pixel-defs ${invalidDefsPath}`, (error, _, stderr) => {
             const pixelPath = path.join(invalidDefsPath, 'pixels', 'definitions', 'pixels.json');
-            const wideEventsPath = path.join(invalidDefsPath, 'wide_events', 'definitions', 'wide_events.json5');
+            const wideEventsPath = path.join(invalidDefsPath, 'wide_events', 'definitions', 'wide_events.json');
             const expectedErrors = [
                 'ERROR in native_experiments.json: /defaultSuffixes must be array',
                 "ERROR in native_experiments.json: /activeExperiments/invalidExperiment must have required property 'cohorts'",
@@ -27,7 +27,6 @@ describe('Invalid defs without user map', () => {
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
                 "ERROR in search_experiments.json: /expInvalidA must have required property 'variants'",
                 "ERROR in search_experiments.json: /expInvalidB must have required property 'description'",
-                `ERROR in ${wideEventsPath}: /w_wide_import_summary/global must have required property 'type'`,
                 `ERROR in ${wideEventsPath}: /w_wide_import_summary/feature/data must NOT have additional properties. Found extra property 'latency_ms_bucketed'`,
                 `ERROR in ${wideEventsPath}: /w_wide_import_summary/feature/data must NOT have additional properties. Found extra property 'failure_detail'`,
                 `ERROR in ${wideEventsPath}: /w_wide_import_bookmarks/feature/data must NOT have additional properties. Found extra property 'latency_ms_bucketed'`,

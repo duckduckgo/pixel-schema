@@ -1,0 +1,111 @@
+{
+    "w_wide_import_bookmarks": {
+        "description": "Fires when bookmarks are imported, providing metrics about the bookmark import component of an import operation.",
+        "owners": [
+            "jhlouw-dev"
+        ],
+        "meta": {
+            "type": "w_wide_import_bookmarks",
+            "version": "1.0.0"
+        },
+        "app": {
+            "name": {
+                "type": "string",
+                "description": "The name of the application",
+                "enum": [
+                    "Windows"
+                ]
+            },
+            "version": {
+                "type": "string",
+                "description": "The version of the application"
+            }
+        },
+        "global": {
+            "platform": {
+                "type": "string",
+                "description": "The platform the app is running on",
+                "enum": [
+                    "Windows"
+                ]
+            },
+            "type": {
+                "type": "string",
+                "description": "The type of application",
+                "enum": [
+                    "app"
+                ]
+            },
+            "sample_rate": {
+                "type": "number",
+                "description": "Sample rate for this event"
+            }
+        },
+        "feature": {
+            "name": {
+                "type": "string",
+                "description": "The feature name for this event",
+                "enum": [
+                    "browser-import-bookmarks"
+                ]
+            },
+            "status": {
+                "type": "string",
+                "description": "The overall status of the operation",
+                "enum": [
+                    "SUCCESS",
+                    "FAILURE"
+                ]
+            },
+            "data": {
+                "latency_ms_bucketed": {
+                    "type": "integer",
+                    "description": "How long the bookmark import took in milliseconds, bucketed to preserve privacy"
+                },
+                "ext": {
+                    "import_from": {
+                        "type": "string",
+                        "description": "The source of the bookmark import",
+                        "enum": [
+                            "Google Chrome",
+                            "Microsoft Edge",
+                            "Mozilla Firefox",
+                            "Brave",
+                            "Vivaldi",
+                            "Chromium",
+                            "HTML Bookmarks File"
+                        ]
+                    },
+                    "item_count_bucketed": {
+                        "type": "integer",
+                        "description": "Number of bookmarks imported, bucketed to preserve privacy"
+                    },
+                    "bookmark_failure_count_bucketed": {
+                        "type": "integer",
+                        "description": "If status is FAILURE, number of failed bookmark imports, bucketed to preserve privacy"
+                    }
+                },
+                "failure_detail": {
+                    "type": "string",
+                    "description": "Details about the error if one occurred",
+                    "enum": [
+                        "FileFormatFailure",
+                        "AccessDenied",
+                        "ParsingFailure",
+                        "UnknownFailure"
+                    ]
+                }
+            }
+        },
+        "context": {
+            "name": {
+                "type": "string",
+                "description": "Context name for the event",
+                "enum": [
+                    "onboarding.import",
+                    "settings.import"
+                ]
+            }
+        }
+    }
+}

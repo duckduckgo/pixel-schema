@@ -75,17 +75,34 @@ if (productDef.searchExperimentsEnabled === true) {
 // 3) Validate wide events
 const wideEventsDir = path.join(wideEventsConfigDir, 'definitions');
 let wideEventValidator;
+let baseEvent = null;
 
 if (fs.existsSync(wideEventsDir)) {
     const wideEventParams = fileUtils.readCommonProps(wideEventsConfigDir);
     wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
     logErrors('ERROR in wide_events/props_dictionary.json:', wideEventValidator.validateCommonPropsDefinition());
+
+    // Read base event template (required for wide event validation)
+    baseEvent = fileUtils.readBaseEvent(wideEventsConfigDir);
+    if (!baseEvent) {
+        console.error('ERROR: base_event.json is required for wide event validation');
+        process.exit(1);
+    }
 }
 
 function validateWideEventFile(file, userMap) {
     console.log(`Validating wide events definition: ${file}`);
     const wideEventsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
-    logErrors(`ERROR in ${file}:`, wideEventValidator.validateWideEventDefinition(wideEventsDef, userMap));
+    const { errors, generatedSchemas } = wideEventValidator.validateWideEventDefinition(wideEventsDef, baseEvent, userMap);
+    logErrors(`ERROR in ${file}:`, errors);
+
+    // Write generated schemas
+    if (Object.keys(generatedSchemas).length > 0) {
+        fileUtils.writeAllGeneratedSchemas(wideEventsConfigDir, generatedSchemas);
+        console.log(
+            `Generated ${Object.keys(generatedSchemas).length} schema(s) to ${path.join(wideEventsConfigDir, 'generated_schemas')}`,
+        );
+    }
 }
 
 function validateWideEventFolder(folder, userMap) {

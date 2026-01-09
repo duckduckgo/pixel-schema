@@ -1,0 +1,97 @@
+{
+    "w_wide_import_cancelled": {
+        "description": "Fires when an import operation is cancelled by the user.",
+        "owners": [
+            "jhlouw-dev"
+        ],
+        "meta": {
+            "type": "w_wide_import_cancelled",
+            "version": "1.0.0"
+        },
+        "app": {
+            "name": {
+                "type": "string",
+                "description": "The name of the application",
+                "enum": [
+                    "Windows"
+                ]
+            },
+            "version": {
+                "type": "string",
+                "description": "The version of the application"
+            }
+        },
+        "global": {
+            "platform": {
+                "type": "string",
+                "description": "The platform the app is running on",
+                "enum": [
+                    "Windows"
+                ]
+            },
+            "type": {
+                "type": "string",
+                "description": "The type of application",
+                "enum": [
+                    "app"
+                ]
+            },
+            "sample_rate": {
+                "type": "number",
+                "description": "Sample rate for this event"
+            }
+        },
+        "feature": {
+            "name": {
+                "type": "string",
+                "description": "The feature name for this event",
+                "enum": [
+                    "browser-import"
+                ]
+            },
+            "status": {
+                "type": "string",
+                "description": "The overall status of the operation",
+                "enum": [
+                    "CANCELLED"
+                ]
+            },
+            "data": {
+                "ext": {
+                    "import_from": {
+                        "type": "string",
+                        "description": "The source of the import that was cancelled",
+                        "enum": [
+                            "Google Chrome",
+                            "Microsoft Edge",
+                            "Mozilla Firefox",
+                            "Brave",
+                            "Vivaldi",
+                            "Chromium",
+                            "Bitwarden",
+                            "CSV Logins File",
+                            "HTML Bookmarks File",
+                            "LastPass",
+                            "1Password",
+                            "1Password 7"
+                        ]
+                    },
+                    "total_items_bucketed": {
+                        "type": "integer",
+                        "description": "Number of items that were being imported when cancelled, bucketed to preserve privacy"
+                    }
+                }
+            }
+        },
+        "context": {
+            "name": {
+                "type": "string",
+                "description": "Context name for the event",
+                "enum": [
+                    "onboarding",
+                    "settings"
+                ]
+            }
+        }
+    }
+}
