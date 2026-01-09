@@ -247,7 +247,6 @@ export class DefinitionsValidator {
      * @returns {object} Generated schemas keyed by event name
      */
     generateWideEventSchemas(wideEvents, baseEvent) {
-
         // Get base version for combining with event versions
         const baseVersion = baseEvent.meta?.version?.value;
         if (baseVersion === undefined) {
