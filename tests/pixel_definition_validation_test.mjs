@@ -837,7 +837,7 @@ describe('Wide Event Base Event Merging', () => {
         expect(errors).to.be.empty;
         expect(generatedSchemas).to.have.property('w_test_merge');
 
-        const generated = generatedSchemas.w_test_merge.w_test_merge;
+        const generated = generatedSchemas.w_test_merge;
         // Check that context array was transformed to context.name.enum (at root level)
         expect(generated.context.name.enum).to.deep.equal(['onboarding', 'settings']);
         // Check that feature.name string was transformed to feature.name.enum
@@ -879,7 +879,7 @@ describe('Wide Event Base Event Merging', () => {
         const { errors, generatedSchemas } = validator.validateWideEventDefinition(eventWithShortcut, baseEvent);
         expect(errors).to.be.empty;
 
-        const generated = generatedSchemas.w_test_shortcut_merge.w_test_shortcut_merge;
+        const generated = generatedSchemas.w_test_shortcut_merge;
         // Check that shortcut was expanded
         expect(generated.feature.data.ext.app_name).to.deep.equal({
             type: 'string',
@@ -969,7 +969,7 @@ describe('Wide Event Version Combining', () => {
         const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
         expect(errors).to.be.empty;
 
-        const generated = generatedSchemas.w_version_test.w_version_test;
+        const generated = generatedSchemas.w_version_test;
         // Base version 2 + event version 3.5 = 2.3.5
         expect(generated.meta.version).to.equal('2.3.5');
     });
@@ -992,7 +992,7 @@ describe('Wide Event Version Combining', () => {
         const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
         expect(errors).to.be.empty;
 
-        const generated = generatedSchemas.w_zero_version.w_zero_version;
+        const generated = generatedSchemas.w_zero_version;
         // Base version 2 + event version 0.0 = 2.0.0
         expect(generated.meta.version).to.equal('2.0.0');
     });
@@ -1013,7 +1013,7 @@ describe('Wide Event Version Combining', () => {
         };
 
         const { generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
-        const generated = generatedSchemas.w_no_base_meta.w_no_base_meta;
+        const generated = generatedSchemas.w_no_base_meta;
 
         // meta should only have type and version (string), not version.value or version.description
         expect(generated.meta).to.deep.equal({

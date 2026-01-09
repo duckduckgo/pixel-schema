@@ -244,10 +244,9 @@ export class DefinitionsValidator {
      * and expanding shortcuts.
      * @param {object} wideEvents - The wide event definitions
      * @param {object} baseEvent - The base event template (required)
-     * @returns {object} Object containing { expandedEvents, generatedSchemas }
+     * @returns {object} Generated schemas keyed by event name
      */
     generateWideEventSchemas(wideEvents, baseEvent) {
-        const generatedSchemas = {};
 
         // Get base version for combining with event versions
         const baseVersion = baseEvent.meta?.version?.value;
@@ -291,14 +290,9 @@ export class DefinitionsValidator {
         }
 
         // Then expand shortcuts (props_dictionary references)
-        const expandedEvents = this.#expandWideEventShortcuts(mergedEvents);
+        const generatedSchemas = this.#expandWideEventShortcuts(mergedEvents);
 
-        // Store generated schemas keyed by event name
-        for (const [eventName, eventDef] of Object.entries(expandedEvents)) {
-            generatedSchemas[eventName] = { [eventName]: eventDef };
-        }
-
-        return { expandedEvents, generatedSchemas };
+        return generatedSchemas;
     }
 
     /**
@@ -342,24 +336,21 @@ export class DefinitionsValidator {
         }
 
         // 1. Generate schemas by merging with base event and expanding shortcuts
-        let expandedEvents;
-        let generatedSchemas = {};
+        let generatedSchemas;
         try {
-            const result = this.generateWideEventSchemas(wideEvents, baseEvent);
-            expandedEvents = result.expandedEvents;
-            generatedSchemas = result.generatedSchemas;
+            generatedSchemas = this.generateWideEventSchemas(wideEvents, baseEvent);
         } catch (error) {
             return { errors: [error.message], generatedSchemas: {} };
         }
 
         // 2. Validate schema
         const ajvExpSchema = this.#ajv.compile(wideEventSchema);
-        if (!ajvExpSchema(expandedEvents)) {
+        if (!ajvExpSchema(generatedSchemas)) {
             return { errors: formatAjvErrors(ajvExpSchema.errors), generatedSchemas };
         }
 
         // 3. Iterate events for additional checks
-        Object.entries(/** @type {Record<string, any>} */ (expandedEvents)).forEach(([eventName, eventDef]) => {
+        Object.entries(/** @type {Record<string, any>} */ (generatedSchemas)).forEach(([eventName, eventDef]) => {
             // Check duplicates using meta.type
             const type = eventDef.meta?.type;
             if (type) {
