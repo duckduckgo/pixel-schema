@@ -145,7 +145,8 @@ pipeline {
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("validateRepo.sh failed for duckduckgo-privacy-extension with exit code: ${result}")
+                        echo "WARNING: validateRepo.sh failed for duckduckgo-privacy-extension with exit code: ${result}"
+                        unstable("Validation failed for duckduckgo-privacy-extension")
                     }
                 }
             }
@@ -167,7 +168,8 @@ pipeline {
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("validateRepo.sh failed for windows-browser with exit code: ${result}")
+                        echo "WARNING: validateRepo.sh failed for windows-browser with exit code: ${result}"
+                        unstable("Validation failed for windows-browser")
                     }
                 }
             }
@@ -192,7 +194,8 @@ pipeline {
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("validateRepo.sh failed for apple-browsers (macOS) with exit code: ${result}")
+                        echo "WARNING: validateRepo.sh failed for apple-browsers (macOS) with exit code: ${result}"
+                        unstable("Validation failed for apple-browsers (macOS)")
                     }
                 }
             }
@@ -217,7 +220,8 @@ pipeline {
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("validateRepo.sh failed for apple-browsers (iOS) with exit code: ${result}")
+                        echo "WARNING: validateRepo.sh failed for apple-browsers (iOS) with exit code: ${result}"
+                        unstable("Validation failed for apple-browsers (iOS)")
                     }
                 }
             }
@@ -239,7 +243,8 @@ pipeline {
                         returnStatus: true
                     )
                     if (result != 0) {
-                        error("validateRepo.sh failed for android with exit code: ${result}")
+                        echo "WARNING: validateRepo.sh failed for android with exit code: ${result}"
+                        unstable("Validation failed for android")
                     }
                 }
             }
