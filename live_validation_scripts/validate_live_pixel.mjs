@@ -10,7 +10,7 @@ import { ParamsValidator } from '../src/params_validator.mjs';
 import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
 
 import * as fileUtils from '../src/file_utils.mjs';
-import { parseSearchExperiments, getEnabledSearchExperiments } from '../src/pixel_utils.mjs';
+import { parseSearchExperiments, getEnabledSearchExperiments, resolveTargetVersion } from '../src/pixel_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -19,12 +19,18 @@ const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 
 const undocumentedPixels = new Set();
 const pixelErrors = {};
 
-function main(mainDir, csvFile) {
+async function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const pixelsConfigDir = path.join(mainDir, 'pixels');
 
     const productDef = fileUtils.readProductDef(mainDir);
+
+    // Resolve version (may fetch from URL if versionUrl is specified)
+    const resolvedVersion = await resolveTargetVersion(productDef.target);
+    productDef.target.version = resolvedVersion;
+    console.log(`Using minimum version: ${resolvedVersion}`);
+
     const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
     const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
     const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
@@ -135,4 +141,7 @@ function setReplacer(_, value) {
     return value;
 }
 
-main(argv.dirPath, argv.csvFile);
+main(argv.dirPath, argv.csvFile).catch((err) => {
+    console.error('Error:', err.message);
+    process.exit(1);
+});

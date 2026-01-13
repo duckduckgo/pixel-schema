@@ -1,7 +1,9 @@
 /**
  * @typedef {Object} ProductTarget
  * @property {string} key - The param key used to specify the product version (e.g. "appVersion")
- * @property {string} version - The product target version (e.g. "0.98.4")
+ * @property {string} [version] - The product target version (e.g. "0.98.4"). Either version or versionUrl/versionRef must be specified.
+ * @property {string} [versionUrl] - URL to a JSON file containing version info. Used with versionRef.
+ * @property {string} [versionRef] - Dot-notation key path to extract version from versionUrl response (e.g. "latest_appstore_version.latest_version")
  * @property {number} [queryWindowInDays] - Use a smaller CH query window than the default 28 days
  */
 

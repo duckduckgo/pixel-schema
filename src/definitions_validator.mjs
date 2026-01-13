@@ -30,9 +30,9 @@ export class DefinitionsValidator {
     #ajvValidateProps;
     #ajvValidateSuffixes;
 
-    #commonParams;   // contains params_dictionary.json for pixels, props_dictionary.json for wide events
+    #commonParams; // contains params_dictionary.json for pixels, props_dictionary.json for wide events
     #commonSuffixes; // contains suffixes_dictionary.json for pixels
-    #ignoreParams;   // contains ignore_params.json for pixels
+    #ignoreParams; // contains ignore_params.json for pixels
 
     #paramsValidator;
     // eslint-disable-next-line new-cap
