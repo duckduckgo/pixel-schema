@@ -75,9 +75,7 @@ describe('resolveTargetVersion', () => {
 
     describe('remote version fetching', () => {
         it('should fetch version from URL with simple key path', async () => {
-            nock('https://example.com')
-                .get('/version.json')
-                .reply(200, { version: '2.5.0' });
+            nock('https://example.com').get('/version.json').reply(200, { version: '2.5.0' });
 
             const target = {
                 key: 'appVersion',
@@ -110,9 +108,7 @@ describe('resolveTargetVersion', () => {
         });
 
         it('should throw when URL returns 404', async () => {
-            nock('https://example.com')
-                .get('/notfound.json')
-                .reply(404, 'Not Found');
+            nock('https://example.com').get('/notfound.json').reply(404, 'Not Found');
 
             const target = {
                 key: 'appVersion',
@@ -129,9 +125,7 @@ describe('resolveTargetVersion', () => {
         });
 
         it('should throw when URL returns 500', async () => {
-            nock('https://example.com')
-                .get('/error.json')
-                .reply(500, 'Internal Server Error');
+            nock('https://example.com').get('/error.json').reply(500, 'Internal Server Error');
 
             const target = {
                 key: 'appVersion',
@@ -148,9 +142,7 @@ describe('resolveTargetVersion', () => {
         });
 
         it('should throw when version key is missing from response', async () => {
-            nock('https://example.com')
-                .get('/incomplete.json')
-                .reply(200, { other_key: '1.0.0' });
+            nock('https://example.com').get('/incomplete.json').reply(200, { other_key: '1.0.0' });
 
             const target = {
                 key: 'appVersion',
@@ -190,9 +182,7 @@ describe('resolveTargetVersion', () => {
         });
 
         it('should throw when version value is not a string', async () => {
-            nock('https://example.com')
-                .get('/number.json')
-                .reply(200, { version: 123 });
+            nock('https://example.com').get('/number.json').reply(200, { version: 123 });
 
             const target = {
                 key: 'appVersion',
