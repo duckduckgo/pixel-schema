@@ -143,34 +143,6 @@ export class DefinitionsValidator {
     }
 
     /**
-     * Deep merges source into target, where source values override target values.
-     * For arrays, source replaces target entirely.
-     * @param {any} target - The base object
-     * @param {any} source - The object to merge in
-     * @returns {any} merged object
-     */
-    #deepMerge(target, source) {
-        if (source === undefined || source === null) {
-            return target;
-        }
-        if (target === undefined || target === null) {
-            return source;
-        }
-        if (Array.isArray(source)) {
-            return source;
-        }
-        if (typeof source !== 'object' || typeof target !== 'object') {
-            return source;
-        }
-
-        const result = { ...target };
-        for (const key of Object.keys(source)) {
-            result[key] = this.#deepMerge(target[key], source[key]);
-        }
-        return result;
-    }
-
-    /**
      * Merges an event definition with the base event template.
      * Handles special transformations for the new format:
      * - context array becomes context.name.enum
@@ -186,55 +158,28 @@ export class DefinitionsValidator {
         // Remove meta from merged - it's handled separately in generateWideEventSchemas
         delete merged.meta;
 
-        // Handle context transformation: array -> context.name.enum (at root level)
-        if (Array.isArray(eventDef.context)) {
-            merged.context = {
-                name: {
-                    ...merged.context?.name,
-                    enum: eventDef.context,
-                },
-            };
-        } else if (eventDef.context) {
-            merged.context = this.#deepMerge(merged.context, eventDef.context);
-        }
+        // context.name: array -> enum with 1+ values
+        merged.context = {
+            name: {
+                ...merged.context?.name,
+                enum: eventDef.context,
+            },
+        };
 
-        // Handle feature transformation
-        if (eventDef.feature) {
-            // feature.name: string -> enum with single value
-            if (typeof eventDef.feature.name === 'string') {
-                merged.feature.name = {
-                    ...merged.feature.name,
-                    enum: [eventDef.feature.name],
-                };
-            } else if (eventDef.feature.name) {
-                merged.feature.name = this.#deepMerge(merged.feature.name, eventDef.feature.name);
-            }
+        // feature.name: string -> enum with single value
+        merged.feature.name = {
+            ...merged.feature.name,
+            enum: [eventDef.feature.name],
+        };
+        // feature.status: array -> enum with 1+ values
+        merged.feature.status = {
+            ...merged.feature.status,
+            enum: eventDef.feature.status,
+        };
+        merged.feature.data = eventDef.feature.data;
 
-            // feature.status: array -> enum
-            if (Array.isArray(eventDef.feature.status)) {
-                merged.feature.status = {
-                    ...merged.feature.status,
-                    enum: eventDef.feature.status,
-                };
-            } else if (eventDef.feature.status) {
-                merged.feature.status = this.#deepMerge(merged.feature.status, eventDef.feature.status);
-            }
-
-            // feature.data: deep merge
-            if (eventDef.feature.data) {
-                merged.feature.data = this.#deepMerge(merged.feature.data, eventDef.feature.data);
-            }
-        }
-
-        // Merge app section
-        if (eventDef.app) {
-            merged.app = this.#deepMerge(merged.app, eventDef.app);
-        }
-
-        // Merge global section
-        if (eventDef.global) {
-            merged.global = this.#deepMerge(merged.global, eventDef.global);
-        }
+        merged.app = baseEvent.app;
+        merged.global = baseEvent.global;
 
         return merged;
     }
