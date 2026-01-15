@@ -125,15 +125,6 @@ export function readSearchPixelsDef(mainPixelDir) {
 }
 
 /**
- * Read wide event definitions
- * @param {string} mainPixelDir - path to the main pixels directory
- * @returns {object} wide event definitions
- */
-export function readWideEventDef(mainPixelDir) {
-    return readSchemaFile(mainPixelDir, 'wide_events.json');
-}
-
-/**
  * Get results directory path and create it if it doesn't exist
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} results directory path
