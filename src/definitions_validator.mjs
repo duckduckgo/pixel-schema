@@ -293,7 +293,17 @@ export class DefinitionsValidator {
             return { errors: formatAjvErrors(ajvExpSchema.errors), generatedSchemas };
         }
 
-        // 3. Iterate events for additional checks
+        // 3. Convert to valid AJV schemas and verify they compile
+        for (const [eventName, eventDef] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
+            try {
+                const ajvSchema = this.#convertToAjvSchema(eventDef);
+                this.#ajv.compile(ajvSchema);
+            } catch (error) {
+                errors.push(`${eventName}: Generated schema failed to compile - ${error.message}`);
+            }
+        }
+
+        // 4. Iterate events for additional checks (use original for metadata access)
         Object.entries(/** @type {Record<string, any>} */ (generatedSchemas)).forEach(([eventName, eventDef]) => {
             // Check duplicates using meta.type
             const type = eventDef.meta?.type;
@@ -315,7 +325,58 @@ export class DefinitionsValidator {
             }
         });
 
+        // Return original format for compatibility (AJV compilation was just validation)
         return { errors, generatedSchemas };
+    }
+
+    /**
+     * Converts a property definition to a valid AJV JSON Schema.
+     * - Literal values (strings, arrays, objects without 'type') become { const: value }
+     * - Property definitions (objects with valid JSON Schema 'type') are kept as-is
+     * - Container objects (nested properties) become { type: "object", properties: {...} }
+     * @param {any} value - The value to convert
+     * @returns {object} Valid JSON Schema
+     */
+    #convertToAjvSchema(value) {
+        // Null/undefined
+        if (value === null || value === undefined) {
+            return { const: value };
+        }
+
+        // Primitive literals
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return { const: value };
+        }
+
+        // Arrays - treat as const value
+        if (Array.isArray(value)) {
+            return { const: value };
+        }
+
+        // Objects
+        if (typeof value === 'object') {
+            // Check if it's a property definition (has 'type' with a valid JSON Schema type)
+            const validSchemaTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
+            if ('type' in value && validSchemaTypes.includes(value.type)) {
+                return value;
+            }
+
+            // Otherwise it's a container - convert children and wrap in object schema
+            const properties = {};
+            const required = [];
+            for (const [key, val] of Object.entries(value)) {
+                properties[key] = this.#convertToAjvSchema(val);
+                required.push(key);
+            }
+            return {
+                type: 'object',
+                properties,
+                required,
+                additionalProperties: false,
+            };
+        }
+
+        return { const: value };
     }
 
     /**
