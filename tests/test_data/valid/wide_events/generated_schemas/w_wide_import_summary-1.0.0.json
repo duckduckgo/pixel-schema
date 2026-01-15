@@ -55,7 +55,6 @@
                 "enum": [
                     "SUCCESS",
                     "FAILURE",
-                    "PARTIAL",
                     "CANCELLED"
                 ]
             },
@@ -81,23 +80,73 @@
                     },
                     "total_items_bucketed": {
                         "type": "integer",
-                        "description": "Total number of items imported, bucketed to preserve privacy"
+                        "description": "Total number of items imported, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     },
                     "bookmark_count_bucketed": {
                         "type": "integer",
-                        "description": "Number of bookmarks imported, bucketed to preserve privacy"
+                        "description": "Number of bookmarks imported, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     },
                     "credential_count_bucketed": {
                         "type": "integer",
-                        "description": "Number of credentials imported, bucketed to preserve privacy"
+                        "description": "Number of credentials imported, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     },
                     "bookmark_failure_count_bucketed": {
                         "type": "integer",
-                        "description": "Number of errors encountered during import, bucketed to preserve privacy"
+                        "description": "Number of errors encountered during import, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     },
                     "credential_failure_count_bucketed": {
                         "type": "integer",
-                        "description": "Number of errors encountered during import, bucketed to preserve privacy"
+                        "description": "Number of errors encountered during import, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     }
                 }
             }

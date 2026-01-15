@@ -78,7 +78,17 @@
                     },
                     "total_items_bucketed": {
                         "type": "integer",
-                        "description": "Number of items that were being imported when cancelled, bucketed to preserve privacy"
+                        "description": "Number of items that were being imported when cancelled, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     }
                 }
             }

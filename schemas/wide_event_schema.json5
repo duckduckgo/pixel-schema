@@ -8,88 +8,103 @@
         "$ref": "#/$defs/wideEvent"
     },
     "$defs": {
-        "propertyDefinition": {
+        "stringValueProperty": {
             "type": "object",
+            "description": "A string property with a single value (no enum).",
             "required": ["type", "description"],
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": ["string", "number", "integer", "boolean", "array", "object"]
-                },
-                "description": {
-                    "type": "string"
-                },
-                "enum": {
-                    "type": "array"
-                },
-                "items": {
-                    "type": "object"
-                },
-                "pattern": {
-                    "type": "string"
-                },
-                "examples": {
-                    "type": "array"
-                }
-            },
-            "additionalProperties": false
-        },
-        "stringDefinition": {
-            "type": "object",
-            "required": ["type", "description"],
+            "not": { "required": ["enum"] },
             "properties": {
                 "type": { "const": "string" },
                 "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "string" } },
                 "pattern": { "type": "string" },
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
         },
-        "numberDefinition": {
+        "stringEnumProperty": {
             "type": "object",
+            "description": "A string property constrained to enum values.",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "numberValueProperty": {
+            "type": "object",
+            "description": "A number property with a single value (no enum).",
             "required": ["type", "description"],
+            "not": { "required": ["enum"] },
             "properties": {
                 "type": { "const": "number" },
                 "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "number" } },
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
         },
-        "integerDefinition": {
+        "numberEnumProperty": {
             "type": "object",
+            "description": "A number property constrained to enum values.",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "number" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "integerValueProperty": {
+            "type": "object",
+            "description": "An integer property with a single value (no enum).",
             "required": ["type", "description"],
+            "not": { "required": ["enum"] },
             "properties": {
                 "type": { "const": "integer" },
                 "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "integer" } },
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
         },
-        "booleanDefinition": {
+        "integerEnumProperty": {
             "type": "object",
+            "description": "An integer property constrained to enum values (e.g., bucketed values).",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "integer" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "booleanProperty": {
+            "type": "object",
+            "description": "A boolean property.",
             "required": ["type", "description"],
             "properties": {
                 "type": { "const": "boolean" },
                 "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "boolean" } },
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
         },
-        "arrayDefinition": {
-            "type": "object",
-            "required": ["type", "description", "items"],
-            "properties": {
-                "type": { "const": "array" },
-                "description": { "type": "string" },
-                "items": { "type": "object" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
+        "propertyDefinition": {
+            "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
+            "oneOf": [
+                { "$ref": "#/$defs/stringValueProperty" },
+                { "$ref": "#/$defs/stringEnumProperty" },
+                { "$ref": "#/$defs/numberValueProperty" },
+                { "$ref": "#/$defs/numberEnumProperty" },
+                { "$ref": "#/$defs/integerValueProperty" },
+                { "$ref": "#/$defs/integerEnumProperty" },
+                { "$ref": "#/$defs/booleanProperty" }
+            ]
         },
+
         "platformDefinition": {
             "type": "object",
             "required": ["type", "description", "enum"],
@@ -103,7 +118,7 @@
                 "enum": {
                     "type": "array",
                     "items": {
-                        "enum": ["Windows", "macOS", "Linux", "iOS", "Android", "Web"]
+                        "enum": ["Android","iOS","Linux","macOS","Windows"]
                     }
                 }
             },
@@ -122,7 +137,7 @@
                 "enum": {
                     "type": "array",
                     "items": {
-                        "enum": ["app", "web", "mobile"]
+                        "enum": ["app", "web", "service"]
                     }
                 }
             },
@@ -141,7 +156,7 @@
                 "enum": {
                     "type": "array",
                     "items": {
-                        "enum": ["SUCCESS", "FAILURE", "PARTIAL", "ERROR", "CANCELLED"]
+                        "enum": ["SUCCESS", "FAILURE", "CANCELLED", "UNKNOWN"]
                     }
                 }
             },
@@ -182,11 +197,11 @@
                 },
                 "sample_rate": {
                     "description": "Sample rate for the wide event, indicating how often it should be recorded",
-                    "$ref": "#/$defs/numberDefinition"
+                    "$ref": "#/$defs/numberValueProperty"
                 },
                 "is_first_daily_occurrence": {
                     "description": "Indicates if this is the first occurrence of this wide event for the user in a 24-hour period",
-                    "$ref": "#/$defs/booleanDefinition"
+                    "$ref": "#/$defs/booleanProperty"
                 }
             }
         },
@@ -198,11 +213,11 @@
             "properties": {
                 "name": {
                     "description": "Name of the application",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringEnumProperty"
                 },
                 "version": {
                     "description": "Version of the application",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringValueProperty"
                 },
                 "form_factor": {
                     "description": "Form factor of the device running the application (used by mobile apps)",
@@ -218,7 +233,7 @@
             "properties": {
                 "name": {
                     "description": "Name of the feature being tracked",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringEnumProperty"
                 },
                 "status": {
                     "description": "Status of the feature interaction",
@@ -258,7 +273,7 @@
             "properties": {
                 "name": {
                     "description": "Name of the context",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringEnumProperty"
                 }
             }
         },
@@ -287,19 +302,19 @@
             "properties": {
                 "domain": {
                     "description": "Error domain used by the top-level error",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringValueProperty"
                 },
                 "code": {
                     "description": "Error code used by the top-level error",
-                    "$ref": "#/$defs/integerDefinition"
+                    "$ref": "#/$defs/integerValueProperty"
                 },
                 "underlying_domain": {
                     "description": "Error domain used by the underlying error",
-                    "$ref": "#/$defs/stringDefinition"
+                    "$ref": "#/$defs/stringValueProperty"
                 },
                 "underlyingcode": {
                     "description": "Error domain used by the underlying error",
-                    "$ref": "#/$defs/integerDefinition"
+                    "$ref": "#/$defs/integerValueProperty"
                 }
             }
         },

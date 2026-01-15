@@ -60,7 +60,19 @@
             "data": {
                 "latency_ms_bucketed": {
                     "type": "integer",
-                    "description": "How long the bookmark import took in milliseconds, bucketed to preserve privacy"
+                    "description": "How long the bookmark import took in milliseconds, bucketed to preserve privacy",
+                    "enum": [
+                        1,
+                        5,
+                        10,
+                        20,
+                        50,
+                        100,
+                        500,
+                        1000,
+                        5000,
+                        10000
+                    ]
                 },
                 "ext": {
                     "import_from": {
@@ -78,11 +90,31 @@
                     },
                     "item_count_bucketed": {
                         "type": "integer",
-                        "description": "Number of bookmarks imported, bucketed to preserve privacy"
+                        "description": "Number of bookmarks imported, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     },
                     "bookmark_failure_count_bucketed": {
                         "type": "integer",
-                        "description": "If status is FAILURE, number of failed bookmark imports, bucketed to preserve privacy"
+                        "description": "If status is FAILURE, number of failed bookmark imports, bucketed to preserve privacy",
+                        "enum": [
+                            1,
+                            5,
+                            10,
+                            20,
+                            50,
+                            100,
+                            500,
+                            1000
+                        ]
                     }
                 },
                 "failure_detail": {

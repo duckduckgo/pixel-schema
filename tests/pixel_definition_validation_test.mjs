@@ -575,6 +575,7 @@ describe('Wide Event Validation', () => {
             name: {
                 type: 'string',
                 description: 'App name',
+                enum: ['TestApp'],
             },
             version: {
                 type: 'string',
