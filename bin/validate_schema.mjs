@@ -90,7 +90,7 @@ async function main() {
 
     if (fs.existsSync(wideEventsDir)) {
         const wideEventParams = fileUtils.readCommonProps(wideEventsConfigDir);
-        wideEventValidator = new DefinitionsValidator(wideEventParams, {}, globalIgnoreParams);
+        wideEventValidator = new DefinitionsValidator(wideEventParams, {}, {});
         logErrors('ERROR in wide_events/props_dictionary.json:', wideEventValidator.validateCommonPropsDefinition());
 
         // Read base event template (required for wide event validation)
