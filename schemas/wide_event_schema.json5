@@ -131,7 +131,7 @@
                 "enum": {
                     "type": "array",
                     "items": {
-                        "enum": ["Android","iOS","Linux","macOS","Windows"]
+                        "enum": ["Android", "iOS", "Linux", "macOS", "Windows"]
                     }
                 }
             },
