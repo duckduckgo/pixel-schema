@@ -21,6 +21,19 @@
             },
             "additionalProperties": false
         },
+        "stringValueWithPatternProperty": {
+            "type": "object",
+            "description": "A string property with a required pattern (no enum).",
+            "required": ["type", "description", "pattern"],
+            "not": { "required": ["enum"] },
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "pattern": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
         "stringEnumProperty": {
             "type": "object",
             "description": "A string property constrained to enum values.",
@@ -196,8 +209,18 @@
                     "$ref": "#/$defs/typeDefinition"
                 },
                 "sample_rate": {
+                    "type": "object",
                     "description": "Sample rate for the wide event, indicating how often it should be recorded",
-                    "$ref": "#/$defs/numberValueProperty"
+                    "required": ["type", "description"],
+                    "not": { "required": ["enum"] },
+                    "properties": {
+                        "type": { "const": "number" },
+                        "description": { "type": "string" },
+                        "minimum": { "const": 0 },
+                        "maximum": { "const": 1 },
+                        "examples": { "type": "array" }
+                    },
+                    "additionalProperties": false
                 },
                 "is_first_daily_occurrence": {
                     "description": "Indicates if this is the first occurrence of this wide event for the user in a 24-hour period",
@@ -217,7 +240,7 @@
                 },
                 "version": {
                     "description": "Version of the application",
-                    "$ref": "#/$defs/stringValueProperty"
+                    "$ref": "#/$defs/stringValueWithPatternProperty"
                 },
                 "form_factor": {
                     "description": "Form factor of the device running the application (used by mobile apps)",
@@ -297,7 +320,6 @@
         "error": {
             "type": "object",
             "description": "Error information for the wide event",
-            "required": ["code", "message"],
             "additionalProperties": false,
             "properties": {
                 "domain": {

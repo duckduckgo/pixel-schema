@@ -13,7 +13,8 @@
         },
         "version": {
             "type": "string",
-            "description": "The version of the application"
+            "description": "The version of the application",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         }
     },
     "global": {

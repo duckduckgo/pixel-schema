@@ -580,6 +580,7 @@ describe('Wide Event Validation', () => {
             version: {
                 type: 'string',
                 description: 'App version',
+                pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
             },
         },
         global: {
@@ -770,6 +771,7 @@ describe('Wide Event Base Event Merging', () => {
             version: {
                 type: 'string',
                 description: 'The version of the application',
+                pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
             },
         },
         global: {
@@ -935,7 +937,7 @@ describe('Wide Event Version Combining', () => {
         },
         app: {
             name: { type: 'string', description: 'App name', enum: ['Windows'] },
-            version: { type: 'string', description: 'App version' },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
         },
         global: {
             platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
