@@ -158,13 +158,18 @@ export class DefinitionsValidator {
         // Remove meta from merged - it's handled separately in generateWideEventSchemas
         delete merged.meta;
 
-        // context.name: array -> enum with 1+ values
-        merged.context = {
-            name: {
-                ...merged.context?.name,
-                enum: eventDef.context,
-            },
-        };
+        // context.name: array -> enum with 1+ values (only if context is provided)
+        if (eventDef.context) {
+            merged.context = {
+                name: {
+                    ...merged.context?.name,
+                    enum: eventDef.context,
+                },
+            };
+        } else {
+            // Context is optional - remove from merged if not provided by event
+            delete merged.context;
+        }
 
         // feature.name: string -> enum with single value
         merged.feature.name = {

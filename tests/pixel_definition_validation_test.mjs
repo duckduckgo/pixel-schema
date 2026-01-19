@@ -923,6 +923,32 @@ describe('Wide Event Base Event Merging', () => {
         expect(generatedSchemas).to.have.property('w_event_one');
         expect(generatedSchemas).to.have.property('w_event_two');
     });
+
+    it('should handle event without optional context field', () => {
+        const eventWithoutContext = {
+            w_no_context: {
+                description: 'Event without context',
+                owners: ['tester'],
+                meta: { type: 'w_no_context', version: '0.0' },
+                feature: {
+                    name: 'no-context-feature',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(eventWithoutContext, baseEvent);
+        expect(errors).to.be.empty;
+        expect(generatedSchemas).to.have.property('w_no_context');
+
+        const generated = generatedSchemas.w_no_context;
+        // Context should not be present in merged schema when not provided
+        expect(generated).to.not.have.property('context');
+        // Other properties should still be merged correctly
+        expect(generated.feature.name.enum).to.deep.equal(['no-context-feature']);
+        expect(generated.feature.status.enum).to.deep.equal(['SUCCESS']);
+    });
 });
 
 describe('Wide Event Version Combining', () => {
