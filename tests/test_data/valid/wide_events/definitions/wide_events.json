@@ -209,6 +209,17 @@
                         "type": "integer",
                         "description": "Number of items that were being imported when cancelled, bucketed to preserve privacy",
                         "enum": [1, 5, 10, 20, 50, 100, 500, 1000]
+                    },
+                    "nested_object": {
+                        "type": "object",
+                        "description": "A nested object to test deep structures",
+                        "properties": {
+                            "inner_property": {
+                                "type": "string",
+                                "description": "An inner property within the nested object",
+                                "enum": ["value1", "value2", "value3"]
+                            }
+                        }
                     }
                 }
             }

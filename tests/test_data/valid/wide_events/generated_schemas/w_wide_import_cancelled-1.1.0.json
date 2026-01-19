@@ -90,6 +90,21 @@
                             500,
                             1000
                         ]
+                    },
+                    "nested_object": {
+                        "type": "object",
+                        "description": "A nested object to test deep structures",
+                        "properties": {
+                            "inner_property": {
+                                "type": "string",
+                                "description": "An inner property within the nested object",
+                                "enum": [
+                                    "value1",
+                                    "value2",
+                                    "value3"
+                                ]
+                            }
+                        }
                     }
                 }
             }

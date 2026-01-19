@@ -105,6 +105,21 @@
             },
             "additionalProperties": false
         },
+        "objectProperty": {
+            "type": "object",
+            "description": "A nested object property with its own properties.",
+            "required": ["type", "description", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "description": { "type": "string" },
+                "properties": {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
         "propertyDefinition": {
             "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
             "oneOf": [
@@ -114,7 +129,8 @@
                 { "$ref": "#/$defs/numberEnumProperty" },
                 { "$ref": "#/$defs/integerValueProperty" },
                 { "$ref": "#/$defs/integerEnumProperty" },
-                { "$ref": "#/$defs/booleanProperty" }
+                { "$ref": "#/$defs/booleanProperty" },
+                { "$ref": "#/$defs/objectProperty" }
             ]
         },
 
