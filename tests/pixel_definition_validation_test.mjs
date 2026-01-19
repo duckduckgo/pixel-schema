@@ -738,6 +738,23 @@ describe('Wide Event Validation', () => {
         const { errors } = validator.validateWideEventDefinition(validWideEvent, null);
         expect(errors).to.include('base_event.json is required for wide event validation');
     });
+
+    it('requires feature property', () => {
+        const missingFeature = {
+            w_no_feature: {
+                description: 'Event missing feature',
+                owners: ['tester'],
+                meta: { type: 'w_no_feature', version: '0.0' },
+                context: ['test'],
+                // feature is missing - schema validation catches malformed merged result
+            },
+        };
+
+        const { errors } = validator.validateWideEventDefinition(missingFeature, baseEvent);
+        // Missing feature causes malformed merge - validation catches the symptoms
+        expect(errors.length).to.be.greaterThan(0);
+        expect(errors.some((e) => e.includes('/w_no_feature/feature'))).to.be.true;
+    });
 });
 
 describe('Wide Event Base Event Merging', () => {

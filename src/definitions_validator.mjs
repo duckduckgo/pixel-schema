@@ -174,14 +174,14 @@ export class DefinitionsValidator {
         // feature.name: string -> enum with single value
         merged.feature.name = {
             ...merged.feature.name,
-            enum: [eventDef.feature.name],
+            enum: [eventDef.feature?.name],
         };
         // feature.status: array -> enum with 1+ values
         merged.feature.status = {
             ...merged.feature.status,
-            enum: eventDef.feature.status,
+            enum: eventDef.feature?.status,
         };
-        merged.feature.data = eventDef.feature.data;
+        merged.feature.data = eventDef.feature?.data;
 
         merged.app = baseEvent.app;
         merged.global = baseEvent.global;
