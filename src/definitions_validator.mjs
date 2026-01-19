@@ -22,44 +22,115 @@ const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPat
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
 
 /**
- * Validator for the overall pixel definition - ensures pixels and common params/suffixes conform to their schema
+ * Base validator class with shared AJV infrastructure and utilities.
+ * Not intended to be used directly - use PixelDefinitionsValidator or WideEventDefinitionsValidator.
  */
-export class DefinitionsValidator {
-    #ajvValidatePixels;
-    #ajvValidateParams;
-    #ajvValidateProps;
-    #ajvValidateSuffixes;
-
-    #commonParams; // contains params_dictionary.json for pixels, props_dictionary.json for wide events
-    #commonSuffixes; // contains suffixes_dictionary.json for pixels
-    #ignoreParams; // contains ignore_params.json for pixels
-
-    #paramsValidator;
-    // eslint-disable-next-line new-cap
-    #ajv = new Ajv2020.default({ allErrors: true });
-
-    #definedPrefixes = new Set();
+class BaseDefinitionsValidator {
+    /** @protected */
+    _ajv;
+    /** @protected */
+    _paramsValidator;
+    /** @protected */
+    _dictionary;
+    /** @protected */
+    _definedPrefixes = new Set();
 
     /**
-     * @param {Record<string, unknown>} commonParams - object containing common parameters
-     * @param {Record<string, unknown>} commonSuffixes - object containing common suffixes
-     * @param {Record<string, unknown>} ignoreParams - object containing parameters to ignore
+     * @param {Record<string, unknown>} dictionary - object containing common params (pixels) or props (wide events)
+     */
+    constructor(dictionary) {
+        this._dictionary = dictionary;
+        // eslint-disable-next-line new-cap
+        this._ajv = new Ajv2020.default({ allErrors: true });
+        addFormats.default(this._ajv);
+    }
+
+    /**
+     * Recursively expands shortcuts in an object (mutates the object)
+     * @protected
+     * @param {any} obj
+     * @returns {any} expanded object
+     */
+    _recursivelyExpandShortcuts(obj) {
+        if (Array.isArray(obj)) return obj;
+
+        if (typeof obj === 'object' && obj !== null) {
+            for (const [key, val] of Object.entries(obj)) {
+                obj[key] = this._recursivelyExpandShortcuts(val);
+            }
+            return obj;
+        }
+
+        if (typeof obj === 'string') {
+            if (Object.prototype.hasOwnProperty.call(this._dictionary, obj)) {
+                return this._paramsValidator.getUpdatedItem(obj, this._dictionary);
+            }
+            return obj;
+        }
+
+        return obj;
+    }
+
+    /**
+     * Recursively expands shortcuts (returns new object)
+     * @protected
+     * @param {any} obj
+     * @returns {any}
+     */
+    _expandShortcuts(obj) {
+        if (!obj) return obj;
+
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this._expandShortcuts(item));
+        }
+
+        if (typeof obj === 'object') {
+            const newObj = {};
+            for (const [key, value] of Object.entries(obj)) {
+                newObj[key] = this._expandShortcuts(value);
+            }
+            return newObj;
+        }
+
+        if (typeof obj === 'string') {
+            if (Object.prototype.hasOwnProperty.call(this._dictionary, obj)) {
+                return this._paramsValidator.getUpdatedItem(obj, this._dictionary);
+            }
+            return obj;
+        }
+
+        throw TypeError(`${obj} --> unexpected prop of type ${typeof obj}`);
+    }
+}
+
+/**
+ * Validator for pixel definitions - ensures pixels, common params, and suffixes conform to their schemas.
+ */
+export class PixelDefinitionsValidator extends BaseDefinitionsValidator {
+    #ajvValidatePixels;
+    #ajvValidateParams;
+    #ajvValidateSuffixes;
+
+    #commonSuffixes;
+    #ignoreParams;
+
+    /**
+     * @param {Record<string, unknown>} commonParams - object containing common parameters (params_dictionary.json)
+     * @param {Record<string, unknown>} commonSuffixes - object containing common suffixes (suffixes_dictionary.json)
+     * @param {Record<string, unknown>} ignoreParams - object containing parameters to ignore (ignore_params.json)
      */
     constructor(commonParams, commonSuffixes, ignoreParams) {
-        this.#commonParams = commonParams;
+        super(commonParams);
         this.#commonSuffixes = commonSuffixes;
         this.#ignoreParams = ignoreParams;
-        this.#paramsValidator = new ParamsValidator(this.#commonParams, this.#commonSuffixes, this.#ignoreParams);
+        this._paramsValidator = new ParamsValidator(this._dictionary, this.#commonSuffixes, this.#ignoreParams);
 
-        addFormats.default(this.#ajv);
-        this.#ajv.addSchema(paramsSchema);
-        this.#ajv.addSchema(propSchema);
-        this.#ajv.addSchema(suffixSchema);
+        this._ajv.addSchema(paramsSchema);
+        this._ajv.addSchema(suffixSchema);
 
-        this.#ajvValidatePixels = this.#ajv.compile(pixelSchema);
-        this.#ajvValidateParams = this.#ajv.compile(paramsSchema);
-        this.#ajvValidateProps = this.#ajv.compile(propSchema);
-        this.#ajvValidateSuffixes = this.#ajv.compile(suffixSchema);
+        this.#ajvValidatePixels = this._ajv.compile(pixelSchema);
+        this.#ajvValidateParams = this._ajv.compile(paramsSchema);
+        this.#ajvValidateSuffixes = this._ajv.compile(suffixSchema);
     }
 
     /**
@@ -67,21 +138,12 @@ export class DefinitionsValidator {
      * @returns {string[]} AJV error messages, if any.
      */
     validateCommonParamsDefinition() {
-        this.#ajvValidateParams(this.#commonParams);
+        this.#ajvValidateParams(this._dictionary);
         return formatAjvErrors(this.#ajvValidateParams.errors);
     }
 
     /**
-     * Validates the properties dictionary definition against the corresponding schema.
-     * @returns {string[]} AJV error messages, if any.
-     */
-    validateCommonPropsDefinition() {
-        this.#ajvValidateProps(this.#commonParams);
-        return formatAjvErrors(this.#ajvValidateProps.errors);
-    }
-
-    /**
-     * Validates the shared dictionary definition against the corresponding schema.
+     * Validates the shared suffix dictionary definition against the corresponding schema.
      * @returns {string[]} AJV error messages, if any.
      */
     validateCommonSuffixesDefinition() {
@@ -105,7 +167,7 @@ export class DefinitionsValidator {
      * @returns any validation errors
      */
     validateNativeExperimentsDefinition(experimentsDef) {
-        const ajvExpSchema = this.#ajv.compile(nativeExperimentsSchema);
+        const ajvExpSchema = this._ajv.compile(nativeExperimentsSchema);
         ajvExpSchema(experimentsDef);
         return formatAjvErrors(ajvExpSchema.errors);
     }
@@ -117,9 +179,82 @@ export class DefinitionsValidator {
      * @returns any validation errors
      */
     validateSearchExperimentsDefinition(experimentsDef) {
-        const ajvExpSchema = this.#ajv.compile(searchExperimentsSchema);
+        const ajvExpSchema = this._ajv.compile(searchExperimentsSchema);
         ajvExpSchema(experimentsDef);
         return formatAjvErrors(ajvExpSchema.errors);
+    }
+
+    /**
+     * Validates the full pixel definition, including shortcuts, parameters, and suffixes
+     *
+     * @param {PixelDefinitions} pixelsDef - object containing multiple pixel definitions
+     * @param {?Record<string, string>} [userMap] - map of valid github usernames
+     * @returns {Array<string>} - array of error messages
+     */
+    validatePixelsDefinition(pixelsDef, userMap = null) {
+        // 1) Validate that pixel definition conforms to schema
+        if (!this.#ajvValidatePixels(pixelsDef)) {
+            // Doesn't make sense to check the rest if main definition is invalid
+            return formatAjvErrors(this.#ajvValidatePixels.errors);
+        }
+
+        // 2) Validate that:
+        // (a) there are no duplicate prefixes and
+        // (b) shortcuts, params, and suffixes can be compiled into a separate schema
+        // (c) all owners are valid github usernames in the provided userMap
+        const errors = [];
+        Object.entries(/** @type {PixelDefinitions} */ (pixelsDef)).forEach(([pixelName, pixelDef]) => {
+            if (this._definedPrefixes.has(pixelName)) {
+                errors.push(`${pixelName} --> Conflicting/duplicated definitions found!`);
+                return;
+            }
+
+            // All owners should be valid github user names in the approved DDG list
+            if (userMap) {
+                for (const owner of pixelDef.owners ?? []) {
+                    if (!userMap[owner]) {
+                        errors.push(`Owner ${owner} for pixel ${pixelName} not in list of acceptable github user names`);
+                    }
+                }
+            }
+
+            this._definedPrefixes.add(pixelName);
+            try {
+                this._paramsValidator.compileSuffixesSchema(pixelDef.suffixes);
+                this._paramsValidator.compileParamsSchema(pixelDef.parameters);
+            } catch (error) {
+                errors.push(`${pixelName} --> ${error.message}`);
+            }
+        });
+
+        return errors;
+    }
+}
+
+/**
+ * Validator for wide event definitions - ensures wide events and props dictionary conform to their schemas.
+ */
+export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
+    #ajvValidateProps;
+
+    /**
+     * @param {Record<string, unknown>} propsDict - object containing common properties (props_dictionary.json)
+     */
+    constructor(propsDict) {
+        super(propsDict);
+        this._paramsValidator = new ParamsValidator(this._dictionary, {}, {});
+
+        this._ajv.addSchema(propSchema);
+        this.#ajvValidateProps = this._ajv.compile(propSchema);
+    }
+
+    /**
+     * Validates the properties dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateCommonPropsDefinition() {
+        this.#ajvValidateProps(this._dictionary);
+        return formatAjvErrors(this.#ajvValidateProps.errors);
     }
 
     /**
@@ -135,7 +270,7 @@ export class DefinitionsValidator {
             const eventDef = expandedEvents[eventName];
             for (const [key, val] of Object.entries(eventDef)) {
                 if (rootSectionsToSkip.includes(key)) continue;
-                eventDef[key] = this.#recursivelyExpandShortcuts(val);
+                eventDef[key] = this._recursivelyExpandShortcuts(val);
             }
         }
 
@@ -245,31 +380,6 @@ export class DefinitionsValidator {
     }
 
     /**
-     * Recursively expands shortcuts in an object
-     * @param {any} obj
-     * @returns {any} expanded object
-     */
-    #recursivelyExpandShortcuts(obj) {
-        if (Array.isArray(obj)) return obj;
-
-        if (typeof obj === 'object' && obj !== null) {
-            for (const [key, val] of Object.entries(obj)) {
-                obj[key] = this.#recursivelyExpandShortcuts(val);
-            }
-            return obj;
-        }
-
-        if (typeof obj === 'string') {
-            if (Object.prototype.hasOwnProperty.call(this.#commonParams, obj)) {
-                return this.#paramsValidator.getUpdatedItem(obj, this.#commonParams);
-            }
-            return obj;
-        }
-
-        return obj;
-    }
-
-    /**
      * Validates wide event definition
      *
      * @param {object} wideEvents should follow the schema defined in wide_event_schema.json5
@@ -293,7 +403,7 @@ export class DefinitionsValidator {
         }
 
         // 2. Validate schema
-        const ajvExpSchema = this.#ajv.compile(wideEventSchema);
+        const ajvExpSchema = this._ajv.compile(wideEventSchema);
         if (!ajvExpSchema(generatedSchemas)) {
             return { errors: formatAjvErrors(ajvExpSchema.errors), generatedSchemas };
         }
@@ -302,7 +412,7 @@ export class DefinitionsValidator {
         for (const [eventName, eventDef] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
             try {
                 const ajvSchema = this.#convertToAjvSchema(eventDef);
-                this.#ajv.compile(ajvSchema);
+                this._ajv.compile(ajvSchema);
             } catch (error) {
                 errors.push(`${eventName}: Generated schema failed to compile - ${error.message}`);
             }
@@ -313,10 +423,10 @@ export class DefinitionsValidator {
             // Check duplicates using meta.type
             const type = eventDef.meta?.type;
             if (type) {
-                if (this.#definedPrefixes.has(type)) {
+                if (this._definedPrefixes.has(type)) {
                     errors.push(`${type} --> Conflicting/duplicated definitions found!`);
                 } else {
-                    this.#definedPrefixes.add(type);
+                    this._definedPrefixes.add(type);
                 }
             }
 
@@ -383,35 +493,72 @@ export class DefinitionsValidator {
 
         return { const: value };
     }
+}
+
+/**
+ * Backwards-compatible facade that provides all validation methods.
+ * For new code, prefer using PixelDefinitionsValidator or WideEventDefinitionsValidator directly.
+ * @deprecated Use PixelDefinitionsValidator or WideEventDefinitionsValidator instead
+ */
+export class DefinitionsValidator {
+    #pixelValidator;
+    #wideEventValidator;
 
     /**
-     * Recursively expands shortcuts
-     * @param {any} obj
-     * @returns {any}
+     * @param {Record<string, unknown>} commonParams - object containing common parameters
+     * @param {Record<string, unknown>} commonSuffixes - object containing common suffixes
+     * @param {Record<string, unknown>} ignoreParams - object containing parameters to ignore
      */
-    #expandShortcuts(obj) {
-        if (!obj) return obj;
+    constructor(commonParams, commonSuffixes, ignoreParams) {
+        this.#pixelValidator = new PixelDefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
+        // For wide events, commonParams is actually the props dictionary
+        this.#wideEventValidator = new WideEventDefinitionsValidator(commonParams);
+    }
 
-        if (Array.isArray(obj)) {
-            return obj.map((item) => this.#expandShortcuts(item));
-        }
+    // Pixel validation methods (delegated to PixelDefinitionsValidator)
 
-        if (typeof obj === 'object') {
-            const newObj = {};
-            for (const [key, value] of Object.entries(obj)) {
-                newObj[key] = this.#expandShortcuts(value);
-            }
-            return newObj;
-        }
+    /**
+     * Validates the parameter dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateCommonParamsDefinition() {
+        return this.#pixelValidator.validateCommonParamsDefinition();
+    }
 
-        if (typeof obj === 'string') {
-            if (Object.prototype.hasOwnProperty.call(this.#commonParams, obj)) {
-                return this.#paramsValidator.getUpdatedItem(obj, this.#commonParams);
-            }
-            return obj;
-        }
+    /**
+     * Validates the shared suffix dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateCommonSuffixesDefinition() {
+        return this.#pixelValidator.validateCommonSuffixesDefinition();
+    }
 
-        throw TypeError(`${obj} --> unexpected prop of type ${typeof obj}`);
+    /**
+     * Validates the ignore parameter definitions against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateIgnoreParamsDefinition() {
+        return this.#pixelValidator.validateIgnoreParamsDefinition();
+    }
+
+    /**
+     * Validates native experiments definition
+     *
+     * @param {object} experimentsDef should follow the schema defined in native_experiments_schema.json5
+     * @returns any validation errors
+     */
+    validateNativeExperimentsDefinition(experimentsDef) {
+        return this.#pixelValidator.validateNativeExperimentsDefinition(experimentsDef);
+    }
+
+    /**
+     * Validates search experiments definition
+     *
+     * @param {object} experimentsDef should follow the schema defined in search_experiments_schema.json5
+     * @returns any validation errors
+     */
+    validateSearchExperimentsDefinition(experimentsDef) {
+        return this.#pixelValidator.validateSearchExperimentsDefinition(experimentsDef);
     }
 
     /**
@@ -422,41 +569,39 @@ export class DefinitionsValidator {
      * @returns {Array<string>} - array of error messages
      */
     validatePixelsDefinition(pixelsDef, userMap = null) {
-        // 1) Validate that pixel definition conforms to schema
-        if (!this.#ajvValidatePixels(pixelsDef)) {
-            // Doesn't make sense to check the rest if main definition is invalid
-            return formatAjvErrors(this.#ajvValidatePixels.errors);
-        }
+        return this.#pixelValidator.validatePixelsDefinition(pixelsDef, userMap);
+    }
 
-        // 2) Validate that:
-        // (a) there are no duplicate prefixes and
-        // (b) shortcuts, params, and suffixes can be compiled into a separate schema
-        // (c) all owners are valid github usernames in the provided userMap
-        const errors = [];
-        Object.entries(/** @type {PixelDefinitions} */ (pixelsDef)).forEach(([pixelName, pixelDef]) => {
-            if (this.#definedPrefixes.has(pixelName)) {
-                errors.push(`${pixelName} --> Conflicting/duplicated definitions found!`);
-                return;
-            }
+    // Wide event validation methods (delegated to WideEventDefinitionsValidator)
 
-            // All owners should be valid github user names in the approved DDG list
-            if (userMap) {
-                for (const owner of pixelDef.owners ?? []) {
-                    if (!userMap[owner]) {
-                        errors.push(`Owner ${owner} for pixel ${pixelName} not in list of acceptable github user names`);
-                    }
-                }
-            }
+    /**
+     * Validates the properties dictionary definition against the corresponding schema.
+     * @returns {string[]} AJV error messages, if any.
+     */
+    validateCommonPropsDefinition() {
+        return this.#wideEventValidator.validateCommonPropsDefinition();
+    }
 
-            this.#definedPrefixes.add(pixelName);
-            try {
-                this.#paramsValidator.compileSuffixesSchema(pixelDef.suffixes);
-                this.#paramsValidator.compileParamsSchema(pixelDef.parameters);
-            } catch (error) {
-                errors.push(`${pixelName} --> ${error.message}`);
-            }
-        });
+    /**
+     * Generates the full wide event schema by merging event definition with base event
+     * and expanding shortcuts.
+     * @param {object} wideEvents - The wide event definitions
+     * @param {object} baseEvent - The base event template (required)
+     * @returns {object} Generated schemas keyed by event name
+     */
+    generateWideEventSchemas(wideEvents, baseEvent) {
+        return this.#wideEventValidator.generateWideEventSchemas(wideEvents, baseEvent);
+    }
 
-        return errors;
+    /**
+     * Validates wide event definition
+     *
+     * @param {object} wideEvents should follow the schema defined in wide_event_schema.json5
+     * @param {object} baseEvent - base event template (required)
+     * @param {?Record<string, string>} [userMap] - map of valid github usernames
+     * @returns {{ errors: string[], generatedSchemas: object }} validation errors and generated schemas
+     */
+    validateWideEventDefinition(wideEvents, baseEvent, userMap = null) {
+        return this.#wideEventValidator.validateWideEventDefinition(wideEvents, baseEvent, userMap);
     }
 }

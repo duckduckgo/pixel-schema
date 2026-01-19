@@ -6,7 +6,7 @@ import path from 'path';
 import yargs from 'yargs';
 import yaml from 'js-yaml';
 
-import { DefinitionsValidator } from '../src/definitions_validator.mjs';
+import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { logErrors } from '../src/error_utils.mjs';
 import { hideBin } from 'yargs/helpers';
 
@@ -64,7 +64,7 @@ async function main() {
 
     const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
 
-    const validator = new DefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
+    const validator = new PixelDefinitionsValidator(commonParams, commonSuffixes, ignoreParams);
     logErrors('ERROR in params_dictionary.json:', validator.validateCommonParamsDefinition());
     logErrors('ERROR in suffixes_dictionary.json:', validator.validateCommonSuffixesDefinition());
     logErrors('ERROR in ignore_params.json:', validator.validateIgnoreParamsDefinition());
@@ -90,7 +90,7 @@ async function main() {
 
     if (fs.existsSync(wideEventsDir)) {
         const wideEventParams = fileUtils.readCommonProps(wideEventsConfigDir);
-        wideEventValidator = new DefinitionsValidator(wideEventParams, {}, {});
+        wideEventValidator = new WideEventDefinitionsValidator(wideEventParams);
         logErrors('ERROR in wide_events/props_dictionary.json:', wideEventValidator.validateCommonPropsDefinition());
 
         // Read base event template (required for wide event validation)
