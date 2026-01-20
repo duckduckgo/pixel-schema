@@ -653,14 +653,15 @@ describe('Wide Event Validation', () => {
         const invalid = JSON.parse(JSON.stringify(validWideEvent));
         delete invalid.w_test_event.description;
         const { errors } = validator.validateWideEventDefinition(invalid, baseEvent);
-        expect(errors).to.include("/w_test_event must have required property 'description'");
+        expect(errors).to.include("w_test_event: Generated schema does not match metaschema - must have required property 'description'");
     });
 
     it('invalid property type', () => {
         const invalid = JSON.parse(JSON.stringify(validWideEvent));
         invalid.w_test_event.description = 123;
         const { errors } = validator.validateWideEventDefinition(invalid, baseEvent);
-        expect(errors).to.include('/w_test_event/description must be string');
+        expect(errors.some((e) => e.includes('w_test_event: Generated schema does not match metaschema'))).to.be.true;
+        expect(errors.some((e) => e.includes('/description must be string'))).to.be.true;
     });
 
     it('valid shortcut expansion', () => {
@@ -683,7 +684,8 @@ describe('Wide Event Validation', () => {
         const event = { w_test_event_invalid_shortcut: withInvalidShortcut.w_test_event };
 
         const { errors } = validator.validateWideEventDefinition(event, baseEvent);
-        expect(errors).to.include('/w_test_event_invalid_shortcut/feature/data/ext/invalid_field must be object');
+        expect(errors.some((e) => e.includes('w_test_event_invalid_shortcut: Generated schema does not match metaschema'))).to.be.true;
+        expect(errors.some((e) => e.includes('invalid_field'))).to.be.true;
     });
 
     it('duplicate meta.type', () => {
@@ -751,9 +753,8 @@ describe('Wide Event Validation', () => {
         };
 
         const { errors } = validator.validateWideEventDefinition(missingFeature, baseEvent);
-        // Missing feature causes malformed merge - validation catches the symptoms
         expect(errors.length).to.be.greaterThan(0);
-        expect(errors.some((e) => e.includes('/w_no_feature/feature'))).to.be.true;
+        expect(errors.some((e) => e.includes('w_no_feature: Generated schema does not match metaschema'))).to.be.true;
     });
 });
 
@@ -859,19 +860,19 @@ describe('Wide Event Base Event Merging', () => {
 
         const generated = generatedSchemas.w_test_merge;
         // Check that context array was transformed to context.name.enum (at root level)
-        expect(generated.context.name.enum).to.deep.equal(['onboarding', 'settings']);
+        expect(generated.properties.context.properties.name.enum).to.deep.equal(['onboarding', 'settings']);
         // Check that feature.name string was transformed to feature.name.enum
-        expect(generated.feature.name.enum).to.deep.equal(['test-feature']);
+        expect(generated.properties.feature.properties.name.enum).to.deep.equal(['test-feature']);
         // Check that feature.status array was transformed to feature.status.enum
-        expect(generated.feature.status.enum).to.deep.equal(['SUCCESS', 'FAILURE']);
+        expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS', 'FAILURE']);
         // Check that custom data was merged
-        expect(generated.feature.data.ext.custom_field).to.deep.equal({
+        expect(generated.properties.feature.properties.data.properties.ext.properties.custom_field).to.deep.equal({
             type: 'string',
             description: 'A custom field',
         });
         // Check that base event properties are preserved
-        expect(generated.global.platform.enum).to.deep.equal(['Windows']);
-        expect(generated.app.name.enum).to.deep.equal(['Windows']);
+        expect(generated.properties.global.properties.platform.enum).to.deep.equal(['Windows']);
+        expect(generated.properties.app.properties.name.enum).to.deep.equal(['Windows']);
     });
 
     it('should expand shortcuts in merged event', () => {
@@ -901,7 +902,7 @@ describe('Wide Event Base Event Merging', () => {
 
         const generated = generatedSchemas.w_test_shortcut_merge;
         // Check that shortcut was expanded
-        expect(generated.feature.data.ext.app_name).to.deep.equal({
+        expect(generated.properties.feature.properties.data.properties.ext.properties.app_name).to.deep.equal({
             type: 'string',
             description: 'Name of the application',
             enum: ['testApp'],
@@ -961,10 +962,10 @@ describe('Wide Event Base Event Merging', () => {
 
         const generated = generatedSchemas.w_no_context;
         // Context should not be present in merged schema when not provided
-        expect(generated).to.not.have.property('context');
+        expect(generated.properties).to.not.have.property('context');
         // Other properties should still be merged correctly
-        expect(generated.feature.name.enum).to.deep.equal(['no-context-feature']);
-        expect(generated.feature.status.enum).to.deep.equal(['SUCCESS']);
+        expect(generated.properties.feature.properties.name.enum).to.deep.equal(['no-context-feature']);
+        expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS']);
     });
 });
 
@@ -1017,7 +1018,7 @@ describe('Wide Event Version Combining', () => {
 
         const generated = generatedSchemas.w_version_test;
         // Base version 2 + event version 3.5 = 2.3.5
-        expect(generated.meta.version).to.equal('2.3.5');
+        expect(generated.properties.meta.properties.version.const).to.equal('2.3.5');
     });
 
     it('should handle version 0.0 correctly', () => {
@@ -1040,7 +1041,7 @@ describe('Wide Event Version Combining', () => {
 
         const generated = generatedSchemas.w_zero_version;
         // Base version 2 + event version 0.0 = 2.0.0
-        expect(generated.meta.version).to.equal('2.0.0');
+        expect(generated.properties.meta.properties.version.const).to.equal('2.0.0');
     });
 
     it('should not include base meta in generated schema', () => {
@@ -1062,9 +1063,9 @@ describe('Wide Event Version Combining', () => {
         const generated = generatedSchemas.w_no_base_meta;
 
         // meta should only have type and version (string), not version.value or version.description
-        expect(generated.meta).to.deep.equal({
-            type: 'w_no_base_meta',
-            version: '2.1.0',
-        });
+        expect(generated.properties.meta.properties.type.const).to.equal('w_no_base_meta');
+        expect(generated.properties.meta.properties.version.const).to.equal('2.1.0');
+        expect(generated.properties.meta.properties.version).to.not.have.property('value');
+        expect(generated.properties.meta.properties.version).to.not.have.property('description');
     });
 });

@@ -1,13 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "wide_events.schema.json",
-    "title": "Wide events",
-    "description": "A schema for defining wide events which encapsulate a set of traditional pixels for a single round-trip user interaction, API call, etc",
-    "type": "object",
-    "additionalProperties": {
-        "$ref": "#/$defs/wideEvent"
-    },
+    "title": "Wide event JSON schema",
+    "description": "A metaschema for validating a generated wide event JSON Schema. Each schema is itself a valid JSON Schema that can validate wide event data.",
+    "$ref": "#/$defs/wideEventSchema",
     "$defs": {
+        // Property definition types - these define valid leaf property schemas
         "stringValueProperty": {
             "type": "object",
             "description": "A string property with a single value (no enum).",
@@ -134,21 +132,16 @@
             ]
         },
 
+        // Domain-specific property definitions with constrained enum values
         "platformDefinition": {
             "type": "object",
             "required": ["type", "description", "enum"],
             "properties": {
-                "type": {
-                    "const": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
+                "type": { "const": "string" },
+                "description": { "type": "string" },
                 "enum": {
                     "type": "array",
-                    "items": {
-                        "enum": ["Android", "iOS", "Linux", "macOS", "Windows"]
-                    }
+                    "items": { "enum": ["Android", "iOS", "Linux", "macOS", "Windows"] }
                 }
             },
             "additionalProperties": false
@@ -157,17 +150,11 @@
             "type": "object",
             "required": ["type", "description", "enum"],
             "properties": {
-                "type": {
-                    "const": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
+                "type": { "const": "string" },
+                "description": { "type": "string" },
                 "enum": {
                     "type": "array",
-                    "items": {
-                        "enum": ["app", "web", "service"]
-                    }
+                    "items": { "enum": ["app", "web", "service"] }
                 }
             },
             "additionalProperties": false
@@ -176,17 +163,11 @@
             "type": "object",
             "required": ["type", "description", "enum"],
             "properties": {
-                "type": {
-                    "const": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
+                "type": { "const": "string" },
+                "description": { "type": "string" },
                 "enum": {
                     "type": "array",
-                    "items": {
-                        "enum": ["SUCCESS", "FAILURE", "CANCELLED", "UNKNOWN"]
-                    }
+                    "items": { "enum": ["SUCCESS", "FAILURE", "CANCELLED", "UNKNOWN"] }
                 }
             },
             "additionalProperties": false
@@ -195,210 +176,263 @@
             "type": "object",
             "required": ["type", "description", "enum"],
             "properties": {
-                "type": {
-                    "const": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
+                "type": { "const": "string" },
+                "description": { "type": "string" },
                 "enum": {
                     "type": "array",
-                    "items": {
-                        "enum": ["phone", "tablet"]
-                    }
+                    "items": { "enum": ["phone", "tablet"] }
                 }
             },
             "additionalProperties": false
         },
-        "global": {
+
+        // JSON Schema wrapper definitions for sections
+        // These define how each section appears as a JSON Schema property
+        "globalSchemaProperty": {
             "type": "object",
-            "description": "Global properties for a wide event",
-            "required": ["platform", "type", "sample_rate"],
-            "additionalProperties": false,
+            "description": "JSON Schema for the global section",
+            "required": ["type", "required", "additionalProperties", "properties"],
             "properties": {
-                "platform": {
-                    "description": "Platform for which the wide event is defined",
-                    "$ref": "#/$defs/platformDefinition"
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "platform" },
+                    "items": { "type": "string" }
                 },
-                "type": {
-                    "description": "Type of the wide event, e.g., app, web, or mobile",
-                    "$ref": "#/$defs/typeDefinition"
-                },
-                "sample_rate": {
+                "additionalProperties": { "const": false },
+                "properties": {
                     "type": "object",
-                    "description": "Sample rate for the wide event, indicating how often it should be recorded",
-                    "required": ["type", "description"],
-                    "not": { "required": ["enum"] },
+                    "required": ["platform", "type", "sample_rate"],
                     "properties": {
-                        "type": { "const": "number" },
-                        "description": { "type": "string" },
-                        "minimum": { "const": 0 },
-                        "maximum": { "const": 1 },
-                        "examples": { "type": "array" }
+                        "platform": { "$ref": "#/$defs/platformDefinition" },
+                        "type": { "$ref": "#/$defs/typeDefinition" },
+                        "sample_rate": { "$ref": "#/$defs/numberValueProperty" },
+                        "is_first_daily_occurrence": { "$ref": "#/$defs/booleanProperty" }
                     },
                     "additionalProperties": false
-                },
-                "is_first_daily_occurrence": {
-                    "description": "Indicates if this is the first occurrence of this wide event for the user in a 24-hour period",
-                    "$ref": "#/$defs/booleanProperty"
                 }
-            }
+            },
+            "additionalProperties": false
         },
-        "app": {
+        "appSchemaProperty": {
             "type": "object",
-            "description": "Application information for the wide event",
-            "required": ["name", "version"],
-            "additionalProperties": false,
+            "description": "JSON Schema for the app section",
+            "required": ["type", "required", "additionalProperties", "properties"],
             "properties": {
-                "name": {
-                    "description": "Name of the application",
-                    "$ref": "#/$defs/stringEnumProperty"
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
                 },
-                "version": {
-                    "description": "Version of the application",
-                    "$ref": "#/$defs/stringValueWithPatternProperty"
-                },
-                "form_factor": {
-                    "description": "Form factor of the device running the application (used by mobile apps)",
-                    "$ref": "#/$defs/form_factorDefinition"
-                }
-            }
-        },
-        "feature": {
-            "type": "object",
-            "description": "Feature-specific data tracked within the wide event",
-            "required": ["name", "status", "data"],
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "description": "Name of the feature being tracked",
-                    "$ref": "#/$defs/stringEnumProperty"
-                },
-                "status": {
-                    "description": "Status of the feature interaction",
-                    "$ref": "#/$defs/statusDefinition"
-                },
-                "data": {
-                    "description": "Additional data associated with the feature",
-                    "$ref": "#/$defs/data"
-                }
-            }
-        },
-        "data": {
-            "type": "object",
-            "description": "Data collected for the wide event",
-            "required": ["ext"],
-            "additionalProperties": false,
-            "properties": {
-                "ext": {
+                "additionalProperties": { "const": false },
+                "properties": {
                     "type": "object",
-                    "description": "Custom data properties for the wide event, as defined in product schemas",
-                    "additionalProperties": {
-                        "$ref": "#/$defs/propertyDefinition"
-                    }
+                    "required": ["name", "version"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" },
+                        "version": { "$ref": "#/$defs/stringValueWithPatternProperty" },
+                        "form_factor": { "$ref": "#/$defs/form_factorDefinition" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "dataSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the feature.data section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "ext" },
+                    "items": { "type": "string" }
                 },
-                "error": {
+                "additionalProperties": { "const": false },
+                "properties": {
                     "type": "object",
-                    "description": "Error details for Apple platforms",
-                    "$ref": "#/$defs/appleError"
+                    "required": ["ext"],
+                    "properties": {
+                        "ext": {
+                            "type": "object",
+                            "required": ["type", "additionalProperties", "properties"],
+                            "properties": {
+                                "type": { "const": "object" },
+                                "additionalProperties": { "const": false },
+                                "properties": {
+                                    "type": "object",
+                                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                                },
+                                "required": { "type": "array", "items": { "type": "string" } }
+                            },
+                            "additionalProperties": false
+                        },
+                        "error": {
+                            "type": "object",
+                            "required": ["type", "required", "additionalProperties", "properties"],
+                            "properties": {
+                                "type": { "const": "object" },
+                                "required": { "type": "array", "items": { "type": "string" } },
+                                "additionalProperties": { "const": false },
+                                "properties": {
+                                    "type": "object",
+                                    "properties": {
+                                        "domain": { "$ref": "#/$defs/stringValueProperty" },
+                                        "code": { "$ref": "#/$defs/integerValueProperty" },
+                                        "underlying_domain": { "$ref": "#/$defs/stringValueProperty" },
+                                        "underlyingcode": { "$ref": "#/$defs/integerValueProperty" }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
-            }
+            },
+            "additionalProperties": false
         },
-        "context": {
+        "featureSchemaProperty": {
             "type": "object",
-            "description": "Context (aka journey) is a concept that encompasses multiple features. A specific feature may be entered from different context. For example, Import could be triggered by onboarding or by selecting the feature manually.",
-            "required": ["name"],
-            "additionalProperties": false,
+            "description": "JSON Schema for the feature section",
+            "required": ["type", "required", "additionalProperties", "properties"],
             "properties": {
-                "name": {
-                    "description": "Name of the context",
-                    "$ref": "#/$defs/stringEnumProperty"
-                }
-            }
-        },
-        "meta": {
-            "type": "object",
-            "description": "Meta information for the wide event",
-            "required": ["type", "version"],
-            "additionalProperties": false,
-            "properties": {
-                "type": {
-                    "description": "Unique type identifier for the wide event, equivalent to pixel name",
-                    "type": "string"
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
                 },
-                "version": {
-                    "description": "Schema version for the wide event definition, following semantic versioning",
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name", "status", "data"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" },
+                        "status": { "$ref": "#/$defs/statusDefinition" },
+                        "data": { "$ref": "#/$defs/dataSchemaProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "contextSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the context section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "name" },
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "metaSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the meta section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["type", "version"],
+                    "properties": {
+                        "type": {
+                            "type": "object",
+                            "required": ["const"],
+                            "properties": {
+                                "const": { "type": "string" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "version": {
+                            "type": "object",
+                            "required": ["const"],
+                            "properties": {
+                                "const": {
+                                    "type": "string",
+                                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+
+        // The main wide event schema definition
+        // This is a JSON Schema that validates wide event data
+        "wideEventSchema": {
+            "type": "object",
+            "description": "A valid JSON Schema for a wide event. Can be used to validate wide event data.",
+            "required": ["$schema", "$id", "title", "description", "$comment", "type", "required", "additionalProperties", "properties"],
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
                     "type": "string",
-                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
-                }
-            }
-        },
-        "appleError": {
-            "type": "object",
-            "description": "Error information for the wide event",
-            "required": ["domain", "code"],
-            "additionalProperties": false,
-            "properties": {
-                "domain": {
-                    "description": "Error domain used by the top-level error",
-                    "$ref": "#/$defs/stringValueProperty"
+                    "const": "https://json-schema.org/draft/2020-12/schema"
                 },
-                "code": {
-                    "description": "Error code used by the top-level error",
-                    "$ref": "#/$defs/integerValueProperty"
+                "$id": {
+                    "type": "string",
+                    "description": "Unique identifier for the schema, typically the event name with version"
                 },
-                "underlying_domain": {
-                    "description": "Error domain used by the underlying error",
-                    "$ref": "#/$defs/stringValueProperty"
+                "title": {
+                    "type": "string",
+                    "description": "The wide event name/type"
                 },
-                "underlyingcode": {
-                    "description": "Error domain used by the underlying error",
-                    "$ref": "#/$defs/integerValueProperty"
-                }
-            }
-        },
-        "wideEvent": {
-            "type": "object",
-            "description": "A specific wide event that encapsulates a set of traditional pixels for a single round-trip user interaction, API call, etc",
-            "required": ["description", "owners", "global", "feature", "meta"],
-            "additionalProperties": false,
-            "properties": {
                 "description": {
                     "type": "string",
                     "description": "Detailed description of the specific interaction or API call that is instrumented"
                 },
-                "owners": {
+                "$comment": {
+                    "type": "string",
+                    "description": "Schema annotation carrying metadata such as owners"
+                },
+                "type": {
+                    "const": "object"
+                },
+                "required": {
                     "type": "array",
-                    "minItems": 1,
-                    "description": "Github usernames of the people responsible for this wide event",
-                    "items": {
-                        "type": "string"
+                    "description": "Required properties for the wide event data",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": {
+                    "const": false
+                },
+                "properties": {
+                    "type": "object",
+                    "description": "Property schemas for validating wide event data",
+                    "required": ["meta", "global", "feature"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "meta": { "$ref": "#/$defs/metaSchemaProperty" },
+                        "app": { "$ref": "#/$defs/appSchemaProperty" },
+                        "global": { "$ref": "#/$defs/globalSchemaProperty" },
+                        "feature": { "$ref": "#/$defs/featureSchemaProperty" },
+                        "context": { "$ref": "#/$defs/contextSchemaProperty" }
                     }
-                },
-                "global": {
-                    "type": "object",
-                    "description": "Global properties for the wide event",
-                    "$ref": "#/$defs/global"
-                },
-                "app": {
-                    "type": "object",
-                    "description": "Application information for the wide event",
-                    "$ref": "#/$defs/app"
-                },
-                "feature": {
-                    "type": "object",
-                    "description": "Feature being tracked within the wide event",
-                    "$ref": "#/$defs/feature"
-                },
-                "context": {
-                    "type": "object",
-                    "description": "Context (aka journey) is a concept that encompasses multiple features. A specific feature may be entered from different context. For example, Import could be triggered by onboarding or by selecting the feature manually.",
-                    "$ref": "#/$defs/context"
-                },
-                "meta": {
-                    "type": "object",
-                    "description": "Derived event information, such as unique event name",
-                    "$ref": "#/$defs/meta"
                 }
             }
         }

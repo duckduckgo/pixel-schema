@@ -258,129 +258,236 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
     }
 
     /**
-     * Expands shortcuts in wide event definitions
-     * @param {object} wideEvents
-     * @returns {object} expanded wideEvents
+     * Expands shortcuts in a properties object (for feature.data.ext)
+     * @param {object} props - properties object
+     * @returns {object} expanded properties
      */
-    #expandWideEventShortcuts(wideEvents) {
-        const rootSectionsToSkip = ['description', 'owners', 'meta', 'context'];
-        const expandedEvents = JSON.parse(JSON.stringify(wideEvents));
+    #expandPropertiesShortcuts(props) {
+        if (!props || typeof props !== 'object') return props;
 
-        for (const eventName of Object.keys(expandedEvents)) {
-            const eventDef = expandedEvents[eventName];
-            for (const [key, val] of Object.entries(eventDef)) {
-                if (rootSectionsToSkip.includes(key)) continue;
-                eventDef[key] = this._recursivelyExpandShortcuts(val);
-            }
+        const expanded = {};
+        for (const [key, val] of Object.entries(props)) {
+            expanded[key] = this._recursivelyExpandShortcuts(val);
         }
-
-        return expandedEvents;
+        return expanded;
     }
 
     /**
-     * Merges an event definition with the base event template.
-     * Handles special transformations for the new format:
-     * - context array becomes context.name.enum
-     * - feature.name string becomes feature.name.enum with single value
-     * - feature.status array becomes feature.status.enum
+     * Wraps a section (app, global, etc.) in proper JSON Schema object structure.
+     * @param {object} sectionDef - The section definition with property definitions
+     * @param {string[]} requiredProps - Array of required property names
+     * @returns {object} JSON Schema object structure
+     */
+    #wrapSectionAsJsonSchema(sectionDef, requiredProps) {
+        return {
+            type: 'object',
+            required: requiredProps,
+            additionalProperties: false,
+            properties: sectionDef,
+        };
+    }
+
+    /**
+     * Generates a valid JSON Schema for a single wide event by merging with base event.
+     * The output is a valid JSON Schema that can validate wide event data.
+     * @param {string} eventName - The event name
      * @param {object} eventDef - The event-specific definition
      * @param {object} baseEvent - The base event template
-     * @returns {object} merged event definition
+     * @returns {object} Valid JSON Schema for this event
      */
-    #mergeWithBaseEvent(eventDef, baseEvent) {
-        const merged = JSON.parse(JSON.stringify(baseEvent));
+    #generateEventJsonSchema(eventName, eventDef, baseEvent) {
+        // Get base version for combining with event version
+        const baseVersion = baseEvent.meta?.version?.value;
+        const eventVersion = eventDef.meta.version;
+        const combinedVersion = `${baseVersion}.${eventVersion}`;
 
-        // Remove meta from merged - it's handled separately in generateWideEventSchemas
-        delete merged.meta;
+        // Determine required top-level properties
+        const requiredProps = ['meta', 'global', 'feature'];
+        if (baseEvent.app) requiredProps.push('app');
+        if (eventDef.context) requiredProps.push('context');
 
-        // context.name: array -> enum with 1+ values (only if context is provided)
-        if (eventDef.context) {
-            merged.context = {
-                name: {
-                    ...merged.context?.name,
-                    enum: eventDef.context,
-                },
-            };
-        } else {
-            // Context is optional - remove from merged if not provided by event
-            delete merged.context;
+        // Build properties object
+        const properties = {};
+
+        // meta section - use const values for type and version
+        properties.meta = {
+            type: 'object',
+            required: ['type', 'version'],
+            additionalProperties: false,
+            properties: {
+                type: { const: eventDef.meta.type },
+                version: { const: combinedVersion },
+            },
+        };
+
+        // app section from base_event (if present)
+        if (baseEvent.app) {
+            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
+            const appRequired = Object.keys(appProps).filter((k) => ['name', 'version'].includes(k));
+            properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
         }
 
-        // feature.name: string -> enum with single value
-        merged.feature.name = {
-            ...merged.feature.name,
+        // global section from base_event
+        const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
+        const globalRequired = Object.keys(globalProps).filter((k) => ['platform', 'type', 'sample_rate'].includes(k));
+        properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
+
+        // feature section - merge base structure with event-specific values
+        const featureNameDef = {
+            ...baseEvent.feature?.name,
             enum: [eventDef.feature?.name],
         };
-        // feature.status: array -> enum with 1+ values
-        merged.feature.status = {
-            ...merged.feature.status,
+        const featureStatusDef = {
+            ...baseEvent.feature?.status,
             enum: eventDef.feature?.status,
         };
-        merged.feature.data = eventDef.feature?.data;
 
-        merged.app = baseEvent.app;
-        merged.global = baseEvent.global;
+        // Expand shortcuts in feature.data.ext
+        const eventData = eventDef.feature?.data || { ext: {} };
+        const expandedExt = this.#expandPropertiesShortcuts(eventData.ext || {});
 
-        return merged;
+        const extProperties = {
+            type: 'object',
+            additionalProperties: false,
+            properties: expandedExt,
+            required: Object.keys(expandedExt),
+        };
+
+        const dataProperties = { ext: extProperties };
+        const dataRequired = ['ext'];
+
+        // Include error if present in event data
+        if (eventData.error) {
+            dataProperties.error = {
+                type: 'object',
+                required: ['domain', 'code'],
+                additionalProperties: false,
+                properties: eventData.error,
+            };
+        }
+
+        const featureDataDef = {
+            type: 'object',
+            required: dataRequired,
+            additionalProperties: false,
+            properties: dataProperties,
+        };
+
+        properties.feature = {
+            type: 'object',
+            required: ['name', 'status', 'data'],
+            additionalProperties: false,
+            properties: {
+                name: featureNameDef,
+                status: featureStatusDef,
+                data: featureDataDef,
+            },
+        };
+
+        // context section (optional) - transform array to enum
+        if (eventDef.context) {
+            const contextNameDef = {
+                ...baseEvent.context?.name,
+                enum: eventDef.context,
+            };
+            properties.context = {
+                type: 'object',
+                required: ['name'],
+                additionalProperties: false,
+                properties: {
+                    name: contextNameDef,
+                },
+            };
+        }
+
+        // Build the complete JSON Schema
+        return {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            $id: `${eventDef.meta.type}-${combinedVersion}`,
+            title: eventDef.meta.type,
+            description: eventDef.description,
+            $comment: JSON.stringify({ owners: eventDef.owners }),
+            type: 'object',
+            required: requiredProps,
+            additionalProperties: false,
+            properties,
+        };
     }
 
     /**
-     * Generates the full wide event schema by merging event definition with base event
-     * and expanding shortcuts.
+     * Generates valid JSON Schemas for wide events by merging event definitions with base event.
+     * Each generated schema is a valid JSON Schema that can validate wide event data.
      * @param {object} wideEvents - The wide event definitions
      * @param {object} baseEvent - The base event template (required)
-     * @returns {object} Generated schemas keyed by event name
+     * @param {string[]} [errors] - optional array to collect validation errors
+     * @returns {object} Generated JSON Schemas keyed by event name
      */
-    generateWideEventSchemas(wideEvents, baseEvent) {
-        // Get base version for combining with event versions
+    generateWideEventSchemas(wideEvents, baseEvent, errors = undefined) {
+        // Validate base_event has required version
         const baseVersion = baseEvent.meta?.version?.value;
         if (baseVersion === undefined) {
             throw new Error("base_event.json must have 'meta.version.value' defined");
         }
 
-        // Merge each event with base event
-        const mergedEvents = {};
+        const generatedSchemas = {};
+        const ajvMetaSchema = this._ajv.compile(wideEventSchema);
+
         for (const [eventName, eventDef] of Object.entries(wideEvents)) {
-            // Validate that event doesn't redefine base properties (app, global)
-            // These should come from base_event.json only
             if (eventDef.app) {
-                throw new Error(`${eventName}: 'app' section should not be defined in event - it comes from base_event.json`);
+                const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
+                if (errors) {
+                    errors.push(error);
+                } else {
+                    throw new Error(error);
+                }
             }
             if (eventDef.global) {
-                throw new Error(`${eventName}: 'global' section should not be defined in event - it comes from base_event.json`);
+                const error = `${eventName}: 'global' section should not be defined in event - it comes from base_event.json`;
+                if (errors) {
+                    errors.push(error);
+                } else {
+                    throw new Error(error);
+                }
             }
 
-            // Validate that event has a version for combining with base version
-            if (!eventDef.meta?.version) {
-                throw new Error(`${eventName}: 'meta.version' is required to generate versioned schema filename`);
+            const generatedSchema = this.#generateEventJsonSchema(eventName, eventDef, baseEvent);
+
+            // Validate generated schema against metaschema
+            if (!ajvMetaSchema(generatedSchema)) {
+                const error = `${eventName}: Generated schema does not match metaschema - ${formatAjvErrors(ajvMetaSchema.errors).join(
+                    '; ',
+                )}`;
+                if (errors) {
+                    errors.push(error);
+                } else {
+                    throw new Error(error);
+                }
             }
 
-            const mergedEventContent = this.#mergeWithBaseEvent(eventDef, baseEvent);
+            // Verify generated schema is a valid JSON Schema by compiling it
+            try {
+                // Use a fresh AJV instance to avoid $id collisions across events.
+                // eslint-disable-next-line new-cap
+                const schemaAjv = new Ajv2020.default({ allErrors: true });
+                addFormats.default(schemaAjv);
+                schemaAjv.compile(/** @type {import('ajv').AnySchema} */ (generatedSchema));
+            } catch (error) {
+                const errorMessage = `${eventName}: Generated schema is not valid JSON Schema - ${error.message}`;
+                if (errors) {
+                    errors.push(errorMessage);
+                } else {
+                    throw new Error(errorMessage);
+                }
+            }
 
-            // Combine versions: base version + event two-octet version -> semver
-            const eventVersion = eventDef.meta.version;
-            const combinedVersion = `${baseVersion}.${eventVersion}`;
-            const combinedMeta = {
-                ...eventDef.meta,
-                version: combinedVersion,
-            };
-
-            mergedEvents[eventName] = {
-                description: eventDef.description,
-                owners: eventDef.owners,
-                meta: combinedMeta,
-                ...mergedEventContent,
-            };
+            generatedSchemas[eventName] = generatedSchema;
         }
-
-        // Then expand shortcuts (props_dictionary references)
-        const generatedSchemas = this.#expandWideEventShortcuts(mergedEvents);
 
         return generatedSchemas;
     }
 
     /**
-     * Validates wide event definition
+     * Validates wide event definition and generates JSON Schemas.
      *
      * @param {object} wideEvents should follow the schema defined in wide_event_schema.json5
      * @param {object} baseEvent - base event template (required)
@@ -394,104 +501,38 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             return { errors: ['base_event.json is required for wide event validation'], generatedSchemas: {} };
         }
 
-        // 1. Generate schemas by merging with base event and expanding shortcuts
+        // 1. Generate JSON Schemas by merging with base event
         let generatedSchemas;
         try {
-            generatedSchemas = this.generateWideEventSchemas(wideEvents, baseEvent);
+            generatedSchemas = this.generateWideEventSchemas(wideEvents, baseEvent, errors);
         } catch (error) {
             return { errors: [error.message], generatedSchemas: {} };
         }
 
-        // 2. Validate schema
-        const ajvExpSchema = this._ajv.compile(wideEventSchema);
-        if (!ajvExpSchema(generatedSchemas)) {
-            return { errors: formatAjvErrors(ajvExpSchema.errors), generatedSchemas };
-        }
-
-        // 3. Convert to valid AJV schemas and verify they compile
-        for (const [eventName, eventDef] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
-            try {
-                const ajvSchema = this.#convertToAjvSchema(eventDef);
-                this._ajv.compile(ajvSchema);
-            } catch (error) {
-                errors.push(`${eventName}: Generated schema failed to compile - ${error.message}`);
-            }
-        }
-
-        // 4. Iterate events for additional checks (use original for metadata access)
-        Object.entries(/** @type {Record<string, any>} */ (generatedSchemas)).forEach(([eventName, eventDef]) => {
-            // Check duplicates using meta.type
-            const type = eventDef.meta?.type;
-            if (type) {
-                if (this._definedPrefixes.has(type)) {
-                    errors.push(`${type} --> Conflicting/duplicated definitions found!`);
+        // 2. Additional checks: duplicates and owner validation
+        for (const [eventName, eventSchema] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
+            // Check duplicates using the schema title (event type)
+            const eventType = eventSchema.title;
+            if (eventType) {
+                if (this._definedPrefixes.has(eventType)) {
+                    errors.push(`${eventType} --> Conflicting/duplicated definitions found!`);
                 } else {
-                    this._definedPrefixes.add(type);
+                    this._definedPrefixes.add(eventType);
                 }
             }
 
-            // Check owners
+            // Check owners (stored in x-owners)
             if (userMap) {
-                for (const owner of eventDef.owners ?? []) {
+                const owners = wideEvents?.[eventName]?.owners ?? [];
+                for (const owner of owners) {
                     if (!userMap[owner]) {
                         errors.push(`Owner ${owner} for wide event ${eventName} not in list of acceptable github user names`);
                     }
                 }
             }
-        });
+        }
 
-        // Return original format for compatibility (AJV compilation was just validation)
         return { errors, generatedSchemas };
-    }
-
-    /**
-     * Converts a property definition to a valid AJV JSON Schema.
-     * - Literal values (strings, arrays, objects without 'type') become { const: value }
-     * - Property definitions (objects with valid JSON Schema 'type') are kept as-is
-     * - Container objects (nested properties) become { type: "object", properties: {...} }
-     * @param {any} value - The value to convert
-     * @returns {object} Valid JSON Schema
-     */
-    #convertToAjvSchema(value) {
-        // Null/undefined
-        if (value === null || value === undefined) {
-            return { const: value };
-        }
-
-        // Primitive literals
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-            return { const: value };
-        }
-
-        // Arrays - treat as const value
-        if (Array.isArray(value)) {
-            return { const: value };
-        }
-
-        // Objects
-        if (typeof value === 'object') {
-            // Check if it's a property definition (has 'type' with a valid JSON Schema type)
-            const validSchemaTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
-            if ('type' in value && validSchemaTypes.includes(value.type)) {
-                return value;
-            }
-
-            // Otherwise it's a container - convert children and wrap in object schema
-            const properties = {};
-            const required = [];
-            for (const [key, val] of Object.entries(value)) {
-                properties[key] = this.#convertToAjvSchema(val);
-                required.push(key);
-            }
-            return {
-                type: 'object',
-                properties,
-                required,
-                additionalProperties: false,
-            };
-        }
-
-        return { const: value };
     }
 }
 

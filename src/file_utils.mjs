@@ -219,12 +219,10 @@ export function getGeneratedSchemasDir(wideEventsDir) {
 export function writeGeneratedSchema(wideEventsDir, eventName, schema) {
     const generatedSchemasDir = getGeneratedSchemasDir(wideEventsDir);
     // Extract version from schema to include in filename
-    const version = schema.meta?.version;
+    const version = schema.properties.meta.properties.version.const; // crash if ver is missing
     const filename = version ? `${eventName}-${version}.json` : `${eventName}.json`;
     const schemaPath = path.join(generatedSchemasDir, filename);
-    // Wrap event in { eventName: schema } structure for the output file
-    const schemaObj = { [eventName]: schema };
-    fs.writeFileSync(schemaPath, JSON.stringify(schemaObj, null, 4));
+    fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 4));
 }
 
 /**

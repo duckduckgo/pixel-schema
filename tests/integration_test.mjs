@@ -27,13 +27,7 @@ describe('Invalid defs without user map', () => {
                 `ERROR in ${pixelPath}: /invalid_pixel must have required property 'owners'`,
                 "ERROR in search_experiments.json: /expInvalidA must have required property 'variants'",
                 "ERROR in search_experiments.json: /expInvalidB must have required property 'description'",
-                `ERROR in ${wideEventsPath}: /w_wide_import_summary/feature/data must NOT have additional properties. Found extra property 'latency_ms_bucketed'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_summary/feature/data must NOT have additional properties. Found extra property 'failure_detail'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_bookmarks/feature/data must NOT have additional properties. Found extra property 'latency_ms_bucketed'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_bookmarks/feature/data must NOT have additional properties. Found extra property 'failure_detail'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_credentials/feature/data must NOT have additional properties. Found extra property 'latency_ms_bucketed'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_credentials/feature/data must NOT have additional properties. Found extra property 'failure_detail'`,
-                `ERROR in ${wideEventsPath}: /w_wide_import_timeout/feature/data must NOT have additional properties. Found extra property 'failure_detail'`,
+                `ERROR in ${wideEventsPath}: w_wide_import_summary: Generated schema does not match metaschema - /properties/feature/properties/status/enum/2 must be equal to one of the allowed values`,
             ];
 
             const errors = stderr.trim().split('\n');
