@@ -1,7 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "w_wide_import_summary-1.0.0",
-    "title": "w_wide_import_summary",
     "description": "Fires at the conclusion of an import process to provide a summary of all imported data. For multi-stage imports (e.g., browser + CSV), this fires only once at the end with combined results.",
     "$comment": "{\"owners\":[\"tester\"]}",
     "type": "object",

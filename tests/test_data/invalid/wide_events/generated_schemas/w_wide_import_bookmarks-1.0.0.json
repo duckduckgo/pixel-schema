@@ -1,7 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "w_wide_import_bookmarks-1.0.0",
-    "title": "w_wide_import_bookmarks",
     "description": "Fires when bookmarks are imported, providing metrics about the bookmark import component of an import operation.",
     "$comment": "{\"owners\":[\"jhlouw-dev\"]}",
     "type": "object",

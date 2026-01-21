@@ -1,7 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "w_wide_import_cancelled-1.1.0",
-    "title": "w_wide_import_cancelled",
     "description": "Fires when an import operation is cancelled by the user.",
     "$comment": "{\"owners\":[\"tester\"]}",
     "type": "object",

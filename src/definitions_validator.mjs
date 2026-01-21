@@ -403,8 +403,6 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         // Build the complete JSON Schema
         return {
             $schema: 'https://json-schema.org/draft/2020-12/schema',
-            $id: `${eventDef.meta.type}-${combinedVersion}`,
-            title: eventDef.meta.type,
             description: eventDef.description,
             $comment: JSON.stringify({ owners: eventDef.owners }),
             type: 'object',
@@ -511,8 +509,8 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // 2. Additional checks: duplicates and owner validation
         for (const [eventName, eventSchema] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
-            // Check duplicates using the schema title (event type)
-            const eventType = eventSchema.title;
+            // Check duplicates using the event meta.type
+            const eventType = wideEvents?.[eventName]?.meta?.type;
             if (eventType) {
                 if (this._definedPrefixes.has(eventType)) {
                     errors.push(`${eventType} --> Conflicting/duplicated definitions found!`);

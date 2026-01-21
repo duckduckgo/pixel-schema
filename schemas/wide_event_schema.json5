@@ -387,20 +387,12 @@
         "wideEventSchema": {
             "type": "object",
             "description": "A valid JSON Schema for a wide event. Can be used to validate wide event data.",
-            "required": ["$schema", "$id", "title", "description", "$comment", "type", "required", "additionalProperties", "properties"],
+            "required": ["$schema", "description", "$comment", "type", "required", "additionalProperties", "properties"],
             "additionalProperties": false,
             "properties": {
                 "$schema": {
                     "type": "string",
                     "const": "https://json-schema.org/draft/2020-12/schema"
-                },
-                "$id": {
-                    "type": "string",
-                    "description": "Unique identifier for the schema, typically the event name with version"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "The wide event name/type"
                 },
                 "description": {
                     "type": "string",

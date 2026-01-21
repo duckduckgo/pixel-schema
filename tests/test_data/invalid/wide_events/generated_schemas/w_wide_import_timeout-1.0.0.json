@@ -1,7 +1,5 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "w_wide_import_timeout-1.0.0",
-    "title": "w_wide_import_timeout",
     "description": "Fires when an import operation takes longer than expected and times out.",
     "$comment": "{\"owners\":[\"jhlouw-dev\"]}",
     "type": "object",
