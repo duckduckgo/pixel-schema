@@ -689,15 +689,19 @@ describe('Wide Event Validation', () => {
     });
 
     it('duplicate meta.type', () => {
-        const duplicate = {
-            event1: JSON.parse(JSON.stringify(validWideEvent.w_test_event)),
-            event2: JSON.parse(JSON.stringify(validWideEvent.w_test_event)),
-        };
-        duplicate.event1.meta.type = 'w_test_event_dup';
-        duplicate.event2.meta.type = 'w_test_event_dup';
+        const first = JSON.parse(JSON.stringify(validWideEvent));
+        first.w_test_event.meta.type = 'w_test_event_dup';
+        const firstEvent = { w_test_event_dup: first.w_test_event };
 
-        const { errors } = validator.validateWideEventDefinition(duplicate, baseEvent);
-        expect(errors).to.include('w_test_event_dup --> Conflicting/duplicated definitions found!');
+        const second = JSON.parse(JSON.stringify(validWideEvent));
+        second.w_test_event.meta.type = 'w_test_event_dup';
+        const secondEvent = { w_test_event_dup: second.w_test_event };
+
+        const firstResult = validator.validateWideEventDefinition(firstEvent, baseEvent);
+        expect(firstResult.errors).to.be.empty;
+
+        const secondResult = validator.validateWideEventDefinition(secondEvent, baseEvent);
+        expect(secondResult.errors).to.include('w_test_event_dup --> Conflicting/duplicated definitions found!');
     });
 
     it('invalid owner with userMap', () => {
@@ -710,6 +714,25 @@ describe('Wide Event Validation', () => {
 
         const { errors } = validator.validateWideEventDefinition(event, baseEvent, userMap);
         expect(errors).to.include('Owner invalidUser for wide event w_test_event_owner not in list of acceptable github user names');
+    });
+
+    it('requires meta.type and meta.version', () => {
+        const missingType = JSON.parse(JSON.stringify(validWideEvent));
+        missingType.w_test_event.meta.type = '';
+        let result = validator.validateWideEventDefinition(missingType, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.type' is required");
+
+        const missingVersion = JSON.parse(JSON.stringify(validWideEvent));
+        missingVersion.w_test_event.meta.version = '';
+        result = validator.validateWideEventDefinition(missingVersion, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.version' is required");
+    });
+
+    it('meta.type must match event key', () => {
+        const mismatch = JSON.parse(JSON.stringify(validWideEvent));
+        mismatch.w_test_event.meta.type = 'w_other_event';
+        const result = validator.validateWideEventDefinition(mismatch, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.type' must match event key");
     });
 
     it('rejects app defined in event', () => {

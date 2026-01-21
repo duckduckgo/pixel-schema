@@ -436,6 +436,17 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         const ajvMetaSchema = this._ajv.compile(wideEventSchema);
 
         for (const [eventName, eventDef] of Object.entries(wideEvents)) {
+            // we require type and version to generate the filename
+            if (!eventDef.meta?.type) {
+                throw new Error(`${eventName}: 'meta.type' is required`);
+            }
+            if (!eventDef.meta?.version) {
+                throw new Error(`${eventName}: 'meta.version' is required`);
+            }
+            if (eventDef.meta.type !== eventName) {
+                errors.push(`${eventName}: 'meta.type' must match event key`);
+                continue;
+            }
             if (eventDef.app) {
                 const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
                 errors.push(error);
