@@ -487,7 +487,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         }
 
         // 2. Additional checks: duplicates and owner validation
-        for (const [eventName, eventSchema] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
+        for (const [eventName] of Object.entries(/** @type {Record<string, any>} */ (generatedSchemas))) {
             // Check duplicates using the event meta.type
             const eventType = wideEvents?.[eventName]?.meta?.type;
             if (eventType) {
