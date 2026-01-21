@@ -997,6 +997,40 @@ describe('Wide Event Base Event Merging', () => {
         expect(generated.properties.global.required).to.include.members(Object.keys(baseEvent.global));
         expect(generated.properties.feature.properties.data.properties.ext).to.not.have.property('required');
     });
+
+    it('keeps properties defined directly under feature.data', () => {
+        const event = {
+            w_data_direct_props: {
+                description: 'Event with data-level properties',
+                owners: ['tester'],
+                meta: { type: 'w_data_direct_props', version: '0.0' },
+                feature: {
+                    name: 'data-direct',
+                    status: ['SUCCESS'],
+                    data: {
+                        latency_ms_bucketed: {
+                            type: 'integer',
+                            description: 'Latency bucketed',
+                            enum: [1, 5, 10],
+                        },
+                        failure_detail: {
+                            type: 'string',
+                            description: 'Failure detail',
+                            enum: ['Timeout', 'Unknown'],
+                        },
+                        ext: {},
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors.length).to.be.greaterThan(0);
+
+        const dataProps = generatedSchemas.w_data_direct_props.properties.feature.properties.data.properties;
+        expect(dataProps).to.have.property('latency_ms_bucketed');
+        expect(dataProps).to.have.property('failure_detail');
+    });
 });
 
 describe('Wide Event Version Combining', () => {

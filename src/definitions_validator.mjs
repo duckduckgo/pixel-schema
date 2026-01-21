@@ -365,6 +365,12 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             };
         }
 
+        // Include any other properties defined directly under feature.data
+        for (const [key, value] of Object.entries(eventData)) {
+            if (key === 'ext' || key === 'error') continue;
+            dataProperties[key] = value;
+        }
+
         const featureDataDef = {
             type: 'object',
             required: dataRequired,

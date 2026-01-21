@@ -146,6 +146,13 @@
                                     ]
                                 }
                             }
+                        },
+                        "failure_detail": {
+                            "type": "string",
+                            "description": "Failure detail for timeout",
+                            "enum": [
+                                "TimeoutFailure"
+                            ]
                         }
                     }
                 }
