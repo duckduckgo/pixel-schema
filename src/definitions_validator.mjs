@@ -417,10 +417,10 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
      * Each generated schema is a valid JSON Schema that can validate wide event data.
      * @param {object} wideEvents - The wide event definitions
      * @param {object} baseEvent - The base event template (required)
-     * @param {string[]} [errors] - optional array to collect validation errors
+     * @param {string[]} errors - array to collect validation errors
      * @returns {object} Generated JSON Schemas keyed by event name
      */
-    generateWideEventSchemas(wideEvents, baseEvent, errors = undefined) {
+    generateWideEventSchemas(wideEvents, baseEvent, errors) {
         // Validate base_event has required version
         const baseVersion = baseEvent.meta?.version?.value;
         if (baseVersion === undefined) {
@@ -433,19 +433,11 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         for (const [eventName, eventDef] of Object.entries(wideEvents)) {
             if (eventDef.app) {
                 const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
-                if (errors) {
-                    errors.push(error);
-                } else {
-                    throw new Error(error);
-                }
+                errors.push(error);
             }
             if (eventDef.global) {
                 const error = `${eventName}: 'global' section should not be defined in event - it comes from base_event.json`;
-                if (errors) {
-                    errors.push(error);
-                } else {
-                    throw new Error(error);
-                }
+                errors.push(error);
             }
 
             const generatedSchema = this.#generateEventJsonSchema(eventName, eventDef, baseEvent);
@@ -455,11 +447,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 const error = `${eventName}: Generated schema does not match metaschema - ${formatAjvErrors(ajvMetaSchema.errors).join(
                     '; ',
                 )}`;
-                if (errors) {
-                    errors.push(error);
-                } else {
-                    throw new Error(error);
-                }
+                errors.push(error);
             }
 
             // Verify generated schema is a valid JSON Schema by compiling it
@@ -471,11 +459,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 schemaAjv.compile(/** @type {import('ajv').AnySchema} */ (generatedSchema));
             } catch (error) {
                 const errorMessage = `${eventName}: Generated schema is not valid JSON Schema - ${error.message}`;
-                if (errors) {
-                    errors.push(errorMessage);
-                } else {
-                    throw new Error(errorMessage);
-                }
+                errors.push(errorMessage);
             }
 
             generatedSchemas[eventName] = generatedSchema;
