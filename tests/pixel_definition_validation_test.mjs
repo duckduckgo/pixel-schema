@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 
-import { DefinitionsValidator } from '../src/definitions_validator.mjs';
+import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 
 describe('Validating commons', () => {
     const commons = {
         invalid: {},
     };
-    const validator = new DefinitionsValidator(commons, commons, {});
+    const validator = new PixelDefinitionsValidator(commons, commons, {});
 
     it('params must have required properties', () => {
         const errors = validator.validateCommonParamsDefinition();
@@ -27,7 +27,7 @@ describe('Validating commons', () => {
 });
 
 describe('Pixel with no owner', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
 
     it('no owner', () => {
         const pixel = {
@@ -43,7 +43,7 @@ describe('Pixel with no owner', () => {
 });
 
 describe('Pixel with no params and no suffixes', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
 
     // We no longer require a trigger, if one is not specified, it defaults to 'other'
     it('must have required properties', () => {
@@ -106,7 +106,7 @@ describe('Pixel with params', () => {
             parameters: params,
         };
 
-        const validator = new DefinitionsValidator(commonParams, {}, {});
+        const validator = new PixelDefinitionsValidator(commonParams, {}, {});
         const errors = validator.validatePixelsDefinition({ pixel });
         if (strict) {
             expect(errors).to.have.members(expectedErrors);
@@ -234,7 +234,7 @@ describe('Pixel with suffixes', () => {
             description: 'A common suffix',
         },
     };
-    const validator = new DefinitionsValidator({}, commonSuffixes, {});
+    const validator = new PixelDefinitionsValidator({}, commonSuffixes, {});
 
     // Most of the logic is shared with params, so just run a smoke-test
     it('valid pixel with both custom and common suffix', () => {
@@ -476,13 +476,13 @@ describe('ParamsValidator.compileParamsSchema', () => {
     });
 });
 
-// Cover params + ignoreParams merge via DefinitionsValidator
-describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
+// Cover params + ignoreParams merge via PixelDefinitionsValidator
+describe('Params merging with ignoreParams (PixelDefinitionsValidator)', () => {
     it('parameters take precedence over ignoreParams (no duplicate key error)', () => {
         const ignoreParams = {
             duplicate: { key: 'duplicate', description: 'ignored param' },
         };
-        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+        const validator = new PixelDefinitionsValidator({}, {}, ignoreParams);
 
         const pixel = {
             description: 'Pixel with param also present in ignoreParams',
@@ -499,7 +499,7 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
         const ignoreParams = {
             patterned: { keyPattern: '^param[0-9]$', description: 'pattern in ignore' },
         };
-        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+        const validator = new PixelDefinitionsValidator({}, {}, ignoreParams);
 
         const pixel = {
             description: 'Pixel where key matches ignore pattern',
@@ -515,7 +515,7 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
 });
 
 describe('Search experiments validation', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
     const searchExperiments = {
         aaspuexp: {
             allocation: 0,
@@ -562,7 +562,7 @@ describe('Wide Event Validation', () => {
             description: 'Name of the application',
         },
     };
-    const validator = new DefinitionsValidator(commonProps, {}, {});
+    const validator = new WideEventDefinitionsValidator(commonProps);
 
     const baseEvent = {
         meta: {
@@ -771,7 +771,7 @@ describe('Wide Event Base Event Merging', () => {
             pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
         },
     };
-    const validator = new DefinitionsValidator(commonProps, {}, {});
+    const validator = new WideEventDefinitionsValidator(commonProps);
 
     const baseEvent = {
         meta: {
@@ -970,7 +970,7 @@ describe('Wide Event Base Event Merging', () => {
 });
 
 describe('Wide Event Version Combining', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new WideEventDefinitionsValidator({});
 
     const baseEventWithVersion = {
         meta: {
