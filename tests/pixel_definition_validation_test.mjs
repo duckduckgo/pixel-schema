@@ -967,6 +967,36 @@ describe('Wide Event Base Event Merging', () => {
         expect(generated.properties.feature.properties.name.enum).to.deep.equal(['no-context-feature']);
         expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS']);
     });
+
+    it('requires all base_event props but not event ext props', () => {
+        const event = {
+            w_required_base_only: {
+                description: 'Event with optional ext props',
+                owners: ['tester'],
+                meta: { type: 'w_required_base_only', version: '0.0' },
+                feature: {
+                    name: 'required-base',
+                    status: ['SUCCESS'],
+                    data: {
+                        ext: {
+                            optional_field: {
+                                type: 'string',
+                                description: 'Optional ext field',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_required_base_only;
+        expect(generated.properties.app.required).to.include.members(Object.keys(baseEvent.app));
+        expect(generated.properties.global.required).to.include.members(Object.keys(baseEvent.global));
+        expect(generated.properties.feature.properties.data.properties.ext).to.not.have.property('required');
+    });
 });
 
 describe('Wide Event Version Combining', () => {

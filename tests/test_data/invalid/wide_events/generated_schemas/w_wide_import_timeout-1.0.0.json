@@ -145,11 +145,7 @@
                                         1000
                                     ]
                                 }
-                            },
-                            "required": [
-                                "import_from",
-                                "total_items_bucketed"
-                            ]
+                            }
                         }
                     }
                 }

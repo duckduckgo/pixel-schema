@@ -156,12 +156,7 @@
                                         5
                                     ]
                                 }
-                            },
-                            "required": [
-                                "import_from",
-                                "item_count_bucketed",
-                                "bookmark_failure_count_bucketed"
-                            ]
+                            }
                         }
                     }
                 }

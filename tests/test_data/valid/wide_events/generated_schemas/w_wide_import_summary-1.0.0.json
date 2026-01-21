@@ -203,15 +203,7 @@
                                         1000
                                     ]
                                 }
-                            },
-                            "required": [
-                                "import_from",
-                                "total_items_bucketed",
-                                "bookmark_count_bucketed",
-                                "credential_count_bucketed",
-                                "bookmark_failure_count_bucketed",
-                                "credential_failure_count_bucketed"
-                            ]
+                            }
                         }
                     }
                 }

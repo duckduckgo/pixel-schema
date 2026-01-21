@@ -160,12 +160,7 @@
                                         }
                                     }
                                 }
-                            },
-                            "required": [
-                                "import_from",
-                                "total_items_bucketed",
-                                "nested_object"
-                            ]
+                            }
                         }
                     }
                 }

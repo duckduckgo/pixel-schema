@@ -323,13 +323,13 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         // app section from base_event (if present)
         if (baseEvent.app) {
             const appProps = JSON.parse(JSON.stringify(baseEvent.app));
-            const appRequired = Object.keys(appProps).filter((k) => ['name', 'version'].includes(k));
+            const appRequired = Object.keys(appProps);
             properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
         }
 
         // global section from base_event
         const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
-        const globalRequired = Object.keys(globalProps).filter((k) => ['platform', 'type', 'sample_rate'].includes(k));
+        const globalRequired = Object.keys(globalProps);
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
         // feature section - merge base structure with event-specific values
@@ -350,7 +350,6 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             type: 'object',
             additionalProperties: false,
             properties: expandedExt,
-            required: Object.keys(expandedExt),
         };
 
         const dataProperties = { ext: extProperties };
