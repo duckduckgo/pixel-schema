@@ -452,11 +452,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
             // Verify generated schema is a valid JSON Schema by compiling it
             try {
-                // Use a fresh AJV instance to avoid $id collisions across events.
-                // eslint-disable-next-line new-cap
-                const schemaAjv = new Ajv2020.default({ allErrors: true });
-                addFormats.default(schemaAjv);
-                schemaAjv.compile(/** @type {import('ajv').AnySchema} */ (generatedSchema));
+                this._ajv.compile(/** @type {import('ajv').AnySchema} */ (generatedSchema));
             } catch (error) {
                 const errorMessage = `${eventName}: Generated schema is not valid JSON Schema - ${error.message}`;
                 errors.push(errorMessage);
