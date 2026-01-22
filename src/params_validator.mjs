@@ -68,7 +68,10 @@ export class ParamsValidator {
      * @returns updated param/suffix
      */
     getUpdatedItem(item, common) {
-        const updatedItem = typeof item === 'string' ? this.replaceCommonPlaceholder(item, common) : item;
+        // If item is a string, replace it with the common definition
+        // We must clone the object to avoid modifying the original common definition
+        const updatedItem = typeof item === 'string' ? JSON.parse(JSON.stringify(this.replaceCommonPlaceholder(item, common))) : item;
+
         this.castEnumsToString(updatedItem);
 
         // default type is string

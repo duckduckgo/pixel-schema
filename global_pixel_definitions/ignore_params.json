@@ -1,12 +1,12 @@
 {
     "kp": {
         "key": "kp",
-        "description": "",
-        "enum": [1, -1, 0]
+        "description": "added by 3rd party proxies for SERP",
+        "enum": ["1", "-1", "0", "1?p=1"]
     },
     "p": {
         "key": "p",
-        "description": "",
+        "description": "added by 3rd party proxies for SERP",
         "enum": [1]
     },
     "test": {

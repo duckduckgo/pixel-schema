@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
@@ -132,12 +133,13 @@ async function outputTableToCSV(queryString) {
 
 /**
  * Collects pixel identifiers derived from tokenized definitions and native experiments.
- * @param {string} mainPixelDir - Path to the pixel definitions directory.
+ * @param {string} mainDir - Path to the root directory containing product.json and pixels/ subdirectory.
  * @returns {string[]} Pixel identifiers used in the ClickHouse query.
  */
-function preparePixelIDs(mainPixelDir) {
-    const tokenizedPixels = readTokenizedPixels(mainPixelDir);
-    const nativeExperimentsDef = readNativeExperimentsDef(mainPixelDir);
+function preparePixelIDs(mainDir) {
+    const pixelsConfigDir = path.join(mainDir, 'pixels');
+    const tokenizedPixels = readTokenizedPixels(pixelsConfigDir);
+    const nativeExperimentsDef = readNativeExperimentsDef(pixelsConfigDir);
     const nativeExperimentsDefined = Object.keys(nativeExperimentsDef.activeExperiments).length > 0;
 
     const pixelIDs = Object.keys(tokenizedPixels);
@@ -150,15 +152,15 @@ function preparePixelIDs(mainPixelDir) {
 
 /**
  * Builds CSV containing recent pixel data from Clickhouse for validation workflows.
- * @param {string} mainPixelDir - Path to the pixel definitions directory.
+ * @param {string} mainDir - Path to the root directory containing product.json and pixels/ subdirectory.
  * @returns {Promise<void>} Resolves when the CSV preparation is complete.
  */
-export async function preparePixelsCSV(mainPixelDir) {
+export async function preparePixelsCSV(mainDir) {
     try {
-        const pixelIDs = preparePixelIDs(mainPixelDir);
+        const pixelIDs = preparePixelIDs(mainDir);
 
         updatePixelIDs(pixelIDs);
-        const queryString = prepareCSVQuery(pixelIDs, readProductDef(mainPixelDir));
+        const queryString = prepareCSVQuery(pixelIDs, readProductDef(mainDir));
         await outputTableToCSV(queryString);
     } catch (err) {
         console.error(err);

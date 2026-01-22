@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 
-import { DefinitionsValidator } from '../src/definitions_validator.mjs';
+import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
 
 describe('Validating commons', () => {
     const commons = {
         invalid: {},
     };
-    const validator = new DefinitionsValidator(commons, commons, {});
+    const validator = new PixelDefinitionsValidator(commons, commons, {});
 
     it('params must have required properties', () => {
         const errors = validator.validateCommonParamsDefinition();
@@ -27,7 +27,7 @@ describe('Validating commons', () => {
 });
 
 describe('Pixel with no owner', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
 
     it('no owner', () => {
         const pixel = {
@@ -43,7 +43,7 @@ describe('Pixel with no owner', () => {
 });
 
 describe('Pixel with no params and no suffixes', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
 
     // We no longer require a trigger, if one is not specified, it defaults to 'other'
     it('must have required properties', () => {
@@ -106,7 +106,7 @@ describe('Pixel with params', () => {
             parameters: params,
         };
 
-        const validator = new DefinitionsValidator(commonParams, {}, {});
+        const validator = new PixelDefinitionsValidator(commonParams, {}, {});
         const errors = validator.validatePixelsDefinition({ pixel });
         if (strict) {
             expect(errors).to.have.members(expectedErrors);
@@ -234,7 +234,7 @@ describe('Pixel with suffixes', () => {
             description: 'A common suffix',
         },
     };
-    const validator = new DefinitionsValidator({}, commonSuffixes, {});
+    const validator = new PixelDefinitionsValidator({}, commonSuffixes, {});
 
     // Most of the logic is shared with params, so just run a smoke-test
     it('valid pixel with both custom and common suffix', () => {
@@ -476,13 +476,13 @@ describe('ParamsValidator.compileParamsSchema', () => {
     });
 });
 
-// Cover params + ignoreParams merge via DefinitionsValidator
-describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
+// Cover params + ignoreParams merge via PixelDefinitionsValidator
+describe('Params merging with ignoreParams (PixelDefinitionsValidator)', () => {
     it('parameters take precedence over ignoreParams (no duplicate key error)', () => {
         const ignoreParams = {
             duplicate: { key: 'duplicate', description: 'ignored param' },
         };
-        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+        const validator = new PixelDefinitionsValidator({}, {}, ignoreParams);
 
         const pixel = {
             description: 'Pixel with param also present in ignoreParams',
@@ -499,7 +499,7 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
         const ignoreParams = {
             patterned: { keyPattern: '^param[0-9]$', description: 'pattern in ignore' },
         };
-        const validator = new DefinitionsValidator({}, {}, ignoreParams);
+        const validator = new PixelDefinitionsValidator({}, {}, ignoreParams);
 
         const pixel = {
             description: 'Pixel where key matches ignore pattern',
@@ -515,7 +515,7 @@ describe('Params merging with ignoreParams (DefinitionsValidator)', () => {
 });
 
 describe('Search experiments validation', () => {
-    const validator = new DefinitionsValidator({}, {}, {});
+    const validator = new PixelDefinitionsValidator({}, {}, {});
     const searchExperiments = {
         aaspuexp: {
             allocation: 0,
@@ -552,5 +552,607 @@ describe('Search experiments validation', () => {
 
         const errors = validator.validateSearchExperimentsDefinition(invalid);
         expect(errors).to.include("/aiheaderexp must have required property 'allocation'");
+    });
+});
+
+describe('Wide Event Validation', () => {
+    const commonProps = {
+        appName: {
+            type: 'string',
+            description: 'Name of the application',
+        },
+    };
+    const validator = new WideEventDefinitionsValidator(commonProps);
+
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: {
+                type: 'string',
+                description: 'App name',
+                enum: ['TestApp'],
+            },
+            version: {
+                type: 'string',
+                description: 'App version',
+                pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
+            },
+        },
+        global: {
+            platform: {
+                type: 'string',
+                description: 'Platform',
+                enum: ['Windows'],
+            },
+            type: {
+                type: 'string',
+                description: 'Type',
+                enum: ['app'],
+            },
+            sample_rate: {
+                type: 'number',
+                description: 'Sample rate',
+            },
+        },
+        feature: {
+            name: {
+                type: 'string',
+                description: 'Feature name',
+            },
+            status: {
+                type: 'string',
+                description: 'Status',
+            },
+            data: {
+                ext: {},
+            },
+        },
+        context: {
+            name: {
+                type: 'string',
+                description: 'Context name',
+            },
+        },
+    };
+
+    const validWideEvent = {
+        w_test_event: {
+            description: 'A test wide event',
+            owners: ['tester'],
+            meta: {
+                type: 'w_test_event',
+                version: '0.0',
+            },
+            context: ['test-context'],
+            feature: {
+                name: 'test-feature',
+                status: ['SUCCESS'],
+                data: {
+                    ext: {
+                        extra_data: {
+                            type: 'string',
+                            description: 'Extra data',
+                        },
+                    },
+                },
+            },
+        },
+    };
+
+    it('valid wide event', () => {
+        const { errors } = validator.validateWideEventDefinition(validWideEvent, baseEvent);
+        expect(errors).to.be.empty;
+    });
+
+    it('missing required property', () => {
+        const invalid = JSON.parse(JSON.stringify(validWideEvent));
+        delete invalid.w_test_event.description;
+        const { errors } = validator.validateWideEventDefinition(invalid, baseEvent);
+        expect(errors).to.include("w_test_event: Generated schema does not match metaschema - must have required property 'description'");
+    });
+
+    it('invalid property type', () => {
+        const invalid = JSON.parse(JSON.stringify(validWideEvent));
+        invalid.w_test_event.description = 123;
+        const { errors } = validator.validateWideEventDefinition(invalid, baseEvent);
+        expect(errors.some((e) => e.includes('w_test_event: Generated schema does not match metaschema'))).to.be.true;
+        expect(errors.some((e) => e.includes('/description must be string'))).to.be.true;
+    });
+
+    it('valid shortcut expansion', () => {
+        const withShortcut = JSON.parse(JSON.stringify(validWideEvent));
+        withShortcut.w_test_event.meta.type = 'w_test_event_shortcut'; // Unique type
+        withShortcut.w_test_event.feature.data.ext.app_name = 'appName'; // Shortcut to commonProps
+
+        // We need to rename the key too, although validation iterates over keys, duplicate check uses meta.type
+        const event = { w_test_event_shortcut: withShortcut.w_test_event };
+
+        const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+    });
+
+    it('invalid shortcut', () => {
+        const withInvalidShortcut = JSON.parse(JSON.stringify(validWideEvent));
+        withInvalidShortcut.w_test_event.meta.type = 'w_test_event_invalid_shortcut'; // Unique type
+        withInvalidShortcut.w_test_event.feature.data.ext.invalid_field = 'invalidShortcut';
+
+        const event = { w_test_event_invalid_shortcut: withInvalidShortcut.w_test_event };
+
+        const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((e) => e.includes('w_test_event_invalid_shortcut: Generated schema does not match metaschema'))).to.be.true;
+        expect(errors.some((e) => e.includes('invalid_field'))).to.be.true;
+    });
+
+    it('duplicate meta.type', () => {
+        const first = JSON.parse(JSON.stringify(validWideEvent));
+        first.w_test_event.meta.type = 'w_test_event_dup';
+        const firstEvent = { w_test_event_dup: first.w_test_event };
+
+        const second = JSON.parse(JSON.stringify(validWideEvent));
+        second.w_test_event.meta.type = 'w_test_event_dup';
+        const secondEvent = { w_test_event_dup: second.w_test_event };
+
+        const firstResult = validator.validateWideEventDefinition(firstEvent, baseEvent);
+        expect(firstResult.errors).to.be.empty;
+
+        const secondResult = validator.validateWideEventDefinition(secondEvent, baseEvent);
+        expect(secondResult.errors).to.include('w_test_event_dup --> Conflicting/duplicated definitions found!');
+    });
+
+    it('invalid owner with userMap', () => {
+        const userMap = { validUser: '123' };
+        const invalidOwner = JSON.parse(JSON.stringify(validWideEvent));
+        invalidOwner.w_test_event.meta.type = 'w_test_event_owner';
+        invalidOwner.w_test_event.owners = ['invalidUser'];
+
+        const event = { w_test_event_owner: invalidOwner.w_test_event };
+
+        const { errors } = validator.validateWideEventDefinition(event, baseEvent, userMap);
+        expect(errors).to.include('Owner invalidUser for wide event w_test_event_owner not in list of acceptable github user names');
+    });
+
+    it('requires meta.type and meta.version', () => {
+        const missingType = JSON.parse(JSON.stringify(validWideEvent));
+        missingType.w_test_event.meta.type = '';
+        let result = validator.validateWideEventDefinition(missingType, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.type' is required");
+
+        const missingVersion = JSON.parse(JSON.stringify(validWideEvent));
+        missingVersion.w_test_event.meta.version = '';
+        result = validator.validateWideEventDefinition(missingVersion, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.version' is required");
+    });
+
+    it('meta.type must match event key', () => {
+        const mismatch = JSON.parse(JSON.stringify(validWideEvent));
+        mismatch.w_test_event.meta.type = 'w_other_event';
+        const result = validator.validateWideEventDefinition(mismatch, baseEvent);
+        expect(result.errors).to.include("w_test_event: 'meta.type' must match event key");
+    });
+
+    it('rejects app defined in event', () => {
+        const withApp = JSON.parse(JSON.stringify(validWideEvent));
+        withApp.w_test_event.meta.type = 'w_test_event_with_app';
+        withApp.w_test_event.app = { name: { type: 'string', description: 'App name' } };
+
+        const event = { w_test_event_with_app: withApp.w_test_event };
+
+        const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.include("w_test_event_with_app: 'app' section should not be defined in event - it comes from base_event.json");
+    });
+
+    it('rejects global defined in event', () => {
+        const withGlobal = JSON.parse(JSON.stringify(validWideEvent));
+        withGlobal.w_test_event.meta.type = 'w_test_event_with_global';
+        withGlobal.w_test_event.global = { platform: { type: 'string', description: 'Platform' } };
+
+        const event = { w_test_event_with_global: withGlobal.w_test_event };
+
+        const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.include(
+            "w_test_event_with_global: 'global' section should not be defined in event - it comes from base_event.json",
+        );
+    });
+
+    it('requires baseEvent', () => {
+        const { errors } = validator.validateWideEventDefinition(validWideEvent, null);
+        expect(errors).to.include('base_event.json is required for wide event validation');
+    });
+
+    it('requires feature property', () => {
+        const missingFeature = {
+            w_no_feature: {
+                description: 'Event missing feature',
+                owners: ['tester'],
+                meta: { type: 'w_no_feature', version: '0.0' },
+                context: ['test'],
+                // feature is missing - schema validation catches malformed merged result
+            },
+        };
+
+        const { errors } = validator.validateWideEventDefinition(missingFeature, baseEvent);
+        expect(errors.length).to.be.greaterThan(0);
+        expect(errors.some((e) => e.includes('w_no_feature: Generated schema does not match metaschema'))).to.be.true;
+    });
+});
+
+describe('Wide Event Base Event Merging', () => {
+    const commonProps = {
+        appName: {
+            type: 'string',
+            description: 'Name of the application',
+            enum: ['testApp'],
+        },
+        appVersion: {
+            type: 'string',
+            description: 'Version of the application',
+            pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
+        },
+    };
+    const validator = new WideEventDefinitionsValidator(commonProps);
+
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: {
+                type: 'string',
+                description: 'The name of the application',
+                enum: ['Windows'],
+            },
+            version: {
+                type: 'string',
+                description: 'The version of the application',
+                pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
+            },
+        },
+        global: {
+            platform: {
+                type: 'string',
+                description: 'The platform the app is running on',
+                enum: ['Windows'],
+            },
+            type: {
+                type: 'string',
+                description: 'The type of application',
+                enum: ['app'],
+            },
+            sample_rate: {
+                type: 'number',
+                description: 'Sample rate for this pixel',
+            },
+        },
+        feature: {
+            name: {
+                type: 'string',
+                description: 'The feature name for this pixel',
+            },
+            status: {
+                type: 'string',
+                description: 'The overall status of the operation',
+            },
+            data: {
+                ext: {},
+            },
+        },
+        context: {
+            name: {
+                type: 'string',
+                description: 'Context name for the pixel',
+            },
+        },
+    };
+
+    const newFormatEvent = {
+        w_test_merge: {
+            description: 'A test wide event for merging',
+            owners: ['tester'],
+            meta: {
+                type: 'w_test_merge',
+                version: '0.0',
+            },
+            context: ['onboarding', 'settings'],
+            feature: {
+                name: 'test-feature',
+                status: ['SUCCESS', 'FAILURE'],
+                data: {
+                    ext: {
+                        custom_field: {
+                            type: 'string',
+                            description: 'A custom field',
+                        },
+                    },
+                },
+            },
+        },
+    };
+
+    it('should merge new format event with base event', () => {
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(newFormatEvent, baseEvent);
+        expect(errors).to.be.empty;
+        expect(generatedSchemas).to.have.property('w_test_merge');
+
+        const generated = generatedSchemas.w_test_merge;
+        // Check that context array was transformed to context.name.enum (at root level)
+        expect(generated.properties.context.properties.name.enum).to.deep.equal(['onboarding', 'settings']);
+        // Check that feature.name string was transformed to feature.name.enum
+        expect(generated.properties.feature.properties.name.enum).to.deep.equal(['test-feature']);
+        // Check that feature.status array was transformed to feature.status.enum
+        expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS', 'FAILURE']);
+        // Check that custom data was merged
+        expect(generated.properties.feature.properties.data.properties.ext.properties.custom_field).to.deep.equal({
+            type: 'string',
+            description: 'A custom field',
+        });
+        // Check that base event properties are preserved
+        expect(generated.properties.global.properties.platform.enum).to.deep.equal(['Windows']);
+        expect(generated.properties.app.properties.name.enum).to.deep.equal(['Windows']);
+    });
+
+    it('should expand shortcuts in merged event', () => {
+        const eventWithShortcut = {
+            w_test_shortcut_merge: {
+                description: 'Event with shortcut after merge',
+                owners: ['tester'],
+                meta: {
+                    type: 'w_test_shortcut_merge',
+                    version: '0.0',
+                },
+                context: ['settings'],
+                feature: {
+                    name: 'shortcut-test',
+                    status: ['SUCCESS'],
+                    data: {
+                        ext: {
+                            app_name: 'appName', // shortcut to commonProps
+                        },
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(eventWithShortcut, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_test_shortcut_merge;
+        // Check that shortcut was expanded
+        expect(generated.properties.feature.properties.data.properties.ext.properties.app_name).to.deep.equal({
+            type: 'string',
+            description: 'Name of the application',
+            enum: ['testApp'],
+        });
+    });
+
+    it('should generate schemas for each event', () => {
+        const multipleEvents = {
+            w_event_one: {
+                description: 'First event',
+                owners: ['tester'],
+                meta: { type: 'w_event_one', version: '0.0' },
+                context: ['ctx1'],
+                feature: {
+                    name: 'feature-one',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+            w_event_two: {
+                description: 'Second event',
+                owners: ['tester'],
+                meta: { type: 'w_event_two', version: '0.0' },
+                context: ['ctx2'],
+                feature: {
+                    name: 'feature-two',
+                    status: ['FAILURE'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(multipleEvents, baseEvent);
+        expect(errors).to.be.empty;
+        expect(Object.keys(generatedSchemas)).to.have.lengthOf(2);
+        expect(generatedSchemas).to.have.property('w_event_one');
+        expect(generatedSchemas).to.have.property('w_event_two');
+    });
+
+    it('should handle event without optional context field', () => {
+        const eventWithoutContext = {
+            w_no_context: {
+                description: 'Event without context',
+                owners: ['tester'],
+                meta: { type: 'w_no_context', version: '0.0' },
+                feature: {
+                    name: 'no-context-feature',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(eventWithoutContext, baseEvent);
+        expect(errors).to.be.empty;
+        expect(generatedSchemas).to.have.property('w_no_context');
+
+        const generated = generatedSchemas.w_no_context;
+        // Context should not be present in merged schema when not provided
+        expect(generated.properties).to.not.have.property('context');
+        // Other properties should still be merged correctly
+        expect(generated.properties.feature.properties.name.enum).to.deep.equal(['no-context-feature']);
+        expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS']);
+    });
+
+    it('requires all base_event props but not event ext props', () => {
+        const event = {
+            w_required_base_only: {
+                description: 'Event with optional ext props',
+                owners: ['tester'],
+                meta: { type: 'w_required_base_only', version: '0.0' },
+                feature: {
+                    name: 'required-base',
+                    status: ['SUCCESS'],
+                    data: {
+                        ext: {
+                            optional_field: {
+                                type: 'string',
+                                description: 'Optional ext field',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_required_base_only;
+        expect(generated.properties.app.required).to.include.members(Object.keys(baseEvent.app));
+        expect(generated.properties.global.required).to.include.members(Object.keys(baseEvent.global));
+        expect(generated.properties.feature.properties.data.properties.ext).to.not.have.property('required');
+    });
+
+    it('keeps properties defined directly under feature.data', () => {
+        const event = {
+            w_data_direct_props: {
+                description: 'Event with data-level properties',
+                owners: ['tester'],
+                meta: { type: 'w_data_direct_props', version: '0.0' },
+                feature: {
+                    name: 'data-direct',
+                    status: ['SUCCESS'],
+                    data: {
+                        latency_ms_bucketed: {
+                            type: 'integer',
+                            description: 'Latency bucketed',
+                            enum: [1, 5, 10],
+                        },
+                        failure_detail: {
+                            type: 'string',
+                            description: 'Failure detail',
+                            enum: ['Timeout', 'Unknown'],
+                        },
+                        ext: {},
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+        expect(errors.length).to.be.greaterThan(0);
+
+        const dataProps = generatedSchemas.w_data_direct_props.properties.feature.properties.data.properties;
+        expect(dataProps).to.have.property('latency_ms_bucketed');
+        expect(dataProps).to.have.property('failure_detail');
+    });
+});
+
+describe('Wide Event Version Combining', () => {
+    const validator = new WideEventDefinitionsValidator({});
+
+    const baseEventWithVersion = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 2,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate' },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+        context: {
+            name: { type: 'string', description: 'Context name' },
+        },
+    };
+
+    it('should combine base version with event two-octet version', () => {
+        const event = {
+            w_version_test: {
+                description: 'Version test event',
+                owners: ['tester'],
+                meta: { type: 'w_version_test', version: '3.5' },
+                context: ['test'],
+                feature: {
+                    name: 'version-feature',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_version_test;
+        // Base version 2 + event version 3.5 = 2.3.5
+        expect(generated.properties.meta.properties.version.const).to.equal('2.3.5');
+    });
+
+    it('should handle version 0.0 correctly', () => {
+        const event = {
+            w_zero_version: {
+                description: 'Zero version event',
+                owners: ['tester'],
+                meta: { type: 'w_zero_version', version: '0.0' },
+                context: ['test'],
+                feature: {
+                    name: 'zero-feature',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_zero_version;
+        // Base version 2 + event version 0.0 = 2.0.0
+        expect(generated.properties.meta.properties.version.const).to.equal('2.0.0');
+    });
+
+    it('should not include base meta in generated schema', () => {
+        const event = {
+            w_no_base_meta: {
+                description: 'Test that base meta is not included',
+                owners: ['tester'],
+                meta: { type: 'w_no_base_meta', version: '1.0' },
+                context: ['test'],
+                feature: {
+                    name: 'test-feature',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+
+        const { generatedSchemas } = validator.validateWideEventDefinition(event, baseEventWithVersion);
+        const generated = generatedSchemas.w_no_base_meta;
+
+        // meta should only have type and version (string), not version.value or version.description
+        expect(generated.properties.meta.properties.type.const).to.equal('w_no_base_meta');
+        expect(generated.properties.meta.properties.version.const).to.equal('2.1.0');
+        expect(generated.properties.meta.properties.version).to.not.have.property('value');
+        expect(generated.properties.meta.properties.version).to.not.have.property('description');
     });
 });

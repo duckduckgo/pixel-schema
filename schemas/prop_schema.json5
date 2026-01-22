@@ -1,0 +1,42 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "prop.schema.json",
+    "type": "object",
+    "additionalProperties": {
+        "$ref": "#/$defs/prop"
+    },
+    "$defs": {
+        "prop": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Description of the property"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["string", "number", "integer", "boolean", "array", "object"],
+                    "description": "Type of the property"
+                },
+                "enum": {
+                    "type": "array",
+                    "description": "Allowed values for the property"
+                },
+                "items": {
+                    "type": "object",
+                    "description": "Schema for array items"
+                },
+                "examples": {
+                    "type": "array",
+                    "description": "Examples of valid values for the property"
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Regex pattern that the property value must match (for string type)"
+                }
+            },
+            "required": ["description", "type"],
+            "additionalProperties": false
+        }
+    }
+}

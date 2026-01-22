@@ -12,7 +12,7 @@ const argv = getArgParser('preprocess (tokenize) pixel definitions').parse();
 
 function processPixelDefs(mainDir) {
     const tokenizedDefs = {};
-    const pixelDir = path.join(mainDir, 'pixels');
+    const pixelDir = path.join(mainDir, 'pixels', 'definitions');
     fs.readdirSync(pixelDir, { recursive: true }).forEach((file) => {
         const fullPath = path.join(pixelDir, file);
         if (fs.statSync(fullPath).isDirectory() || file.startsWith('TEMPLATE')) {
@@ -25,7 +25,7 @@ function processPixelDefs(mainDir) {
     });
 
     // Write out tokenized pixel defs to a file
-    const outFile = getTokenizedPixelsPath(mainDir);
+    const outFile = getTokenizedPixelsPath(path.join(mainDir, 'pixels'));
     console.log(`Writing out tokenized pixel defs to ${outFile}`);
     fs.writeFileSync(outFile, JSON.stringify(tokenizedDefs, null, 4));
 }

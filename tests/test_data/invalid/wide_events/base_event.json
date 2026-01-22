@@ -1,0 +1,52 @@
+{
+    "meta": {
+        "version": {
+            "description": "Version of the base_event schema",
+            "value": 1
+        }
+    },
+    "app": {
+        "name": {
+            "type": "string",
+            "description": "The name of the application",
+            "enum": ["Windows"]
+        },
+        "version": {
+            "type": "string",
+            "description": "The version of the application",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+    },
+    "global": {
+        "platform": {
+            "type": "string",
+            "description": "The platform the app is running on",
+            "enum": ["Windows"]
+        },
+        "type": {
+            "type": "string",
+            "description": "The type of application",
+            "enum": ["app"]
+        },
+        "sample_rate": {
+            "type": "number",
+            "description": "Sample rate for this event"
+        }
+    },
+    "feature": {
+        "name": {
+            "type": "string",
+            "description": "The feature name for this event"
+        },
+        "status": {
+            "type": "string",
+            "description": "The overall status of the operation"
+        }
+    },
+    "context": {
+        "name": {
+            "type": "string",
+            "description": "Context name for the event"
+        }
+    }
+}

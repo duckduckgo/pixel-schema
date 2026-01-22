@@ -1,0 +1,432 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "wide_events.schema.json",
+    "title": "Wide event JSON schema",
+    "description": "A metaschema for validating a generated wide event JSON Schema. Each schema is itself a valid JSON Schema that can validate wide event data.",
+    "$ref": "#/$defs/wideEventSchema",
+    "$defs": {
+        // Property definition types - these define valid leaf property schemas
+        "stringValueProperty": {
+            "type": "object",
+            "description": "A string property with a single value (no enum).",
+            "required": ["type", "description"],
+            "not": { "required": ["enum"] },
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "pattern": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "stringValueWithPatternProperty": {
+            "type": "object",
+            "description": "A string property with a required pattern (no enum).",
+            "required": ["type", "description", "pattern"],
+            "not": { "required": ["enum"] },
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "pattern": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "stringEnumProperty": {
+            "type": "object",
+            "description": "A string property constrained to enum values.",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "numberValueProperty": {
+            "type": "object",
+            "description": "A number property with a single value (no enum).",
+            "required": ["type", "description"],
+            "not": { "required": ["enum"] },
+            "properties": {
+                "type": { "const": "number" },
+                "description": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "numberEnumProperty": {
+            "type": "object",
+            "description": "A number property constrained to enum values.",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "number" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "integerValueProperty": {
+            "type": "object",
+            "description": "An integer property with a single value (no enum).",
+            "required": ["type", "description"],
+            "not": { "required": ["enum"] },
+            "properties": {
+                "type": { "const": "integer" },
+                "description": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "integerEnumProperty": {
+            "type": "object",
+            "description": "An integer property constrained to enum values (e.g., bucketed values).",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "integer" },
+                "description": { "type": "string" },
+                "enum": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "booleanProperty": {
+            "type": "object",
+            "description": "A boolean property.",
+            "required": ["type", "description"],
+            "properties": {
+                "type": { "const": "boolean" },
+                "description": { "type": "string" },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "objectProperty": {
+            "type": "object",
+            "description": "A nested object property with its own properties.",
+            "required": ["type", "description", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "description": { "type": "string" },
+                "properties": {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                },
+                "examples": { "type": "array" }
+            },
+            "additionalProperties": false
+        },
+        "propertyDefinition": {
+            "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
+            "oneOf": [
+                { "$ref": "#/$defs/stringValueProperty" },
+                { "$ref": "#/$defs/stringEnumProperty" },
+                { "$ref": "#/$defs/numberValueProperty" },
+                { "$ref": "#/$defs/numberEnumProperty" },
+                { "$ref": "#/$defs/integerValueProperty" },
+                { "$ref": "#/$defs/integerEnumProperty" },
+                { "$ref": "#/$defs/booleanProperty" },
+                { "$ref": "#/$defs/objectProperty" }
+            ]
+        },
+
+        // Domain-specific property definitions with constrained enum values
+        "platformDefinition": {
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": {
+                    "type": "array",
+                    "items": { "enum": ["Android", "iOS", "Linux", "macOS", "Windows"] }
+                }
+            },
+            "additionalProperties": false
+        },
+        "typeDefinition": {
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": {
+                    "type": "array",
+                    "items": { "enum": ["app", "web", "service"] }
+                }
+            },
+            "additionalProperties": false
+        },
+        "statusDefinition": {
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": {
+                    "type": "array",
+                    "items": { "enum": ["SUCCESS", "FAILURE", "CANCELLED", "UNKNOWN"] }
+                }
+            },
+            "additionalProperties": false
+        },
+        "form_factorDefinition": {
+            "type": "object",
+            "required": ["type", "description", "enum"],
+            "properties": {
+                "type": { "const": "string" },
+                "description": { "type": "string" },
+                "enum": {
+                    "type": "array",
+                    "items": { "enum": ["phone", "tablet"] }
+                }
+            },
+            "additionalProperties": false
+        },
+
+        // JSON Schema wrapper definitions for sections
+        // These define how each section appears as a JSON Schema property
+        "globalSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the global section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "platform" },
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["platform", "type", "sample_rate"],
+                    "properties": {
+                        "platform": { "$ref": "#/$defs/platformDefinition" },
+                        "type": { "$ref": "#/$defs/typeDefinition" },
+                        "sample_rate": { "$ref": "#/$defs/numberValueProperty" },
+                        "is_first_daily_occurrence": { "$ref": "#/$defs/booleanProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "appSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the app section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name", "version"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" },
+                        "version": { "$ref": "#/$defs/stringValueWithPatternProperty" },
+                        "form_factor": { "$ref": "#/$defs/form_factorDefinition" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "dataSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the feature.data section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "ext" },
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["ext"],
+                    "properties": {
+                        "ext": {
+                            "type": "object",
+                            "required": ["type", "additionalProperties", "properties"],
+                            "properties": {
+                                "type": { "const": "object" },
+                                "additionalProperties": { "const": false },
+                                "properties": {
+                                    "type": "object",
+                                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                                },
+                                "required": { "type": "array", "items": { "type": "string" } }
+                            },
+                            "additionalProperties": false
+                        },
+                        "error": {
+                            "type": "object",
+                            "required": ["type", "required", "additionalProperties", "properties"],
+                            "properties": {
+                                "type": { "const": "object" },
+                                "required": { "type": "array", "items": { "type": "string" } },
+                                "additionalProperties": { "const": false },
+                                "properties": {
+                                    "type": "object",
+                                    "properties": {
+                                        "domain": { "$ref": "#/$defs/stringValueProperty" },
+                                        "code": { "$ref": "#/$defs/integerValueProperty" },
+                                        "underlying_domain": { "$ref": "#/$defs/stringValueProperty" },
+                                        "underlyingcode": { "$ref": "#/$defs/integerValueProperty" }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "featureSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the feature section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name", "status", "data"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" },
+                        "status": { "$ref": "#/$defs/statusDefinition" },
+                        "data": { "$ref": "#/$defs/dataSchemaProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "contextSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the context section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "contains": { "const": "name" },
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "metaSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the meta section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["type", "version"],
+                    "properties": {
+                        "type": {
+                            "type": "object",
+                            "required": ["const"],
+                            "properties": {
+                                "const": { "type": "string" }
+                            },
+                            "additionalProperties": false
+                        },
+                        "version": {
+                            "type": "object",
+                            "required": ["const"],
+                            "properties": {
+                                "const": {
+                                    "type": "string",
+                                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+
+        // The main wide event schema definition
+        // This is a JSON Schema that validates wide event data
+        "wideEventSchema": {
+            "type": "object",
+            "description": "A valid JSON Schema for a wide event. Can be used to validate wide event data.",
+            "required": ["$schema", "description", "$comment", "type", "required", "additionalProperties", "properties"],
+            "additionalProperties": false,
+            "properties": {
+                "$schema": {
+                    "type": "string",
+                    "const": "https://json-schema.org/draft/2020-12/schema"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Detailed description of the specific interaction or API call that is instrumented"
+                },
+                "$comment": {
+                    "type": "string",
+                    "description": "Schema annotation carrying metadata such as owners"
+                },
+                "type": {
+                    "const": "object"
+                },
+                "required": {
+                    "type": "array",
+                    "description": "Required properties for the wide event data",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": {
+                    "const": false
+                },
+                "properties": {
+                    "type": "object",
+                    "description": "Property schemas for validating wide event data",
+                    "required": ["meta", "global", "feature"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "meta": { "$ref": "#/$defs/metaSchemaProperty" },
+                        "app": { "$ref": "#/$defs/appSchemaProperty" },
+                        "global": { "$ref": "#/$defs/globalSchemaProperty" },
+                        "feature": { "$ref": "#/$defs/featureSchemaProperty" },
+                        "context": { "$ref": "#/$defs/contextSchemaProperty" }
+                    }
+                }
+            }
+        }
+    }
+}

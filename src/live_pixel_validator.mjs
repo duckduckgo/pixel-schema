@@ -32,7 +32,8 @@ export class LivePixelsValidator {
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#initPixelState();
         this.#forceLowerCase = productDef.forceLowerCase;
-        this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
+        // version should be resolved before constructing validator (via resolveTargetVersion)
+        this.#defsVersion = this.#getNormalizedVal(/** @type {string} */ (productDef.target.version));
         this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
 
         this.#compileDefs(tokenizedPixels, paramsValidator);

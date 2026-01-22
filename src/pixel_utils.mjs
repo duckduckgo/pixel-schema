@@ -136,3 +136,61 @@ export function mergeParameters(parameters, extraParams) {
     const parameterKeys = new Set(parameters.map((p) => (typeof p === 'string' ? p : p.keyPattern || p.key)));
     return [...parameters, ...extraParams.filter((p) => !parameterKeys.has(typeof p === 'string' ? p : p.keyPattern || p.key))];
 }
+
+/**
+ * Extract a value from an object using a dot-notation key path
+ * @param {object} obj - The object to extract from
+ * @param {string} keyPath - Dot-notation path (e.g. "latest_appstore_version.latest_version")
+ * @returns {*} The value at the key path, or undefined if not found
+ */
+export function getValueByKeyPath(obj, keyPath) {
+    return keyPath.split('.').reduce((current, key) => {
+        return current && typeof current === 'object' ? current[key] : undefined;
+    }, obj);
+}
+
+/**
+ * Resolve the target version from a ProductDefinition.
+ * If the target has a static `version`, returns it directly.
+ * If the target has `versionUrl` and `versionRef`, fetches the version from the URL.
+ *
+ * @param {import('./types.mjs').ProductTarget} target - The target configuration from product.json
+ * @returns {Promise<string>} The resolved version string
+ * @throws {Error} If the version cannot be resolved
+ */
+export async function resolveTargetVersion(target) {
+    // Static version takes precedence
+    if (target.version) {
+        if (target.versionUrl || target.versionRef) {
+            throw new Error('Cannot specify both "version" and "versionUrl"/"versionRef" in target. Use one or the other.');
+        }
+        return target.version;
+    }
+
+    // Remote version via URL
+    if (target.versionUrl && target.versionRef) {
+        const response = await fetch(target.versionUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch version from ${target.versionUrl}: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        const version = getValueByKeyPath(data, target.versionRef);
+        if (version === undefined) {
+            throw new Error(`Version key "${target.versionRef}" not found in response from ${target.versionUrl}`);
+        }
+        if (typeof version !== 'string') {
+            throw new Error(`Version value at "${target.versionRef}" must be a string, got ${typeof version}`);
+        }
+        return version;
+    }
+
+    if (target.versionUrl && !target.versionRef) {
+        throw new Error('target.versionRef is required when using target.versionUrl');
+    }
+
+    if (target.versionRef && !target.versionUrl) {
+        throw new Error('target.versionUrl is required when using target.versionRef');
+    }
+
+    throw new Error('target must have either "version" or both "versionUrl" and "versionRef"');
+}
