@@ -5,132 +5,17 @@
     "description": "A metaschema for validating a generated wide event JSON Schema. Each schema is itself a valid JSON Schema that can validate wide event data.",
     "$ref": "#/$defs/wideEventSchema",
     "$defs": {
-        // Property definition types - these define valid leaf property schemas
-        "stringValueProperty": {
-            "type": "object",
-            "description": "A string property with a single value (no enum).",
-            "required": ["type", "description"],
-            "not": { "required": ["enum"] },
-            "properties": {
-                "type": { "const": "string" },
-                "description": { "type": "string" },
-                "pattern": { "type": "string" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "stringValueWithPatternProperty": {
-            "type": "object",
-            "description": "A string property with a required pattern (no enum).",
-            "required": ["type", "description", "pattern"],
-            "not": { "required": ["enum"] },
-            "properties": {
-                "type": { "const": "string" },
-                "description": { "type": "string" },
-                "pattern": { "type": "string" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "stringEnumProperty": {
-            "type": "object",
-            "description": "A string property constrained to enum values.",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": { "const": "string" },
-                "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "numberValueProperty": {
-            "type": "object",
-            "description": "A number property with a single value (no enum).",
-            "required": ["type", "description"],
-            "not": { "required": ["enum"] },
-            "properties": {
-                "type": { "const": "number" },
-                "description": { "type": "string" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "numberEnumProperty": {
-            "type": "object",
-            "description": "A number property constrained to enum values.",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": { "const": "number" },
-                "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "integerValueProperty": {
-            "type": "object",
-            "description": "An integer property with a single value (no enum).",
-            "required": ["type", "description"],
-            "not": { "required": ["enum"] },
-            "properties": {
-                "type": { "const": "integer" },
-                "description": { "type": "string" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "integerEnumProperty": {
-            "type": "object",
-            "description": "An integer property constrained to enum values (e.g., bucketed values).",
-            "required": ["type", "description", "enum"],
-            "properties": {
-                "type": { "const": "integer" },
-                "description": { "type": "string" },
-                "enum": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "booleanProperty": {
-            "type": "object",
-            "description": "A boolean property.",
-            "required": ["type", "description"],
-            "properties": {
-                "type": { "const": "boolean" },
-                "description": { "type": "string" },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "objectProperty": {
-            "type": "object",
-            "description": "A nested object property with its own properties.",
-            "required": ["type", "description", "properties"],
-            "properties": {
-                "type": { "const": "object" },
-                "description": { "type": "string" },
-                "properties": {
-                    "type": "object",
-                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
-                },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": false
-        },
-        "propertyDefinition": {
-            "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
-            "oneOf": [
-                { "$ref": "#/$defs/stringValueProperty" },
-                { "$ref": "#/$defs/stringEnumProperty" },
-                { "$ref": "#/$defs/numberValueProperty" },
-                { "$ref": "#/$defs/numberEnumProperty" },
-                { "$ref": "#/$defs/integerValueProperty" },
-                { "$ref": "#/$defs/integerEnumProperty" },
-                { "$ref": "#/$defs/booleanProperty" },
-                { "$ref": "#/$defs/objectProperty" }
-            ]
-        },
+        // Property definition types are now shared from prop_schema.json5
+        "stringValueProperty": { "$ref": "prop_schema.json#/$defs/stringValueProperty" },
+        "stringValueWithPatternProperty": { "$ref": "prop_schema.json#/$defs/stringValueWithPatternProperty" },
+        "stringEnumProperty": { "$ref": "prop_schema.json#/$defs/stringEnumProperty" },
+        "numberValueProperty": { "$ref": "prop_schema.json#/$defs/numberValueProperty" },
+        "numberEnumProperty": { "$ref": "prop_schema.json#/$defs/numberEnumProperty" },
+        "integerValueProperty": { "$ref": "prop_schema.json#/$defs/integerValueProperty" },
+        "integerEnumProperty": { "$ref": "prop_schema.json#/$defs/integerEnumProperty" },
+        "booleanProperty": { "$ref": "prop_schema.json#/$defs/booleanProperty" },
+        "objectProperty": { "$ref": "prop_schema.json#/$defs/objectProperty" },
+        "propertyDefinition": { "$ref": "prop_schema.json#/$defs/propertyDefinition" },
 
         // Domain-specific property definitions with constrained enum values
         "platformDefinition": {
