@@ -413,8 +413,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 throw new Error(`${eventName}: 'meta.version' is required`);
             }
             if (eventDef.meta.type !== eventName) {
-                errors.push(`${eventName}: 'meta.type' must match event key`);
-                continue;
+                throw new Error(`${eventName}: 'meta.type' must match event key`);
             }
             if (eventDef.app) {
                 const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
