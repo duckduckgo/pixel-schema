@@ -166,7 +166,7 @@
                                         "domain": { "$ref": "#/$defs/stringValueProperty" },
                                         "code": { "$ref": "#/$defs/integerValueProperty" },
                                         "underlying_domain": { "$ref": "#/$defs/stringValueProperty" },
-                                        "underlyingcode": { "$ref": "#/$defs/integerValueProperty" }
+                                        "underlying_code": { "$ref": "#/$defs/integerValueProperty" }
                                     },
                                     "additionalProperties": false
                                 }
