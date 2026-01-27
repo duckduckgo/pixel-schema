@@ -70,37 +70,6 @@ class BaseDefinitionsValidator {
 
         return obj;
     }
-
-    /**
-     * Recursively expands shortcuts (returns new object)
-     * @protected
-     * @param {any} obj
-     * @returns {any}
-     */
-    _expandShortcuts(obj) {
-        if (!obj) return obj;
-
-        if (Array.isArray(obj)) {
-            return obj.map((item) => this._expandShortcuts(item));
-        }
-
-        if (typeof obj === 'object') {
-            const newObj = {};
-            for (const [key, value] of Object.entries(obj)) {
-                newObj[key] = this._expandShortcuts(value);
-            }
-            return newObj;
-        }
-
-        if (typeof obj === 'string') {
-            if (Object.prototype.hasOwnProperty.call(this._dictionary, obj)) {
-                return this._paramsValidator.getUpdatedItem(obj, this._dictionary);
-            }
-            return obj;
-        }
-
-        throw TypeError(`${obj} --> unexpected prop of type ${typeof obj}`);
-    }
 }
 
 /**
@@ -444,8 +413,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 throw new Error(`${eventName}: 'meta.version' is required`);
             }
             if (eventDef.meta.type !== eventName) {
-                errors.push(`${eventName}: 'meta.type' must match event key`);
-                continue;
+                throw new Error(`${eventName}: 'meta.type' must match event key`);
             }
             if (eventDef.app) {
                 const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;

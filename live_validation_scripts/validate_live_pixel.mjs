@@ -3,7 +3,6 @@
 import csv from 'csv-parser';
 import fs from 'fs';
 import JSON5 from 'json5';
-import path from 'path';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -22,7 +21,7 @@ const pixelErrors = {};
 async function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-    const pixelsConfigDir = path.join(mainDir, 'pixels');
+    const { pixelsConfigDir } = fileUtils.resolvePixelsDirs(mainDir);
 
     const productDef = fileUtils.readProductDef(mainDir);
 

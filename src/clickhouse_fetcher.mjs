@@ -1,9 +1,8 @@
 import fs from 'fs';
-import path from 'path';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
-import { readTokenizedPixels, readProductDef, readNativeExperimentsDef } from './file_utils.mjs';
+import { readTokenizedPixels, readProductDef, readNativeExperimentsDef, resolvePixelsDirs } from './file_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -137,7 +136,7 @@ async function outputTableToCSV(queryString) {
  * @returns {string[]} Pixel identifiers used in the ClickHouse query.
  */
 function preparePixelIDs(mainDir) {
-    const pixelsConfigDir = path.join(mainDir, 'pixels');
+    const { pixelsConfigDir } = resolvePixelsDirs(mainDir);
     const tokenizedPixels = readTokenizedPixels(pixelsConfigDir);
     const nativeExperimentsDef = readNativeExperimentsDef(pixelsConfigDir);
     const nativeExperimentsDefined = Object.keys(nativeExperimentsDef.activeExperiments).length > 0;
