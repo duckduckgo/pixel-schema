@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';

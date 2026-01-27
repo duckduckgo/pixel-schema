@@ -3,7 +3,6 @@
 import csv from 'csv-parser';
 import fs from 'fs';
 import JSON5 from 'json5';
-import path from 'path';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
