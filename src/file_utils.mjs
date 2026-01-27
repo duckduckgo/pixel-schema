@@ -12,6 +12,21 @@ const RESULTS_DIR = 'pixel_processing_results';
 export const GLOBAL_PIXEL_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'global_pixel_definitions');
 
 /**
+ * Resolve pixels directories for legacy/new layouts.
+ * @param {string} mainDir - repository root
+ * @returns {{ pixelsConfigDir: string, pixelDefsDir: string }}
+ */
+export function resolvePixelsDirs(mainDir) {
+    const pixelsDir = path.join(mainDir, 'pixels');
+    const definitionsDir = path.join(pixelsDir, 'definitions');
+    const hasDefinitionsDir = fs.existsSync(definitionsDir);
+    return {
+        pixelsConfigDir: hasDefinitionsDir ? pixelsDir : mainDir,
+        pixelDefsDir: hasDefinitionsDir ? definitionsDir : pixelsDir,
+    };
+}
+
+/**
  * Attempt to read and parse a file using JSON5. Tries .json
  * first but will try to json5 if missing.
  *

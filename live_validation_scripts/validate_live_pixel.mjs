@@ -22,7 +22,7 @@ const pixelErrors = {};
 async function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-    const pixelsConfigDir = path.join(mainDir, 'pixels');
+    const { pixelsConfigDir } = fileUtils.resolvePixelsDirs(mainDir);
 
     const productDef = fileUtils.readProductDef(mainDir);
 
