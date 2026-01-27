@@ -1054,6 +1054,92 @@ describe('Wide Event Base Event Merging', () => {
         expect(dataProps).to.have.property('latency_ms_bucketed');
         expect(dataProps).to.have.property('failure_detail');
     });
+
+    it('does not drop any base/event properties', () => {
+        const base = JSON.parse(JSON.stringify(baseEvent));
+        base.app.app_source = {
+            type: 'string',
+            description: 'App source',
+            enum: ['store'],
+        };
+        base.global.session_kind = {
+            type: 'string',
+            description: 'Session kind',
+            enum: ['new', 'returning'],
+        };
+        base.context.extra_context = {
+            type: 'string',
+            description: 'Extra context',
+            enum: ['alpha'],
+        };
+        base.feature.status_reason = {
+            type: 'string',
+            description: 'Reason for status',
+        };
+        base.feature.extra_base_flag = {
+            type: 'boolean',
+            description: 'Base flag',
+        };
+
+        const event = {
+            w_no_drops: {
+                description: 'Event with custom feature/data props',
+                owners: ['tester'],
+                meta: { type: 'w_no_drops', version: '0.0' },
+                context: ['alpha'],
+                feature: {
+                    name: 'no-drops',
+                    status: ['SUCCESS'],
+                    status_reason: {
+                        type: 'string',
+                        description: 'Event status reason',
+                        enum: ['foo'],
+                    },
+                    event_only_flag: {
+                        type: 'integer',
+                        description: 'Event-only flag',
+                        enum: [1, 2],
+                    },
+                    data: {
+                        latency_ms_bucketed: {
+                            type: 'integer',
+                            description: 'Latency bucketed',
+                            enum: [1, 5, 10],
+                        },
+                        failure_detail: {
+                            type: 'string',
+                            description: 'Failure detail',
+                            enum: ['Timeout', 'Unknown'],
+                        },
+                        ext: {
+                            extra_data: {
+                                type: 'string',
+                                description: 'Extra data',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, base);
+        expect(errors.length).to.be.greaterThan(0);
+
+        const generated = generatedSchemas.w_no_drops;
+        const featureProps = generated.properties.feature.properties;
+        expect(featureProps).to.have.property('status_reason');
+        expect(featureProps).to.have.property('extra_base_flag');
+        expect(featureProps).to.have.property('event_only_flag');
+
+        const dataProps = featureProps.data.properties;
+        expect(dataProps).to.have.property('latency_ms_bucketed');
+        expect(dataProps).to.have.property('failure_detail');
+        expect(dataProps.ext.properties).to.have.property('extra_data');
+
+        expect(generated.properties.app.properties).to.have.property('app_source');
+        expect(generated.properties.global.properties).to.have.property('session_kind');
+        expect(generated.properties.context.properties).to.have.property('extra_context');
+    });
 });
 
 describe('Wide Event Version Combining', () => {
