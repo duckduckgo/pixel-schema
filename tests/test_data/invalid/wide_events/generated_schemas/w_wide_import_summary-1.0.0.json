@@ -53,27 +53,19 @@
         "global": {
             "type": "object",
             "required": [
-                "platform",
-                "type",
-                "sample_rate"
+                "platform2",
+                "sample_rateeeeee"
             ],
             "additionalProperties": false,
             "properties": {
-                "platform": {
+                "platform2": {
                     "type": "string",
                     "description": "The platform the app is running on",
                     "enum": [
                         "Windows"
                     ]
                 },
-                "type": {
-                    "type": "string",
-                    "description": "The type of application",
-                    "enum": [
-                        "app"
-                    ]
-                },
-                "sample_rate": {
+                "sample_rateeeeee": {
                     "type": "number",
                     "description": "Sample rate for this event"
                 }
@@ -97,13 +89,7 @@
                 },
                 "status": {
                     "type": "string",
-                    "description": "The overall status of the operation",
-                    "enum": [
-                        "SUCCESS",
-                        "FAILURE",
-                        "PARTIAL",
-                        "CANCELLED"
-                    ]
+                    "description": "The overall status of the operation"
                 },
                 "data": {
                     "type": "object",

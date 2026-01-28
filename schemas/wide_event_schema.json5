@@ -81,7 +81,6 @@
                 "type": { "const": "object" },
                 "required": {
                     "type": "array",
-                    "contains": { "const": "platform" },
                     "items": { "type": "string" }
                 },
                 "additionalProperties": { "const": false },

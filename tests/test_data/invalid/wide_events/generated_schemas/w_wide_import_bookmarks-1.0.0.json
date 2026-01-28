@@ -7,8 +7,7 @@
         "meta",
         "global",
         "feature",
-        "app",
-        "context"
+        "app"
     ],
     "additionalProperties": false,
     "properties": {
@@ -53,27 +52,19 @@
         "global": {
             "type": "object",
             "required": [
-                "platform",
-                "type",
-                "sample_rate"
+                "platform2",
+                "sample_rateeeeee"
             ],
             "additionalProperties": false,
             "properties": {
-                "platform": {
+                "platform2": {
                     "type": "string",
                     "description": "The platform the app is running on",
                     "enum": [
                         "Windows"
                     ]
                 },
-                "type": {
-                    "type": "string",
-                    "description": "The type of application",
-                    "enum": [
-                        "app"
-                    ]
-                },
-                "sample_rate": {
+                "sample_rateeeeee": {
                     "type": "number",
                     "description": "Sample rate for this event"
                 }
@@ -184,23 +175,6 @@
                             ]
                         }
                     }
-                }
-            }
-        },
-        "context": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Context name for the event",
-                    "enum": [
-                        "onboarding.import",
-                        "settings.import"
-                    ]
                 }
             }
         }
