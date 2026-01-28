@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import JSON5 from 'json5';
+import prettier from 'prettier';
 
 import { fileURLToPath } from 'url';
 
@@ -231,13 +232,17 @@ export function getGeneratedSchemasDir(wideEventsDir) {
  * @param {string} eventName - name of the wide event
  * @param {object} schema - the generated schema to write
  */
-export function writeGeneratedSchema(wideEventsDir, eventName, schema) {
+export async function writeGeneratedSchema(wideEventsDir, eventName, schema) {
     const generatedSchemasDir = getGeneratedSchemasDir(wideEventsDir);
     // Extract version from schema to include in filename
     const version = schema.properties.meta.properties.version.const; // crash if ver is missing
     const filename = version ? `${eventName}-${version}.json` : `${eventName}.json`;
     const schemaPath = path.join(generatedSchemasDir, filename);
-    fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 4));
+    const formattedSchema = await prettier.format(JSON.stringify(schema), {
+        filepath: schemaPath,
+        parser: 'json',
+    });
+    fs.writeFileSync(schemaPath, formattedSchema);
 }
 
 /**
@@ -245,8 +250,8 @@ export function writeGeneratedSchema(wideEventsDir, eventName, schema) {
  * @param {string} wideEventsDir - path to the wide_events directory
  * @param {object} schemas - object containing all generated schemas keyed by event name
  */
-export function writeAllGeneratedSchemas(wideEventsDir, schemas) {
+export async function writeAllGeneratedSchemas(wideEventsDir, schemas) {
     for (const [eventName, schemaDef] of Object.entries(schemas)) {
-        writeGeneratedSchema(wideEventsDir, eventName, schemaDef);
+        await writeGeneratedSchema(wideEventsDir, eventName, schemaDef);
     }
 }
