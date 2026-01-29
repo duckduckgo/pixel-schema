@@ -15,10 +15,12 @@ import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 const NUM_EXAMPLE_ERRORS = 5;
 
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
+const detailedValidationOutputFile = process.env.DETAILED_VALIDATION_OUTPUT_FILE || null;
+const disableResultSaving = process.env.DISABLE_RESULT_SAVING || false;
 const undocumentedPixels = new Set();
 const pixelErrors = {};
 
-async function main(mainDir, csvFile) {
+async function main(mainDir, csvFile, detailedValidationOutputFile = null) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const { pixelsConfigDir } = fileUtils.resolvePixelsDirs(mainDir);
@@ -59,6 +61,8 @@ async function main(mainDir, csvFile) {
     const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams, searchExperiments);
     const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);
 
+    const additionalOutputStream = detailedValidationOutputFile ? fs.createWriteStream(detailedValidationOutputFile) : null;
+
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -95,6 +99,14 @@ async function main(mainDir, csvFile) {
 
             const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
             saveResult(pixelRequestFormat, result);
+            if (additionalOutputStream) {
+                row.status = result.status;
+                row.owners = result.owners;
+                row.errors = result.errors.map((e) => e.error);
+                row.prefix = result.prefixForErrors || result.prefix || '';
+                row.params = parsedParams;
+                additionalOutputStream.write(JSON.stringify(row) + '\n');
+            }
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
@@ -104,10 +116,18 @@ async function main(mainDir, csvFile) {
             fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(pixelsConfigDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
             fs.writeFileSync(fileUtils.getPixelErrorsPath(pixelsConfigDir), JSON.stringify(pixelErrors, setReplacer, 4));
             console.log(`Validation results saved to ${fileUtils.getResultsDir(pixelsConfigDir)}`);
+
+            if (additionalOutputStream) {
+                console.log(`Detailed validation results saved to ${detailedValidationOutputFile}`);
+                additionalOutputStream.end();
+            }
         });
 }
 
 function saveResult(pixelRequestFormat, result) {
+    if (disableResultSaving) {
+        return;
+    }
     if (result.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
         undocumentedPixels.add(pixelRequestFormat);
     } else if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) {
@@ -140,7 +160,7 @@ function setReplacer(_, value) {
     return value;
 }
 
-main(argv.dirPath, argv.csvFile).catch((err) => {
+main(argv.dirPath, argv.csvFile, detailedValidationOutputFile).catch((err) => {
     console.error('Error:', err.message);
     process.exit(1);
 });

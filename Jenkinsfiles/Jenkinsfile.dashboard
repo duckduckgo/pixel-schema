@@ -1,0 +1,104 @@
+pipeline {
+    agent { label 'ubuntu-latest' }
+    parameters {
+        string(
+            name: 'DATE', 
+            defaultValue: '', 
+            description: 'Specify the date in YYYY-MM-DD format (leave empty to use today\'s date)',
+            trim: true
+        )
+        booleanParam(
+            name: 'IMPORT_WINDOWS',
+            defaultValue: true,
+            description: 'Import data for Windows platform'
+        )
+        booleanParam(
+            name: 'IMPORT_MACOS',
+            defaultValue: true,
+            description: 'Import data for macOS platform'
+        )
+        booleanParam(
+            name: 'IMPORT_IOS',
+            defaultValue: true,
+            description: 'Import data for iOS platform'
+        )
+        booleanParam(
+            name: 'IMPORT_ANDROID',
+            defaultValue: true,
+            description: 'Import data for Android platform'
+        )
+        booleanParam(
+            name: 'IMPORT_EXTENSION',
+            defaultValue: true,
+            description: 'Import data for Extension platform'
+        )
+    }
+
+    stages {
+        stage('checkout pixel-schema repo ') {
+            steps {
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "sam/dashboard"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                    sh '''#!/bin/bash
+                        fnm install
+                        fnm exec npm ci
+                    '''
+                }
+            }
+        }
+        stage('checkout extension ') {
+            when {
+                expression { params.IMPORT_EXTENSION == true }
+            }
+            steps {
+                dir('duckduckgo-privacy-extension') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                }
+                dir('pixel-schema') {
+                    sh '/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${params.DATE}'
+                }
+            }
+        }
+        stage('checkout windows-browser') {
+            when {
+                expression { params.IMPORT_WINDOWS == true }
+            }
+            steps {
+                dir('windows-browser') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+            }
+        }
+        stage('checkout apple-browsers') {
+            when {
+                expression { params.IMPORT_MACOS == true || params.IMPORT_IOS == true }
+            }
+            steps {
+                dir('apple-browsers') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                }
+            }
+        }
+        stage('checkout android') {
+            when {
+                expression { params.IMPORT_ANDROID == true }
+            }
+            steps {
+                dir('android') {
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
+                }
+            }
+        }
+    }
+
+}
