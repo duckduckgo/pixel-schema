@@ -130,13 +130,11 @@
                 "type": { "const": "object" },
                 "required": {
                     "type": "array",
-                    "contains": { "const": "ext" },
                     "items": { "type": "string" }
                 },
                 "additionalProperties": { "const": false },
                 "properties": {
                     "type": "object",
-                    "required": ["ext"],
                     "properties": {
                         "ext": {
                             "type": "object",
@@ -210,7 +208,6 @@
                 "type": { "const": "object" },
                 "required": {
                     "type": "array",
-                    "contains": { "const": "name" },
                     "items": { "type": "string" }
                 },
                 "additionalProperties": { "const": false },
