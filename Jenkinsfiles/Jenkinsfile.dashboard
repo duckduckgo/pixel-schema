@@ -48,7 +48,7 @@ pipeline {
                 }
             }
         }
-        stage('checkout extension ') {
+        stage('import extension pixels') {
             when {
                 expression { params.IMPORT_EXTENSION == true }
             }
@@ -75,15 +75,27 @@ pipeline {
                 }
             }
         }
-        stage('checkout apple-browsers') {
+        stage('import apple-browsers pixels') {
             when {
                 expression { params.IMPORT_MACOS == true || params.IMPORT_IOS == true }
             }
             steps {
                 dir('apple-browsers') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                }
+                script {
+                    if (params.IMPORT_MACOS == true) {
+                        dir('pixel-schema') {
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${params.DATE}"
+                        }
+                    }
+                    if (params.IMPORT_IOS == true) {
+                        dir('pixel-schema') {
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${params.DATE}"
+                        }
+                    }
                 }
             }
         }
