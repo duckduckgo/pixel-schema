@@ -1,0 +1,14 @@
+﻿Sample log file that mimics Android and Windows log formats
+-----------------------------------------------------------
+Android example below:
+--------- beginning of main
+Pixel url request: https://improving.duckduckgo.com/t/unknown-pixel
+Pixel url request: https://improving.duckduckgo.com/t/m_my_first_pixel?count=42&date=2025-03-12&appVersion=2.0.3
+Pixel url request: https://improving.duckduckgo.com/t/m_my_first_pixel?extraParam=hello
+-----------------------------------------------------------
+Windows example below:
+some other log line
+Log: Debug: Published Pixel m_my_first_pixel
+Log: Debug: Published Pixel experiment_enroll_defaultBrowser_control?extraParam=20 succeeded=True
+Log: Debug: Published Pixel experiment_enroll_x?x=10 succeeded=True
+-----------------------------------------------------------

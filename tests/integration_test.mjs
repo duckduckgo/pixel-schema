@@ -144,7 +144,7 @@ describe('Validate live pixels', () => {
 
 describe('Validate pixel debug logs', () => {
     it('should validate Android-like pixel debug logs', (done) => {
-        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.log');
+        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.txt');
         const pixelPrefix = 'Pixel url request: https://improving.duckduckgo.com/t/';
         exec(`npm run validate-ddg-pixel-logs ${validDefsPath} ${debugLogPath} "${pixelPrefix}"`, (error, stdout, stderr) => {
             expect(error).to.equal(null);
@@ -168,7 +168,7 @@ describe('Validate pixel debug logs', () => {
     }).timeout(timeout);
 
     it('should validate Windows-like pixel debug logs', (done) => {
-        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.log');
+        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.txt');
         const pixelPrefix = 'Log: Debug: Published Pixel';
         exec(`npm run validate-ddg-pixel-logs ${validDefsPath} ${debugLogPath} "${pixelPrefix}"`, (error, stdout, stderr) => {
             expect(error).to.equal(null);
