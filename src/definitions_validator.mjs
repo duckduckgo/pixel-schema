@@ -364,7 +364,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         const eventFeature = eventDef.feature ?? {};
         for (const [key, value] of Object.entries(eventFeature)) {
             if (key === 'name' || key === 'status' || key === 'data') continue;
-            featureProperties[key] = value;
+            featureProperties[key] = JSON.parse(JSON.stringify(value));
         }
 
         properties.feature = {
