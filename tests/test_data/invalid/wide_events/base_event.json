@@ -23,9 +23,10 @@
             "description": "The platform the app is running on",
             "enum": ["Windows"]
         },
-        "sample_rateeeeee": {
+        "sample_rate": {
             "type": "number",
-            "description": "Sample rate for this event"
+            "description": "Sample rate for this event",
+            "minimum": 1
         }
     },
     "feature": {

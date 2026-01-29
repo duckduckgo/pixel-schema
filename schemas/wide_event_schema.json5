@@ -90,7 +90,19 @@
                     "properties": {
                         "platform": { "$ref": "#/$defs/platformDefinition" },
                         "type": { "$ref": "#/$defs/typeDefinition" },
-                        "sample_rate": { "$ref": "#/$defs/numberValueProperty" },
+                        "sample_rate": {
+                            "allOf": [
+                                { "$ref": "#/$defs/numberValueProperty" },
+                                {
+                                    "type": "object",
+                                    "required": ["minimum", "maximum"],
+                                    "properties": {
+                                        "minimum": { "const": 0 },
+                                        "maximum": { "const": 1 }
+                                    }
+                                }
+                            ]
+                        },
                         "is_first_daily_occurrence": { "$ref": "#/$defs/booleanProperty" }
                     },
                     "additionalProperties": false
