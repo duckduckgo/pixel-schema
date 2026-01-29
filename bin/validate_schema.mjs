@@ -117,7 +117,7 @@ async function main() {
     }
 
     async function validateWideEventFolder(folder, userMap) {
-        const entries = fs.readdirSync(folder, { recursive: true });
+        const entries = fs.readdirSync(folder, { recursive: true, encoding: 'utf8' });
         for (const file of entries) {
             const fullPath = path.join(folder, file);
             if (fs.statSync(fullPath).isDirectory()) {
@@ -135,7 +135,7 @@ async function main() {
     }
 
     function validatePixelFolder(folder, userMap) {
-        fs.readdirSync(folder, { recursive: true }).forEach((file) => {
+        fs.readdirSync(folder, { recursive: true, encoding: 'utf8' }).forEach((file) => {
             const fullPath = path.join(folder, file);
             if (fs.statSync(fullPath).isDirectory()) {
                 return;
