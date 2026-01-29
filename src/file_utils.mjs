@@ -239,6 +239,9 @@ export async function writeGeneratedSchema(wideEventsDir, eventName, schema) {
     const filename = version ? `${eventName}-${version}.json` : `${eventName}.json`;
     const schemaPath = path.join(generatedSchemasDir, filename);
     const formattedSchema = await prettier.format(JSON.stringify(schema), {
+        singleQuote: true,
+        printWidth: 140,
+        tabWidth: 4,
         filepath: schemaPath,
         parser: 'json',
     });
