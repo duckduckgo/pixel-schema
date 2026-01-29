@@ -54,12 +54,12 @@ pipeline {
             }
             steps {
                 dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
                 dir('pixel-schema') {
-                    sh '/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${params.DATE}'
+                    sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${params.DATE}"
                 }
             }
         }
