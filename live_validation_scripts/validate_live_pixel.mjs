@@ -5,11 +5,8 @@ import fs from 'fs';
 import JSON5 from 'json5';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
-import { ParamsValidator } from '../src/params_validator.mjs';
-import { LivePixelsValidator } from '../src/live_pixel_validator.mjs';
-
 import * as fileUtils from '../src/file_utils.mjs';
-import { parseSearchExperiments, getEnabledSearchExperiments, resolveTargetVersion } from '../src/pixel_utils.mjs';
+import { buildLivePixelValidator } from '../src/pixel_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -21,44 +18,7 @@ const pixelErrors = {};
 async function main(mainDir, csvFile) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
-    const { pixelsConfigDir } = fileUtils.resolvePixelsDirs(mainDir);
-
-    const productDef = fileUtils.readProductDef(mainDir);
-
-    // Resolve version (may fetch from URL if versionUrl is specified)
-    const resolvedVersion = await resolveTargetVersion(productDef.target);
-    productDef.target.version = resolvedVersion;
-    console.log(`Using minimum version: ${resolvedVersion}`);
-
-    const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
-    const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
-    const commonSuffixes = fileUtils.readCommonSuffixes(pixelsConfigDir);
-    const tokenizedPixels = fileUtils.readTokenizedPixels(pixelsConfigDir);
-
-    const pixelIgnoreParams = fileUtils.readIgnoreParams(pixelsConfigDir);
-    const globalIgnoreParams = fileUtils.readIgnoreParams(fileUtils.GLOBAL_PIXEL_DIR);
-    const ignoreParams = { ...globalIgnoreParams, ...pixelIgnoreParams }; // allow local ignores to override global ones
-
-    const searchExperiments = {
-        enabled: false,
-        expDefs: {},
-        expPixels: {},
-    };
-
-    if (productDef.searchExperimentsEnabled) {
-        const rawSearchExperiments = fileUtils.readSearchExperimentsDef(pixelsConfigDir);
-        searchExperiments.expDefs = parseSearchExperiments(rawSearchExperiments);
-        const searchPixels = fileUtils.readSearchPixelsDef(pixelsConfigDir);
-        searchExperiments.expPixels = getEnabledSearchExperiments(searchPixels);
-        console.log(`Loaded ${Object.keys(searchExperiments.expDefs).length} search experiments.`);
-        searchExperiments.enabled = true;
-    } else {
-        console.log('Skipping search experiments.');
-    }
-
-    const paramsValidator = new ParamsValidator(commonParams, commonSuffixes, ignoreParams, searchExperiments);
-    const liveValidator = new LivePixelsValidator(tokenizedPixels, productDef, nativeExperimentsDef, paramsValidator);
-
+    const { validator: liveValidator, pixelsConfigDir, productDef } = await buildLivePixelValidator(mainDir);
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -142,5 +102,6 @@ function setReplacer(_, value) {
 
 main(argv.dirPath, argv.csvFile).catch((err) => {
     console.error('Error:', err.message);
+    console.error(err.stack);
     process.exit(1);
 });
