@@ -144,7 +144,27 @@
                                 "additionalProperties": { "const": false },
                                 "properties": {
                                     "type": "object",
-                                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                                    "additionalProperties": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "https://json-schema.org/draft/2020-12/schema"
+                                            },
+                                            {
+                                                "type": "object",
+                                                "required": ["description", "type"],
+                                                "properties": {
+                                                    "description": {
+                                                        "type": "string",
+                                                        "minLength": 1
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": ["string", "number", "integer", "boolean", "object", "array"]
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
                                 },
                                 "required": { "type": "array", "items": { "type": "string" } }
                             },
