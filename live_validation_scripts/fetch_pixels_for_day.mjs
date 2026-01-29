@@ -13,13 +13,22 @@ async function main(day, mainDir, csvFile) {
     console.log(`Importing pixels for day: ${day}, for ${dirname(mainDir)}`);
     console.log(`Using minimum version: ${resolvedVersion}`);
 
+    const unboundedParameters = ['duration', 'first_visual_layout_ms', 'first_meaningful_paint_ms', 'document_complete_ms', 'all_resources_complete_ms']
+    const unboundedParametersFilter = unboundedParameters.map((param) => `startsWith(x, '${param}=')`).join(' OR ');
+
     const query = `WITH
         extractURLParameters(request) AS params_raw,
         has(params_raw, 'test=1') AS is_test,
         arrayFilter(x -> NOT match(x, '^\\d+=?$'), params_raw) AS params_filtered,
-        arrayFirst(x -> match(x, '^(appVersion|extensionVersion)='), params_filtered) as version
+        arrayFirst(x -> match(x, '^(appVersion|extensionVersion)='), params_filtered) as version,
+        arrayFilter(x -> ${unboundedParametersFilter}, params_filtered) as params_filtered_unbounded,
+        arrayFilter(x -> NOT (${unboundedParametersFilter}), params_filtered) as params_filtered_bounded,
+        arrayMap(x -> 
+            concat(splitByChar('=', x)[1], '=', roundDuration(toFloat64OrNull(splitByChar('=', x)[2]))), 
+            params_filtered_unbounded) AS fixed_duration,
+        arraySort(arrayConcat(fixed_duration, params_filtered_bounded)) AS params_fixed
 
-    SELECT date, agent, version, pixel_id, pixel, params_filtered AS params, COUNT(*) AS freq
+    SELECT date, agent, version, pixel_id, pixel, params_fixed AS params, COUNT(*) AS freq
     FROM metrics.pixels
     WHERE date = '${day}' AND 
         (request LIKE '%appVersion=%' OR request LIKE '%extensionVersion=%') AND
@@ -28,7 +37,7 @@ async function main(day, mainDir, csvFile) {
             SELECT DISTINCT pixel_id FROM metrics.pixels_validation_pixel_ids
         ) AND
         NOT is_test
-    GROUP BY date, agent, version, pixel_id, pixel, params_filtered
+    GROUP BY date, agent, version, pixel_id, pixel, params_fixed
     INTO OUTFILE '${csvFile}'
     FORMAT CSVWithNames
     `
