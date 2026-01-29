@@ -18,12 +18,12 @@ export DETAILED_VALIDATION_OUTPUT_FILE="$TMP_DIR/validation_results.jl"
 export DISABLE_RESULT_SAVING=1
 
 # Preprocess pixel definitions
-npm run preprocess-defs $DEFINITIONS_DIR
+fnm exec npm run preprocess-defs $DEFINITIONS_DIR
 
 # Fetch pixels from Clickhouse and store in a CSV file
-node live_validation_scripts/fetch_pixels_for_day.mjs $DATE $DEFINITIONS_DIR $PIXEL_CSV_FILE
+fnm exec node live_validation_scripts/fetch_pixels_for_day.mjs $DATE $DEFINITIONS_DIR $PIXEL_CSV_FILE
 # Process pixels and store detailed validation results in a JSONL file
-node live_validation_scripts/validate_live_pixel.mjs $DEFINITIONS_DIR $PIXEL_CSV_FILE
+fnm exec node live_validation_scripts/validate_live_pixel.mjs $DEFINITIONS_DIR $PIXEL_CSV_FILE
 
 # Insert detailed validation results into Clickhouse
 cat $DETAILED_VALIDATION_OUTPUT_FILE | ddg-rw-ch -h clickhouse --query "INSERT INTO pixels.validation_results_2 FORMAT JSONEachRow"
