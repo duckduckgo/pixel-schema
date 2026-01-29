@@ -63,15 +63,18 @@ pipeline {
                 }
             }
         }
-        stage('checkout windows-browser') {
+        stage('import windows-browser pixels') {
             when {
                 expression { params.IMPORT_WINDOWS == true }
             }
             steps {
                 dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+                dir('pixel-schema') {
+                    sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${params.DATE}"
                 }
             }
         }
@@ -99,15 +102,18 @@ pipeline {
                 }
             }
         }
-        stage('checkout android') {
+        stage('import android pixels') {
             when {
                 expression { params.IMPORT_ANDROID == true }
             }
             steps {
                 dir('android') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
+                }
+                dir('pixel-schema') {
+                    sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${params.DATE}"
                 }
             }
         }
