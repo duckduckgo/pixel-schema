@@ -6,6 +6,26 @@ import { PIXELS_TMP_CSV } from './constants.mjs';
 
 /** @typedef {import('yargs').Argv} Argv */
 
+export const MAIN_DIR_ARG = 'dirPath';
+
+/**
+ * Helper function to get the positional argument for the main directory.
+ * @returns {Object} Positional argument object that can be used in yargs.positional().
+ */
+export function getMainDirPositional() {
+    return {
+        describe: 'path to directory containing pixels/ and wide_events/ in the root',
+        type: 'string',
+        demandOption: true,
+        coerce: (dirPath) => {
+            if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+                throw new Error(`Directory path ${dirPath} does not exist!`);
+            }
+            return dirPath;
+        },
+    };
+}
+
 /**
  * Builds a yargs parser for commands that require a directory path.
  * @param {string} description - CLI command description.
@@ -13,20 +33,10 @@ import { PIXELS_TMP_CSV } from './constants.mjs';
  */
 export function getArgParser(description) {
     return yargs(hideBin(process.argv))
-        .command('$0 [dirPath]', description, (yargs) => {
-            return yargs.positional('dirPath', {
-                describe: 'path to directory containing the pixels folder and common_[params/suffixes].json in the root',
-                type: 'string',
-                demandOption: true,
-                coerce: (dirPath) => {
-                    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                        throw new Error(`Directory path ${dirPath} does not exist!`);
-                    }
-                    return dirPath;
-                },
-            });
+        .command(`$0 [${MAIN_DIR_ARG}]`, description, (yargs) => {
+            return yargs.positional(MAIN_DIR_ARG, getMainDirPositional());
         })
-        .demandOption('dirPath');
+        .demandOption(MAIN_DIR_ARG);
 }
 
 /**
@@ -37,26 +47,14 @@ export function getArgParser(description) {
  */
 export function getArgParserWithCsv(description, csvFileDescription) {
     return yargs(hideBin(process.argv))
-        .command('$0 [dirPath] [csvFile]', description, (yargs) => {
-            return yargs
-                .positional('dirPath', {
-                    describe: 'path to directory containing the pixels folder and common_[params/suffixes].json in the root',
-                    type: 'string',
-                    demandOption: true,
-                    coerce: (dirPath) => {
-                        if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                            throw new Error(`Directory path ${dirPath} does not exist!`);
-                        }
-                        return dirPath;
-                    },
-                })
-                .positional('csvFile', {
-                    describe: csvFileDescription,
-                    type: 'string',
-                    default: PIXELS_TMP_CSV,
-                });
+        .command(`$0 [${MAIN_DIR_ARG}] [csvFile]`, description, (yargs) => {
+            return yargs.positional(MAIN_DIR_ARG, getMainDirPositional()).positional('csvFile', {
+                describe: csvFileDescription,
+                type: 'string',
+                default: PIXELS_TMP_CSV,
+            });
         })
-        .demandOption('dirPath');
+        .demandOption(MAIN_DIR_ARG);
 }
 
 /**
@@ -66,19 +64,9 @@ export function getArgParserWithCsv(description, csvFileDescription) {
  */
 export function getArgParserAsanaReports(description) {
     return yargs(hideBin(process.argv))
-        .command('$0 dirPath userMapFile asanaProjectID', description, (yargs) => {
+        .command(`$0 ${MAIN_DIR_ARG} userMapFile asanaProjectID`, description, (yargs) => {
             return yargs
-                .positional('dirPath', {
-                    describe: 'path to directory containing the pixels folder and common_[params/suffixes].json in the root',
-                    type: 'string',
-                    demandOption: true,
-                    coerce: (dirPath) => {
-                        if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                            throw new Error(`Directory path ${dirPath} does not exist!`);
-                        }
-                        return dirPath;
-                    },
-                })
+                .positional(MAIN_DIR_ARG, getMainDirPositional())
                 .positional('userMapFile', {
                     describe: 'Path to user map YAML file',
                     type: 'string',
@@ -90,7 +78,7 @@ export function getArgParserAsanaReports(description) {
                     demandOption: true,
                 });
         })
-        .demandOption('dirPath');
+        .demandOption(MAIN_DIR_ARG);
 }
 
 /**

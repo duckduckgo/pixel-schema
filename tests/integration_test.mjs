@@ -141,3 +141,53 @@ describe('Validate live pixels', () => {
         );
     }).timeout(timeout);
 });
+
+describe('Validate pixel debug logs', () => {
+    it('should validate Android-like pixel debug logs', (done) => {
+        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.log');
+        const pixelPrefix = 'Pixel url request: https://improving.duckduckgo.com/t/';
+        exec(`npm run validate-ddg-pixel-logs ${validDefsPath} ${debugLogPath} "${pixelPrefix}"`, (error, stdout, stderr) => {
+            expect(error).to.equal(null);
+
+            // Check errors
+            const expectedErrors = [
+                `❌ Invalid: 'm_my_first_pixel?extraParam=hello' - see below for details`,
+                `\tmust NOT have additional properties. Found extra property 'extraParam'`,
+                "⚠️  Undocumented: 'unknown-pixel'",
+            ];
+            const errors = stderr.trim().split('\n');
+            expect(errors).to.include.members(expectedErrors);
+
+            // Check regular output
+            const expectedLogs = ["✅ Valid: 'm_my_first_pixel?count=42&date=2025-03-12&appVersion=2.0.3'"];
+            const logs = stdout.trim().split('\n');
+            expect(logs).to.include.members(expectedLogs);
+
+            done();
+        });
+    }).timeout(timeout);
+
+    it('should validate Windows-like pixel debug logs', (done) => {
+        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.log');
+        const pixelPrefix = 'Log: Debug: Published Pixel';
+        exec(`npm run validate-ddg-pixel-logs ${validDefsPath} ${debugLogPath} "${pixelPrefix}"`, (error, stdout, stderr) => {
+            expect(error).to.equal(null);
+
+            // Check errors
+            const expectedErrors = [
+                `❌ Invalid: 'experiment_enroll_defaultBrowser_control?extraParam=20' - see below for details`,
+                `\tmust NOT have additional properties. Found extra property 'extraParam'`,
+                "⚠️  Undocumented: 'experiment_enroll_x'",
+            ];
+            const errors = stderr.trim().split('\n');
+            expect(errors).to.include.members(expectedErrors);
+
+            // Check regular output
+            const expectedLogs = ["✅ Valid: 'm_my_first_pixel'"];
+            const logs = stdout.trim().split('\n');
+            expect(logs).to.include.members(expectedLogs);
+
+            done();
+        });
+    }).timeout(timeout);
+});
