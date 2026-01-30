@@ -19,6 +19,16 @@ pipeline {
                                 description: 'Client Branch',
                                 name: 'CLIENT_BRANCH'
                             ),
+                            string(
+                                defaultValue: '',
+                                description: 'Pixel prefix to match against with LIKE operator',
+                                name: 'PIXEL_PREFIX'
+                            ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'Pixel Schema Branch',
+                                name: 'PIXEL_SCHEMA_BRANCH'
+                            )
                         ])
                     ])
 
@@ -28,7 +38,7 @@ pipeline {
         stage('clone pixel-schema repo ') {
             steps {
                 dir('pixel-schema') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
                     extensions: [[$class: 'LocalBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
                 }
@@ -90,16 +100,31 @@ pipeline {
                 script {
                     def pixelsDir = params.CLIENT_REPO == 'Extension' ? 'pixel-definitions' : 'PixelDefinitions'
                     echo "Pixels dir: ${pixelsDir}"
-                    def result = withEnv(["MAIN_DIR=../client-repo/${pixelsDir}/"]) {
+                    def result = withEnv([
+                        "MAIN_DIR=../client-repo/${pixelsDir}/",
+                        "PIXEL_PREFIX=${params.PIXEL_PREFIX}"
+                    ]) {
                         sh(
                             script: '''#!/bin/bash
                                 cd pixel-schema
-                                echo "Starting validation in $MAIN_DIR ..."
+                                echo "Starting validation in $MAIN_DIR with pixel prefix $PIXEL_PREFIX ..."
                                 fnm exec npm run preprocess-defs $MAIN_DIR
-                                fnm exec npm run fetch-clickhouse-data $MAIN_DIR
+                                fnm exec npm run fetch-clickhouse-data $MAIN_DIR $PIXEL_PREFIX
                                 fnm exec npm run validate-live-pixels $MAIN_DIR $CSV_FILE
                                 exit_code=$?
                                 echo "validateRepo.sh exit code: $exit_code"
+                                echo -e "\n*** VALIDATION RESULTS: undocumented pixels ***"
+                                if [[ -f $MAIN_DIR/wide_events ]]; then
+                                    cat $MAIN_DIR/pixels/pixel_processing_results/undocumented_pixels.json
+                                else
+                                    cat $MAIN_DIR/pixel_processing_results/undocumented_pixels.json
+                                fi
+                                echo -e "\n*** VALIDATION RESULTS: pixel errors ***"
+                                if [[ -f $MAIN_DIR/wide_events ]]; then
+                                    cat $MAIN_DIR/pixels/pixel_processing_results/pixel_errors.json
+                                else
+                                    cat $MAIN_DIR/pixel_processing_results/pixel_errors.json
+                                fi
                                 cd ..
                                 exit $exit_code
                             ''',
