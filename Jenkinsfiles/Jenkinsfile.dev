@@ -1,0 +1,117 @@
+pipeline {
+    agent { label 'ubuntu-latest' }
+    environment {
+        USER_MAP="../internal-github-asana-utils/user_map.yml"
+    }
+    stages {
+        stage('Setup parameters') {
+            steps {
+                script {
+                    properties([
+                        parameters([
+                            choice(
+                                choices: ['Android', 'Apple-iOS', 'Apple-macOS', 'Extension', 'Windows'],
+                                description: 'The client to validate',
+                                name: 'CLIENT_REPO'
+                            ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'Client Branch',
+                                name: 'CLIENT_BRANCH'
+                            ),
+                        ])
+                    ])
+
+                }
+            }
+        }
+        stage('clone pixel-schema repo ') {
+            steps {
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                }
+            }
+        }
+        stage('clone client repo ') {
+            steps {
+                script {
+                    def repoMap = [
+                        Android   : 'android',
+                        'Apple-iOS': 'apple-browsers',
+                        'Apple-macOS': 'apple-browsers',
+                        Extension : 'duckduckgo-privacy-extension',
+                        Windows   : 'windows-browser',
+                    ]
+                    def clientRepo = repoMap[params.CLIENT_REPO]
+                    if (!clientRepo) {
+                        error("Unknown CLIENT_REPO: ${params.CLIENT_REPO}")
+                    }
+
+                    echo "Client repo: ${clientRepo}"
+
+                    dir('client-repo') {
+                        checkout([$class: 'GitSCM', branches: [[name: "${params.CLIENT_BRANCH}"]],
+                            extensions: [[$class: 'LocalBranch']],
+                            userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: "https://github.com/duckduckgo/${clientRepo}.git"]]] )
+                    }
+                }
+            }
+        }
+        stage('clone internal-github-asana-utils repo ') {
+            steps {
+                dir('internal-github-asana-utils') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                }
+            }
+        }
+        stage('Install ') {
+             steps {
+                sh '''#!/bin/bash
+                    cd pixel-schema
+                    fnm install
+                    fnm exec npm ci
+                    cd ..
+                '''
+            }
+        }
+        stage('Confirm settings ') {
+             steps {
+                sh '''#!/bin/bash
+                    echo "User map: $USER_MAP"
+                '''
+            }
+        }
+        stage('Validate pixels'){
+             steps {
+                script {
+                    def pixelsDir = params.CLIENT_REPO == 'Extension' ? 'pixel-definitions' : 'PixelDefinitions'
+                    echo "Pixels dir: ${pixelsDir}"
+                    def result = withEnv(["MAIN_DIR=../client-repo/${pixelsDir}/"]) {
+                        sh(
+                            script: '''#!/bin/bash
+                                cd pixel-schema
+                                echo "Starting validation in $MAIN_DIR ..."
+                                fnm exec npm run preprocess-defs $MAIN_DIR
+                                fnm exec npm run fetch-clickhouse-data $MAIN_DIR
+                                fnm exec npm run validate-live-pixels $MAIN_DIR $CSV_FILE
+                                exit_code=$?
+                                echo "validateRepo.sh exit code: $exit_code"
+                                cd ..
+                                exit $exit_code
+                            ''',
+                            returnStatus: true
+                        )
+                    }
+                    if (result != 0) {
+                        echo "WARNING: validateRepo.sh failed with exit code: ${result}"
+                        error("Validation failed")
+                    }
+                }
+            }
+        }
+    }
+}
