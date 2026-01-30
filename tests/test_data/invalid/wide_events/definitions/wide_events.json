@@ -9,7 +9,6 @@
         "context": ["onboarding", "settings"],
         "feature": {
             "name": "browser-import",
-            "status": ["SUCCESS", "FAILURE", "PARTIAL", "CANCELLED"],
             "data": {
                 "latency_ms_bucketed": {
                     "type": "integer",
@@ -76,7 +75,6 @@
             "type": "w_wide_import_bookmarks",
             "version": "0.0"
         },
-        "context": ["onboarding.import", "settings.import"],
         "feature": {
             "name": "browser-import-bookmarks",
             "status": ["SUCCESS", "FAILURE"],
@@ -128,8 +126,6 @@
         },
         "context": ["onboarding.import", "settings.import"],
         "feature": {
-            "name": "browser-import-credentials",
-            "status": ["SUCCESS", "FAILURE"],
             "data": {
                 "latency_ms_bucketed": {
                     "type": "integer",

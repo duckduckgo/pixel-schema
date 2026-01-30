@@ -18,17 +18,12 @@
         }
     },
     "global": {
-        "platform": {
+        "platform2": {
             "type": "string",
             "description": "The platform the app is running on",
             "enum": ["Windows"]
         },
-        "type": {
-            "type": "string",
-            "description": "The type of application",
-            "enum": ["app"]
-        },
-        "sample_rate": {
+        "sample_rateeeeee": {
             "type": "number",
             "description": "Sample rate for this event"
         }

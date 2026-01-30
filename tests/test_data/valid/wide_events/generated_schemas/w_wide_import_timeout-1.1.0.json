@@ -3,110 +3,44 @@
     "description": "Fires when an import operation takes longer than expected and times out.",
     "$comment": "{\"owners\":[\"tester\"]}",
     "type": "object",
-    "required": [
-        "meta",
-        "global",
-        "feature",
-        "app",
-        "context"
-    ],
+    "required": ["meta", "global", "feature", "app", "context"],
     "additionalProperties": false,
     "properties": {
         "meta": {
             "type": "object",
-            "required": [
-                "type",
-                "version"
-            ],
+            "required": ["type", "version"],
             "additionalProperties": false,
-            "properties": {
-                "type": {
-                    "const": "w_wide_import_timeout"
-                },
-                "version": {
-                    "const": "1.1.0"
-                }
-            }
+            "properties": { "type": { "const": "w_wide_import_timeout" }, "version": { "const": "1.1.0" } }
         },
         "app": {
             "type": "object",
-            "required": [
-                "name",
-                "version"
-            ],
+            "required": ["name", "version"],
             "additionalProperties": false,
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The name of the application",
-                    "enum": [
-                        "Windows"
-                    ]
-                },
-                "version": {
-                    "type": "string",
-                    "description": "The version of the application",
-                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
-                }
+                "name": { "type": "string", "description": "The name of the application", "enum": ["Windows"] },
+                "version": { "type": "string", "description": "The version of the application", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
             }
         },
         "global": {
             "type": "object",
-            "required": [
-                "platform",
-                "type",
-                "sample_rate"
-            ],
+            "required": ["platform", "type", "sample_rate"],
             "additionalProperties": false,
             "properties": {
-                "platform": {
-                    "type": "string",
-                    "description": "The platform the app is running on",
-                    "enum": [
-                        "Windows"
-                    ]
-                },
-                "type": {
-                    "type": "string",
-                    "description": "The type of application",
-                    "enum": [
-                        "app"
-                    ]
-                },
-                "sample_rate": {
-                    "type": "number",
-                    "description": "Sample rate for this event"
-                }
+                "platform": { "type": "string", "description": "The platform the app is running on", "enum": ["Windows"] },
+                "type": { "type": "string", "description": "The type of application", "enum": ["app"] },
+                "sample_rate": { "type": "number", "description": "Sample rate for this event" }
             }
         },
         "feature": {
             "type": "object",
-            "required": [
-                "name",
-                "status",
-                "data"
-            ],
+            "required": ["name", "status", "data"],
             "additionalProperties": false,
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The feature name for this event",
-                    "enum": [
-                        "browser-import"
-                    ]
-                },
-                "status": {
-                    "type": "string",
-                    "description": "The overall status of the operation",
-                    "enum": [
-                        "FAILURE"
-                    ]
-                },
+                "name": { "type": "string", "description": "The feature name for this event", "enum": ["browser-import"] },
+                "status": { "type": "string", "description": "The overall status of the operation", "enum": ["FAILURE"] },
                 "data": {
                     "type": "object",
-                    "required": [
-                        "ext"
-                    ],
+                    "required": ["ext"],
                     "additionalProperties": false,
                     "properties": {
                         "ext": {
@@ -134,16 +68,7 @@
                                 "total_items_bucketed": {
                                     "type": "integer",
                                     "description": "Number of items that were being imported when the timeout occurred, bucketed to preserve privacy",
-                                    "enum": [
-                                        1,
-                                        5,
-                                        10,
-                                        20,
-                                        50,
-                                        100,
-                                        500,
-                                        1000
-                                    ]
+                                    "enum": [1, 5, 10, 20, 50, 100, 500, 1000]
                                 }
                             }
                         }
@@ -153,20 +78,9 @@
         },
         "context": {
             "type": "object",
-            "required": [
-                "name"
-            ],
+            "required": ["name"],
             "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Context name for the event",
-                    "enum": [
-                        "onboarding",
-                        "settings"
-                    ]
-                }
-            }
+            "properties": { "name": { "type": "string", "description": "Context name for the event", "enum": ["onboarding", "settings"] } }
         }
     }
 }

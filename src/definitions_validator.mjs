@@ -310,6 +310,19 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             ...baseEvent.feature?.status,
             enum: eventDef.feature?.status,
         };
+        const featureRequired = ['name', 'status', 'data'];
+        const featureProperties = {
+            name: featureNameDef,
+            status: featureStatusDef,
+        };
+
+        // Include base_event feature props beyond name/status as required
+        const baseFeature = baseEvent.feature ?? {};
+        for (const [key, value] of Object.entries(baseFeature)) {
+            if (key === 'name' || key === 'status' || key === 'data') continue;
+            featureProperties[key] = JSON.parse(JSON.stringify(value));
+            featureRequired.push(key);
+        }
 
         // Expand shortcuts in feature.data.ext
         const eventData = eventDef.feature?.data || { ext: {} };
@@ -347,13 +360,19 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             properties: dataProperties,
         };
 
+        // Include event-defined feature props beyond name/status/data
+        const eventFeature = eventDef.feature ?? {};
+        for (const [key, value] of Object.entries(eventFeature)) {
+            if (key === 'name' || key === 'status' || key === 'data') continue;
+            featureProperties[key] = JSON.parse(JSON.stringify(value));
+        }
+
         properties.feature = {
             type: 'object',
-            required: ['name', 'status', 'data'],
+            required: featureRequired,
             additionalProperties: false,
             properties: {
-                name: featureNameDef,
-                status: featureStatusDef,
+                ...featureProperties,
                 data: featureDataDef,
             },
         };
@@ -364,13 +383,21 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 ...baseEvent.context?.name,
                 enum: eventDef.context,
             };
+            const contextRequired = ['name'];
+            const contextProperties = {
+                name: contextNameDef,
+            };
+            const baseContext = baseEvent.context ?? {};
+            for (const [key, value] of Object.entries(baseContext)) {
+                if (key === 'name') continue;
+                contextProperties[key] = JSON.parse(JSON.stringify(value));
+                contextRequired.push(key);
+            }
             properties.context = {
                 type: 'object',
-                required: ['name'],
+                required: contextRequired,
                 additionalProperties: false,
-                properties: {
-                    name: contextNameDef,
-                },
+                properties: contextProperties,
             };
         }
 

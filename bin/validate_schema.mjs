@@ -101,7 +101,7 @@ async function main() {
         }
     }
 
-    function validateWideEventFile(file, userMap) {
+    async function validateWideEventFile(file, userMap) {
         console.log(`Validating wide events definition: ${file}`);
         const wideEventsDef = JSON5.parse(fs.readFileSync(file, 'utf8'));
         const { errors, generatedSchemas } = wideEventValidator.validateWideEventDefinition(wideEventsDef, baseEvent, userMap);
@@ -109,21 +109,22 @@ async function main() {
 
         // Write generated schemas
         if (Object.keys(generatedSchemas).length > 0) {
-            fileUtils.writeAllGeneratedSchemas(wideEventsConfigDir, generatedSchemas);
+            await fileUtils.writeAllGeneratedSchemas(wideEventsConfigDir, generatedSchemas);
             console.log(
                 `Generated ${Object.keys(generatedSchemas).length} schema(s) to ${path.join(wideEventsConfigDir, 'generated_schemas')}`,
             );
         }
     }
 
-    function validateWideEventFolder(folder, userMap) {
-        fs.readdirSync(folder, { recursive: true }).forEach((file) => {
+    async function validateWideEventFolder(folder, userMap) {
+        const entries = fs.readdirSync(folder, { recursive: true, encoding: 'utf8' });
+        for (const file of entries) {
             const fullPath = path.join(folder, file);
             if (fs.statSync(fullPath).isDirectory()) {
-                return;
+                continue;
             }
-            validateWideEventFile(fullPath, userMap);
-        });
+            await validateWideEventFile(fullPath, userMap);
+        }
     }
 
     // 4) Validate pixels and params
@@ -134,7 +135,7 @@ async function main() {
     }
 
     function validatePixelFolder(folder, userMap) {
-        fs.readdirSync(folder, { recursive: true }).forEach((file) => {
+        fs.readdirSync(folder, { recursive: true, encoding: 'utf8' }).forEach((file) => {
             const fullPath = path.join(folder, file);
             if (fs.statSync(fullPath).isDirectory()) {
                 return;
@@ -165,7 +166,7 @@ async function main() {
         if (fs.existsSync(pixelPath)) {
             validatePixelFile(pixelPath, userMap);
         } else if (fs.existsSync(wideEventPath) && wideEventValidator) {
-            validateWideEventFile(wideEventPath, userMap);
+            await validateWideEventFile(wideEventPath, userMap);
         } else {
             console.error(`File not found in pixels or wide_events definitions: ${argv.file}`);
             process.exit(1);
@@ -173,7 +174,7 @@ async function main() {
     } else {
         validatePixelFolder(pixelsDir, userMap);
         if (wideEventValidator) {
-            validateWideEventFolder(wideEventsDir, userMap);
+            await validateWideEventFolder(wideEventsDir, userMap);
         }
     }
 }
