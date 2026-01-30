@@ -24,7 +24,7 @@ async function main(day, mainDir, csvFile) {
         arrayFilter(x -> ${unboundedParametersFilter}, params_filtered) as params_filtered_unbounded,
         arrayFilter(x -> NOT (${unboundedParametersFilter}), params_filtered) as params_filtered_bounded,
         arrayMap(x -> 
-            ifNull(concat(splitByChar('=', x)[1], '=', roundDuration(toFloat64OrNull(splitByChar('=', x)[2]))), x)
+            ifNull(concat(splitByChar('=', x)[1], '=', roundDuration(toFloat64OrNull(splitByChar('=', x)[2]))), x),
             params_filtered_unbounded) AS fixed_duration,
         arraySort(arrayConcat(fixed_duration, params_filtered_bounded)) AS params_fixed
 
