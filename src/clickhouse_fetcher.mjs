@@ -41,7 +41,6 @@ function prepareCSVQuery(pixelIDs, productDef, pixelPrefix = '') {
         ${pixelPrefix ? `AND pixel LIKE '${pixelPrefix}%'` : ''}
         ${dateFilter};`;
 
-    console.log('Query string:', queryString);
     return queryString;
 }
 
