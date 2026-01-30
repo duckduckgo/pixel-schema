@@ -4,7 +4,7 @@ pipeline {
         string(
             name: 'DATE', 
             defaultValue: '', 
-            description: 'Specify the date in YYYY-MM-DD format (leave empty to use today\'s date)',
+            description: 'Specify the date in YYYY-MM-DD format (leave empty to use yesterday\'s date)',
             trim: true
         )
         booleanParam(
@@ -37,6 +37,14 @@ pipeline {
     stages {
         stage('checkout pixel-schema repo ') {
             steps {
+                script {
+                    if (params.DATE == null || params.DATE.trim() == '') {
+                        env.DATE_TO_USE = sh(script: 'date -d "yesterday" +%Y-%m-%d', returnStdout: true).trim()
+                    } else {
+                        env.DATE_TO_USE = params.DATE.trim()
+                    }
+                    currentBuild.description = "Import: ${env.DATE_TO_USE}"
+                }
                 dir('pixel-schema') {
                     checkout([$class: 'GitSCM', branches: [[name: "sam/dashboard"]],
                     extensions: [[$class: 'LocalBranch']],
@@ -59,7 +67,7 @@ pipeline {
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
                 dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${params.DATE}"
+                    sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${env.DATE_TO_USE}"
                 }
             }
         }
@@ -74,7 +82,7 @@ pipeline {
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
                 dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${params.DATE}"
+                    sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${env.DATE_TO_USE}"
                 }
             }
         }
@@ -91,12 +99,12 @@ pipeline {
                 script {
                     if (params.IMPORT_MACOS == true) {
                         dir('pixel-schema') {
-                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${params.DATE}"
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${env.DATE_TO_USE}"
                         }
                     }
                     if (params.IMPORT_IOS == true) {
                         dir('pixel-schema') {
-                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${params.DATE}"
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${env.DATE_TO_USE}"
                         }
                     }
                 }
@@ -113,7 +121,7 @@ pipeline {
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
                 }
                 dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${params.DATE}"
+                    sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${env.DATE_TO_USE}"
                 }
             }
         }
