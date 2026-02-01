@@ -30,5 +30,5 @@ export default [
         rules: {
             'import/no-cycle': ['error', { maxDepth: 1 }],
         },
-    }
+    },
 ];
