@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { processPixelDefs, buildLivePixelValidator } from '../src/pixel_utils.mjs';
+import { processPixelDefs, buildLivePixelValidator } from '../src/live_validation_utils.mjs';
 import { PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 import { MAIN_DIR_ARG, getMainDirPositional } from '../src/args_utils.mjs';
 

@@ -6,7 +6,7 @@ import JSON5 from 'json5';
 
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
-import { buildLivePixelValidator } from '../src/pixel_utils.mjs';
+import { buildLivePixelValidator } from '../src/live_validation_utils.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
