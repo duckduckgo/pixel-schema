@@ -597,6 +597,8 @@ describe('Wide Event Validation', () => {
             sample_rate: {
                 type: 'number',
                 description: 'Sample rate',
+                minimum: 0,
+                maximum: 1,
             },
         },
         feature: {
@@ -829,6 +831,8 @@ describe('Wide Event Base Event Merging', () => {
             sample_rate: {
                 type: 'number',
                 description: 'Sample rate for this pixel',
+                minimum: 0,
+                maximum: 1,
             },
         },
         feature: {
@@ -1159,7 +1163,12 @@ describe('Wide Event Version Combining', () => {
         global: {
             platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
             type: { type: 'string', description: 'Type', enum: ['app'] },
-            sample_rate: { type: 'number', description: 'Sample rate' },
+            sample_rate: {
+                type: 'number',
+                description: 'Sample rate',
+                minimum: 0,
+                maximum: 1,
+            },
         },
         feature: {
             name: { type: 'string', description: 'Feature name' },

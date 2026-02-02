@@ -33,8 +33,13 @@ export class LivePixelsValidator {
         this.#initPixelState();
         this.#forceLowerCase = productDef.forceLowerCase;
         // version should be resolved before constructing validator (via resolveTargetVersion)
-        this.#defsVersion = this.#getNormalizedVal(/** @type {string} */ (productDef.target.version));
-        this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
+        if (productDef.target.version) {
+            this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
+            this.#defsVersionKey = this.#getNormalizedVal(productDef.target.key);
+        } else {
+            this.#defsVersion = null;
+            this.#defsVersionKey = null;
+        }
 
         this.#compileDefs(tokenizedPixels, paramsValidator);
         this.#compiledPixels = tokenizedPixels;
@@ -296,7 +301,7 @@ export class LivePixelsValidator {
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 
-        if (this.#defsVersionKey) {
+        if (this.#defsVersionKey && this.#defsVersion) {
             // 1) Skip pixels where requireVersion is set but version param is absent
             if (this.#currentPixelState.requireVersion && !paramsStruct[this.#defsVersionKey]) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;

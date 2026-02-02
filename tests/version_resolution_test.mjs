@@ -60,7 +60,7 @@ describe('resolveTargetVersion', () => {
             }
         });
 
-        it('should throw when neither version nor versionUrl/versionRef are specified', async () => {
+        it('should throw when neither version info nor queryWindowInDays are specified', async () => {
             const target = {
                 key: 'appVersion',
             };
@@ -68,7 +68,7 @@ describe('resolveTargetVersion', () => {
                 await resolveTargetVersion(target);
                 expect.fail('Should have thrown an error');
             } catch (err) {
-                expect(err.message).to.include('must have either "version" or both "versionUrl" and "versionRef"');
+                expect(err.message).to.include('must have either "version", both "versionUrl" and "versionRef", or "queryWindowInDays"');
             }
         });
     });
@@ -196,6 +196,17 @@ describe('resolveTargetVersion', () => {
             } catch (err) {
                 expect(err.message).to.include('must be a string');
             }
+        });
+    });
+
+    describe('queryWindowInDays only', () => {
+        it('should return null when only queryWindowInDays is specified', async () => {
+            const target = {
+                key: 'appVersion',
+                queryWindowInDays: 7,
+            };
+            const version = await resolveTargetVersion(target);
+            expect(version).to.equal(null);
         });
     });
 });

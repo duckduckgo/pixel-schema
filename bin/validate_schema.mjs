@@ -56,7 +56,11 @@ async function main() {
     // Validate and resolve target version (may fetch from URL if versionUrl is specified)
     try {
         const resolvedVersion = await resolveTargetVersion(productDef.target);
-        console.log(`Target version: ${resolvedVersion}`);
+        if (resolvedVersion) {
+            console.log(`Target version: ${resolvedVersion}`);
+        } else {
+            console.log('No target version specified; skipping version checks.');
+        }
     } catch (error) {
         console.error(`ERROR in product.json target version: ${error.message}`);
         process.exit(1);

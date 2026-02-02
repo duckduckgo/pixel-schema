@@ -23,11 +23,11 @@
         },
         "global": {
             "type": "object",
-            "required": ["platform2", "sample_rateeeeee"],
+            "required": ["platform2", "sample_rate"],
             "additionalProperties": false,
             "properties": {
                 "platform2": { "type": "string", "description": "The platform the app is running on", "enum": ["Windows"] },
-                "sample_rateeeeee": { "type": "number", "description": "Sample rate for this event" }
+                "sample_rate": { "type": "number", "description": "Sample rate for this event", "minimum": 1 }
             }
         },
         "feature": {

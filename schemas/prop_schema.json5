@@ -17,7 +17,7 @@
                 "pattern": { "type": "string" },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "stringValueWithPatternProperty": {
             "type": "object",
@@ -30,7 +30,7 @@
                 "pattern": { "type": "string" },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "stringEnumProperty": {
             "type": "object",
@@ -42,7 +42,7 @@
                 "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "numberValueProperty": {
             "type": "object",
@@ -54,7 +54,7 @@
                 "description": { "type": "string" },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "numberEnumProperty": {
             "type": "object",
@@ -66,7 +66,7 @@
                 "enum": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "integerValueProperty": {
             "type": "object",
@@ -78,7 +78,7 @@
                 "description": { "type": "string" },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "integerEnumProperty": {
             "type": "object",
@@ -90,7 +90,7 @@
                 "enum": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "booleanProperty": {
             "type": "object",
@@ -101,7 +101,7 @@
                 "description": { "type": "string" },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "objectProperty": {
             "type": "object",
@@ -116,7 +116,7 @@
                 },
                 "examples": { "type": "array" }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "propertyDefinition": {
             "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
