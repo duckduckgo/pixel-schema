@@ -1,0 +1,8 @@
+{
+    "agents": [],
+    "target": {
+        "queryWindowInDays": 7
+    },
+    "forceLowerCase": false,
+    "searchExperimentsEnabled": true
+}
