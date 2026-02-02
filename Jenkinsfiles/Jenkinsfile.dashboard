@@ -1,5 +1,6 @@
 pipeline {
     agent { label 'ubuntu-latest' }
+    triggers { cron('H 1 * * 0') }
     parameters {
         string(
             name: 'DATE', 
