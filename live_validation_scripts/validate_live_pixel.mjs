@@ -15,6 +15,9 @@ import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 const NUM_EXAMPLE_ERRORS = 5;
 
 const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
+// Additional environment variables for detailed validation:
+// DETAILED_VALIDATION_OUTPUT_FILE: path to a file to save detailed validation results (one row per input row)
+// DISABLE_RESULT_SAVING: if true, do not save validation results to the file - this prevents a crash when working with large datasets
 const detailedValidationOutputFile = process.env.DETAILED_VALIDATION_OUTPUT_FILE || null;
 const disableResultSaving = process.env.DISABLE_RESULT_SAVING || false;
 const undocumentedPixels = new Set();
