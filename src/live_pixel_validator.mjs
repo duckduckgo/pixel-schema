@@ -264,6 +264,8 @@ export class LivePixelsValidator {
             return this.validateNativeExperimentPixel(pixel, params);
         }
         const [prefix, pixelMatch] = matchPixel(pixel, this.#compiledPixels);
+        this.#currentPixelState.prefix = prefix;
+        this.#currentPixelState.pixelMatch = pixelMatch || '';
 
         if (!pixelMatch) {
             this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.UNDOCUMENTED;

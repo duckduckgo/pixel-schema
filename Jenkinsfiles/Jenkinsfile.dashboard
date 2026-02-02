@@ -1,0 +1,131 @@
+pipeline {
+    agent { label 'ubuntu-latest' }
+    triggers { cron('H 1 * * 0') }
+    parameters {
+        string(
+            name: 'DATE', 
+            defaultValue: '', 
+            description: 'Specify the date in YYYY-MM-DD format (leave empty to use yesterday\'s date)',
+            trim: true
+        )
+        booleanParam(
+            name: 'IMPORT_WINDOWS',
+            defaultValue: true,
+            description: 'Import data for Windows platform'
+        )
+        booleanParam(
+            name: 'IMPORT_MACOS',
+            defaultValue: true,
+            description: 'Import data for macOS platform'
+        )
+        booleanParam(
+            name: 'IMPORT_IOS',
+            defaultValue: true,
+            description: 'Import data for iOS platform'
+        )
+        booleanParam(
+            name: 'IMPORT_ANDROID',
+            defaultValue: true,
+            description: 'Import data for Android platform'
+        )
+        booleanParam(
+            name: 'IMPORT_EXTENSION',
+            defaultValue: true,
+            description: 'Import data for Extension platform'
+        )
+    }
+
+    stages {
+        stage('checkout pixel-schema repo ') {
+            steps {
+                script {
+                    if (params.DATE == null || params.DATE.trim() == '') {
+                        env.DATE_TO_USE = sh(script: 'date -d "yesterday" +%Y-%m-%d', returnStdout: true).trim()
+                    } else {
+                        env.DATE_TO_USE = params.DATE.trim()
+                    }
+                    currentBuild.description = "Import: ${env.DATE_TO_USE}"
+                }
+                dir('pixel-schema') {
+                    checkout([$class: 'GitSCM', branches: [[name: "sam/dashboard"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                    sh '''#!/bin/bash
+                        fnm install
+                        fnm exec npm ci
+                    '''
+                }
+            }
+        }
+        stage('import extension pixels') {
+            when {
+                expression { params.IMPORT_EXTENSION == true }
+            }
+            steps {
+                dir('duckduckgo-privacy-extension') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                }
+                dir('pixel-schema') {
+                    sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${env.DATE_TO_USE}"
+                }
+            }
+        }
+        stage('import windows-browser pixels') {
+            when {
+                expression { params.IMPORT_WINDOWS == true }
+            }
+            steps {
+                dir('windows-browser') {
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                }
+                dir('pixel-schema') {
+                    sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${env.DATE_TO_USE}"
+                }
+            }
+        }
+        stage('import apple-browsers pixels') {
+            when {
+                expression { params.IMPORT_MACOS == true || params.IMPORT_IOS == true }
+            }
+            steps {
+                dir('apple-browsers') {
+                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
+                }
+                script {
+                    if (params.IMPORT_MACOS == true) {
+                        dir('pixel-schema') {
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${env.DATE_TO_USE}"
+                        }
+                    }
+                    if (params.IMPORT_IOS == true) {
+                        dir('pixel-schema') {
+                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${env.DATE_TO_USE}"
+                        }
+                    }
+                }
+            }
+        }
+        stage('import android pixels') {
+            when {
+                expression { params.IMPORT_ANDROID == true }
+            }
+            steps {
+                dir('android') {
+                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                    extensions: [[$class: 'LocalBranch']],
+                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
+                }
+                dir('pixel-schema') {
+                    sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${env.DATE_TO_USE}"
+                }
+            }
+        }
+    }
+
+}
