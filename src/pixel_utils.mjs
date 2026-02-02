@@ -155,7 +155,7 @@ export function getValueByKeyPath(obj, keyPath) {
  * If the target has `versionUrl` and `versionRef`, fetches the version from the URL.
  *
  * @param {import('./types.mjs').ProductTarget} target - The target configuration from product.json
- * @returns {Promise<string>} The resolved version string
+ * @returns {Promise<string|null>} The resolved version string, or null if version is not required
  * @throws {Error} If the version cannot be resolved
  */
 export async function resolveTargetVersion(target) {
@@ -192,5 +192,9 @@ export async function resolveTargetVersion(target) {
         throw new Error('target.versionUrl is required when using target.versionRef');
     }
 
-    throw new Error('target must have either "version" or both "versionUrl" and "versionRef"');
+    if (target.queryWindowInDays !== undefined) {
+        return null;
+    }
+
+    throw new Error('target must have either "version", both "versionUrl" and "versionRef", or "queryWindowInDays"');
 }

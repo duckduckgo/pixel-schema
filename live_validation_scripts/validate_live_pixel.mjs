@@ -27,8 +27,12 @@ async function main(mainDir, csvFile) {
 
     // Resolve version (may fetch from URL if versionUrl is specified)
     const resolvedVersion = await resolveTargetVersion(productDef.target);
-    productDef.target.version = resolvedVersion;
-    console.log(`Using minimum version: ${resolvedVersion}`);
+    if (resolvedVersion) {
+        productDef.target.version = resolvedVersion;
+        console.log(`Using minimum version: ${resolvedVersion}`);
+    } else {
+        console.log('No target version specified; skipping version checks.');
+    }
 
     const nativeExperimentsDef = fileUtils.readNativeExperimentsDef(pixelsConfigDir);
     const commonParams = fileUtils.readCommonParams(pixelsConfigDir);
