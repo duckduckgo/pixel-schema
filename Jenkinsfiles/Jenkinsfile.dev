@@ -1,8 +1,5 @@
 pipeline {
     agent { label 'ubuntu-latest' }
-    environment {
-        USER_MAP="../internal-github-asana-utils/user_map.yml"
-    }
     stages {
         stage('Setup parameters') {
             steps {
@@ -85,13 +82,6 @@ pipeline {
                     fnm install
                     fnm exec npm ci
                     cd ..
-                '''
-            }
-        }
-        stage('Confirm settings ') {
-             steps {
-                sh '''#!/bin/bash
-                    echo "User map: $USER_MAP"
                 '''
             }
         }

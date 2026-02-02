@@ -158,6 +158,9 @@ function preparePixelIDs(mainDir) {
  * @returns {Promise<void>} Resolves when the CSV preparation is complete.
  */
 export async function preparePixelsCSV(mainDir, pixelPrefix = '') {
+    if (/^[A-Za-z0-9.]+$/.test(pixelPrefix))
+        throw new Error(`Invalid pixel prefix: ${pixelPrefix}. Pixel prefix must only contain letters, numbers, and dots.`);
+
     try {
         const pixelIDs = preparePixelIDs(mainDir);
 
