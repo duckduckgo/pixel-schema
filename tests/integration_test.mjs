@@ -153,6 +153,7 @@ describe('Validate pixel debug logs', () => {
             const expectedErrors = [
                 `❌ Invalid: 'm_my_first_pixel?extraParam=hello' - see below for details`,
                 `\tmust NOT have additional properties. Found extra property 'extraParam'`,
+                "⚠️  Old app version, validation skipped: 'm_my_first_pixel?count=42&date=2025-03-12&appVersion=0.0.1'",
                 "⚠️  Undocumented: 'unknown-pixel'",
             ];
             const errors = stderr.trim().split('\n');

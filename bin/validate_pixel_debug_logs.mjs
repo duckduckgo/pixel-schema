@@ -49,7 +49,7 @@ async function main() {
 
         try {
             const pixelParts = pixelRequest.split('?');
-            const pixel = pixelParts[0];
+            const pixel = pixelParts[0].split(/\s+/)[0];
             const params = pixelParts[1] ? pixelParts[1].split(/\s+/)[0] : '';
             const result = validator.validatePixel(pixel, params);
             const outputPixel = params ? `'${pixel}?${params}'` : `'${pixel}'`;
@@ -57,6 +57,8 @@ async function main() {
                 console.log(`✅ Valid: ${outputPixel}`);
             } else if (result.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
                 console.warn(`⚠️  Undocumented: '${pixel}'`);
+            } else if (result.status === PIXEL_VALIDATION_RESULT.OLD_APP_VERSION) {
+                console.warn(`⚠️  Old app version, validation skipped: ${outputPixel}`);
             } else if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) {
                 console.error(`❌ Invalid: ${outputPixel} - see below for details`);
                 for (const errorObj of result.errors) {
