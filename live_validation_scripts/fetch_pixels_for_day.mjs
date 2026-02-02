@@ -13,7 +13,13 @@ async function main(day, mainDir, csvFile) {
     console.log(`Importing pixels for day: ${day}, for ${dirname(mainDir)}`);
     console.log(`Using minimum version: ${resolvedVersion}`);
 
-    const unboundedParameters = ['duration', 'first_visual_layout_ms', 'first_meaningful_paint_ms', 'document_complete_ms', 'all_resources_complete_ms']
+    const unboundedParameters = [
+        'duration',
+        'first_visual_layout_ms',
+        'first_meaningful_paint_ms',
+        'document_complete_ms',
+        'all_resources_complete_ms',
+    ];
     const unboundedParametersFilter = unboundedParameters.map((param) => `startsWith(x, '${param}=')`).join(' OR ');
 
     const query = `WITH
@@ -40,7 +46,7 @@ async function main(day, mainDir, csvFile) {
     GROUP BY date, agent, version, pixel_id, pixel, params_fixed
     INTO OUTFILE '${csvFile}'
     FORMAT CSVWithNames
-    `
+    `;
     const result = spawnSync('ddg-ro-ch', ['-h', 'clickhouse', '--query', query]);
     console.log(result.stderr.toString());
     console.log(result.stdout.toString());
