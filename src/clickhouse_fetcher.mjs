@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
 import { readTokenizedPixels, readProductDef, readNativeExperimentsDef, resolvePixelsDirs } from './file_utils.mjs';
+import { validatePixelPrefix } from './pixel_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -158,7 +159,7 @@ function preparePixelIDs(mainDir) {
  * @returns {Promise<void>} Resolves when the CSV preparation is complete.
  */
 export async function preparePixelsCSV(mainDir, pixelPrefix = '') {
-    if (!/^[A-Za-z0-9.]+$/.test(pixelPrefix))
+    if (!validatePixelPrefix(pixelPrefix))
         throw new Error(`Invalid pixel prefix: ${pixelPrefix}. Pixel prefix must only contain letters, numbers, and dots.`);
 
     try {

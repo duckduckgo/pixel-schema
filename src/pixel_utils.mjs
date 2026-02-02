@@ -198,3 +198,13 @@ export async function resolveTargetVersion(target) {
 
     throw new Error('target must have either "version" or both "versionUrl" and "versionRef"');
 }
+
+/**
+ * Validates that a pixel prefix only contains letters, numbers, hyphens, and dots.
+ * Empty pixel prefix is valid.
+ * @param {string} pixelPrefix The pixel prefix to validate.
+ * @returns {boolean} True if the pixel prefix is valid, false otherwise.
+ */
+export function validatePixelPrefix(pixelPrefix) {
+    return /^[A-Za-z0-9.-]*$/.test(pixelPrefix);
+}
