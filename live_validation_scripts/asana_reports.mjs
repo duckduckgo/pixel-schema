@@ -184,10 +184,12 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
                             }
                         */
 
-                        const pixelDashboardLink = `https://grafana.duckduckgo.com/d/cfbjqhfosfdvke/pixel-details?orgId=1&var-agent=${getAgentFromDirPath(dirPath)}&var-prefix=${pixelName}&var-owner=All&from=now-10d&to=now`
+                        const pixelDashboardLink = `https://grafana.duckduckgo.com/d/cfbjqhfosfdvke/pixel-details?orgId=1&var-agent=${getAgentFromDirPath(dirPath)}&var-prefix=${pixelName}&var-owner=All&from=now-10d&to=now`;
                         // Only show pixel name in the first row
                         const pixelNameCell =
-                            index === 0 ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}"><a href="${pixelDashboardLink}" target="_blank">${pixelName}</a></td>` : '';
+                            index === 0
+                                ? `<td rowspan="${errorTypes.length}" data-cell-widths="${pixelNameWidth}"><a href="${pixelDashboardLink}" target="_blank">${pixelName}</a></td>`
+                                : '';
 
                         // HTML escape the error type to prevent breaking the table
                         // Escaping single quote ( .replace(/'/g, '&#39;')) results in errorTypes that are munged
