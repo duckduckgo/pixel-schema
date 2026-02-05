@@ -434,6 +434,83 @@ describe('Alternative suffix sequences (anyOf)', () => {
     });
 });
 
+describe('Nested suffixes in dictionary shortcut', () => {
+    // Test that verifies nested arrays in suffix dictionary entries work as reusable shortcuts
+    // The dictionary entry should support the same nested array patterns as pixel definitions
+    const commonSuffixes = {
+        nested_suffixes: {
+            type: 'string',
+            description: 'Nested suffixes',
+            enum: [
+                [
+                    ['first', 'daily', 'count'],
+                    ['phone', 'tablet'],
+                ],
+                ['phone', 'tablet'],
+            ],
+        },
+        first_daily_count: {
+            type: 'string',
+            description: 'Pixel schedule type.',
+            enum: ['first', 'daily', 'count'],
+        },
+        device_type: {
+            key: 'android',
+            type: 'string',
+            description: 'The type of device used by the user.',
+            enum: ['phone', 'tablet'],
+        },
+    };
+    const paramsValidator = new ParamsValidator({}, commonSuffixes, {});
+    const prefix = 'testPixel';
+
+    it('dictionary shortcut with nested enum arrays should allow multiple suffix patterns', () => {
+        // Using nested_suffixes as a shortcut should allow matching:
+        // - First alternative: one of ["first", "daily", "count"] then one of ["phone", "tablet"]
+        // - Second alternative: just one of ["phone", "tablet"]
+        const pixelDefs = {
+            testPixel: {
+                suffixes: ['nested_suffixes'],
+            },
+        };
+        const tokenizedDefs = {};
+        tokenizePixelDefs(pixelDefs, tokenizedDefs);
+        const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+        // Test first alternative pattern: e.g., "first.phone"
+        const pixel1 = `${prefix}${PIXEL_DELIMITER}first${PIXEL_DELIMITER}phone`;
+        const status1 = liveValidator.validatePixel(pixel1, '');
+        expect(status1.errors, 'first.phone should match first alternative').to.be.empty;
+
+        // Test second alternative pattern: e.g., just "tablet"
+        const pixel2 = `${prefix}${PIXEL_DELIMITER}tablet`;
+        const status2 = liveValidator.validatePixel(pixel2, '');
+        expect(status2.errors, 'tablet should match second alternative').to.be.empty;
+    });
+
+    it('inline nested suffix arrays in pixel definition work correctly', () => {
+        // Direct nested arrays in pixel definition (not via dictionary shortcut)
+        const pixelDefs = {
+            testPixel: {
+                suffixes: [['first_daily_count'], ['device_type', 'first_daily_count']],
+            },
+        };
+        const tokenizedDefs = {};
+        tokenizePixelDefs(pixelDefs, tokenizedDefs);
+        const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+        // First alternative: just first_daily_count
+        const pixel1 = `${prefix}${PIXEL_DELIMITER}daily`;
+        const status1 = liveValidator.validatePixel(pixel1, '');
+        expect(status1.errors).to.be.empty;
+
+        // Second alternative: device_type (with key 'android') + first_daily_count
+        const pixel2 = `${prefix}${PIXEL_DELIMITER}android${PIXEL_DELIMITER}tablet${PIXEL_DELIMITER}count`;
+        const status2 = liveValidator.validatePixel(pixel2, '');
+        expect(status2.errors).to.be.empty;
+    });
+});
+
 describe('Require version', () => {
     const productDefWithVersion = {
         target: {

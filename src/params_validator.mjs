@@ -91,11 +91,54 @@ export class ParamsValidator {
     }
 
     /**
+     * Checks if a suffix definition has nested arrays in its enum field,
+     * indicating it defines alternative suffix sequences.
+     * @param {Object} suffix - resolved suffix definition
+     * @returns {boolean} true if enum contains nested arrays
+     */
+    #hasNestedEnumArrays(suffix) {
+        return suffix.enum && Array.isArray(suffix.enum) && suffix.enum.some(Array.isArray);
+    }
+
+    /**
+     * Expands a suffix with nested enum arrays into alternative suffix sequences.
+     * Each top-level array in enum becomes an alternative sequence.
+     * Structure:
+     *   - If alternative is array of arrays: sequence of suffixes, each inner array is enum values
+     *   - If alternative is array of strings: single suffix with those enum values
+     *   - If alternative is a string: single suffix with that single enum value
+     * @param {Object} suffix - suffix definition with nested enum arrays
+     * @returns {Array[]} array of suffix sequences
+     */
+    #expandNestedEnumSuffix(suffix) {
+        return suffix.enum.map((alternative) => {
+            if (Array.isArray(alternative)) {
+                // Check if it's an array of arrays (sequence of suffixes) or array of strings (single enum)
+                const hasNestedArrays = alternative.some(Array.isArray);
+                if (hasNestedArrays) {
+                    // Alternative is a sequence of suffixes (each inner array is enum values for that position)
+                    return alternative.map((values) => ({
+                        type: suffix.type || 'string',
+                        enum: Array.isArray(values) ? values : [values],
+                    }));
+                } else {
+                    // Alternative is a single suffix with multiple enum values
+                    return [{ type: suffix.type || 'string', enum: alternative }];
+                }
+            } else {
+                // Single value alternative
+                return [{ type: suffix.type || 'string', enum: [alternative] }];
+            }
+        });
+    }
+
+    /**
      * Replaces shortcuts to common suffixes and compiles the suffix schema.
      * Supports either:
      *  - a single ordered list of suffixes, e.g. ['a','b','c']
      *  - or a list of alternative ordered lists, e.g. [['a','b','c'], ['b','c']]
-     * In the latter case, anyOf is used to allow any of the sequences.
+     *  - or dictionary shortcuts with nested enum arrays for multiple patterns
+     * In the latter cases, anyOf is used to allow any of the sequences.
      * @param {Array|Array[]|undefined} suffixes
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
@@ -128,20 +171,80 @@ export class ParamsValidator {
             throw new Error('suffixes must be an array (either a list or a list of lists)');
         }
 
-        const containsArrays = suffixes.some(Array.isArray);
-        const isArrayOfArrays = containsArrays && suffixes.every(Array.isArray);
+        // Check if any suffix shortcuts have nested enum arrays and expand them
+        let expandedSuffixes = suffixes;
+        let needsExpansion = false;
+
+        for (const item of suffixes) {
+            if (typeof item === 'string') {
+                const resolved = this.replaceCommonPlaceholder(item, this.#commonSuffixes);
+                if (this.#hasNestedEnumArrays(resolved)) {
+                    needsExpansion = true;
+                    break;
+                }
+            }
+        }
+
+        if (needsExpansion) {
+            // Expand shortcuts with nested enum arrays into alternative sequences
+            expandedSuffixes = [];
+            for (const item of suffixes) {
+                if (typeof item === 'string') {
+                    const resolved = this.replaceCommonPlaceholder(item, this.#commonSuffixes);
+                    if (this.#hasNestedEnumArrays(resolved)) {
+                        const alternatives = this.#expandNestedEnumSuffix(resolved);
+                        if (expandedSuffixes.length === 0) {
+                            expandedSuffixes = alternatives;
+                        } else {
+                            // Combine with existing alternatives
+                            const combined = [];
+                            for (const existing of expandedSuffixes) {
+                                for (const alt of alternatives) {
+                                    combined.push([...(Array.isArray(existing) ? existing : [existing]), ...alt]);
+                                }
+                            }
+                            expandedSuffixes = combined;
+                        }
+                    } else {
+                        // Regular shortcut - append to all alternatives
+                        if (expandedSuffixes.length === 0) {
+                            expandedSuffixes = [[item]];
+                        } else {
+                            expandedSuffixes = expandedSuffixes.map((seq) => (Array.isArray(seq) ? [...seq, item] : [seq, item]));
+                        }
+                    }
+                } else if (Array.isArray(item)) {
+                    // Already an array - treat as alternative sequence
+                    if (expandedSuffixes.length === 0) {
+                        expandedSuffixes = [item];
+                    } else {
+                        expandedSuffixes = expandedSuffixes.map((seq) => (Array.isArray(seq) ? [...seq, ...item] : [seq, ...item]));
+                    }
+                } else {
+                    // Object suffix definition
+                    if (expandedSuffixes.length === 0) {
+                        expandedSuffixes = [[item]];
+                    } else {
+                        expandedSuffixes = expandedSuffixes.map((seq) => (Array.isArray(seq) ? [...seq, item] : [seq, item]));
+                    }
+                }
+            }
+        }
+
+        const containsArrays = expandedSuffixes.some(Array.isArray);
+        const isArrayOfArrays = containsArrays && expandedSuffixes.every(Array.isArray);
 
         if (containsArrays && !isArrayOfArrays) {
             throw new Error('Invalid suffixes definition: when using nested arrays, provide only arrays of suffix sequences.');
         }
 
         if (isArrayOfArrays) {
-            const schemas = suffixes.map((seq) => buildSequenceSchema(seq));
+            const schemas = expandedSuffixes.map((seq) => buildSequenceSchema(seq));
             return this.#ajv.compile({ anyOf: schemas });
         }
 
         // Flat, single sequence
-        return this.#ajv.compile(buildSequenceSchema(suffixes));
+        return this.#ajv.compile(buildSequenceSchema(expandedSuffixes));
     }
 
     /**
