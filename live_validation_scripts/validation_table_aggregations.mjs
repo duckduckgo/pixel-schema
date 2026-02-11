@@ -8,7 +8,7 @@ const [date, dirPath] = process.argv.slice(2);
 async function main(date, dirPath) {
     const productDef = fileUtils.readProductDef(dirPath);
     console.log(`Aggregating validation results for day: ${date}, for ${dirname(dirPath)}`);
-    
+
     const query = `
     INSERT INTO pixels.daily_validation_results 
     SELECT
@@ -24,7 +24,7 @@ async function main(date, dirPath) {
     WHERE date = '${date}' AND agent IN (${productDef.agents.map((agent) => `'${agent}'`).join(',')})
     GROUP BY date, agent
     ORDER BY agent, date
-    `
+    `;
     const query2 = `
     INSERT INTO pixels.daily_valid_prefix_results
     SELECT

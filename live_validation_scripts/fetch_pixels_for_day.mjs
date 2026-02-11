@@ -11,7 +11,7 @@ async function main(day, mainDir, csvFile) {
     const resolvedVersion = await resolveTargetVersion(productDef.target);
     productDef.target.version = resolvedVersion;
     console.log(`Importing pixels for day: ${day}, for ${dirname(mainDir)}`);
-    const [major, minor, patch] = resolvedVersion.split('.').map(Number);
+    const [major, ,] = resolvedVersion.split('.').map(Number);
     console.log(`Using minimum version: ${resolvedVersion}`);
 
     const unboundedParameters = [
