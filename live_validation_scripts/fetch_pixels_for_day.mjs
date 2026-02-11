@@ -1,4 +1,4 @@
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { dirname } from 'path';
 
 import * as fileUtils from '../src/file_utils.mjs';
@@ -11,6 +11,7 @@ async function main(day, mainDir, csvFile) {
     const resolvedVersion = await resolveTargetVersion(productDef.target);
     productDef.target.version = resolvedVersion;
     console.log(`Importing pixels for day: ${day}, for ${dirname(mainDir)}`);
+    const [major, minor, patch] = resolvedVersion.split('.').map(Number);
     console.log(`Using minimum version: ${resolvedVersion}`);
 
     const unboundedParameters = [
@@ -32,7 +33,10 @@ async function main(day, mainDir, csvFile) {
         arrayMap(x -> 
             ifNull(concat(splitByChar('=', x)[1], '=', roundDuration(toFloat64OrNull(splitByChar('=', x)[2]))), x),
             params_filtered_unbounded) AS fixed_duration,
-        arraySort(arrayConcat(fixed_duration, params_filtered_bounded)) AS params_fixed
+        arraySort(arrayConcat(fixed_duration, params_filtered_bounded)) AS params_fixed,
+        splitByChar('.', splitByChar('=', version)[2]) AS version_parts,
+        toUInt32OrZero(version_parts[1]) AS version_major,
+        toUInt32OrZero(version_parts[2]) AS version_minor
 
     SELECT date, agent, version, pixel_id, pixel, params_fixed AS params, COUNT(*) AS freq
     FROM metrics.pixels
@@ -42,14 +46,24 @@ async function main(day, mainDir, csvFile) {
         pixel_id IN (
             SELECT DISTINCT pixel_id FROM metrics.pixels_validation_pixel_ids
         ) AND
-        NOT is_test
+        NOT is_test AND
+        (version_major > ${major} OR (version_major = ${major} AND version_minor >= ${minor}))
     GROUP BY date, agent, version, pixel_id, pixel, params_fixed
     INTO OUTFILE '${csvFile}'
     FORMAT CSVWithNames
     `;
-    const result = spawnSync('ddg-ro-ch', ['-h', 'clickhouse', '--query', query]);
-    console.log(result.stderr.toString());
-    console.log(result.stdout.toString());
+    const child = spawn('ddg-ro-ch', ['-h', 'clickhouse', '--query', query], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    child.stdout.pipe(process.stdout);
+    child.stderr.pipe(process.stderr);
+    const exitCode = await new Promise((resolve, reject) => {
+        child.on('close', (code) => resolve(code));
+        child.on('error', reject);
+    });
+    if (exitCode !== 0) {
+        throw new Error(`ddg-ro-ch exited with code ${exitCode}`);
+    }
 }
 
 main(date, dirPath, csvFile).catch((err) => {
