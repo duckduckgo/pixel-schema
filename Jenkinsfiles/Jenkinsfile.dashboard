@@ -62,13 +62,15 @@ pipeline {
                 expression { params.IMPORT_EXTENSION == true }
             }
             steps {
-                dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
-                    extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
-                }
-                dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${env.DATE_TO_USE}"
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    dir('duckduckgo-privacy-extension') {
+                        checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                        extensions: [[$class: 'LocalBranch']],
+                        userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
+                    }
+                    dir('pixel-schema') {
+                        sh "/bin/bash scripts/detailedValidation.sh ../duckduckgo-privacy-extension/pixel-definitions/ ${env.DATE_TO_USE}"
+                    }
                 }
             }
         }
@@ -77,13 +79,15 @@ pipeline {
                 expression { params.IMPORT_WINDOWS == true }
             }
             steps {
-                dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
-                    extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
-                }
-                dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${env.DATE_TO_USE}"
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    dir('windows-browser') {
+                        checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                        extensions: [[$class: 'LocalBranch']],
+                        userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
+                    }
+                    dir('pixel-schema') {
+                        sh "/bin/bash scripts/detailedValidation.sh ../windows-browser/PixelDefinitions/ ${env.DATE_TO_USE}"
+                    }
                 }
             }
         }
@@ -92,20 +96,22 @@ pipeline {
                 expression { params.IMPORT_MACOS == true || params.IMPORT_IOS == true }
             }
             steps {
-                dir('apple-browsers') {
-                    checkout([$class: 'GitSCM', branches: [[name: "main"]],
-                    extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
-                }
-                script {
-                    if (params.IMPORT_MACOS == true) {
-                        dir('pixel-schema') {
-                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${env.DATE_TO_USE}"
-                        }
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    dir('apple-browsers') {
+                        checkout([$class: 'GitSCM', branches: [[name: "main"]],
+                        extensions: [[$class: 'LocalBranch']],
+                        userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
                     }
-                    if (params.IMPORT_IOS == true) {
-                        dir('pixel-schema') {
-                            sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${env.DATE_TO_USE}"
+                    script {
+                        if (params.IMPORT_MACOS == true) {
+                            dir('pixel-schema') {
+                                sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/macOS/PixelDefinitions/ ${env.DATE_TO_USE}"
+                            }
+                        }
+                        if (params.IMPORT_IOS == true) {
+                            dir('pixel-schema') {
+                                sh "/bin/bash scripts/detailedValidation.sh ../apple-browsers/iOS/PixelDefinitions/ ${env.DATE_TO_USE}"
+                            }
                         }
                     }
                 }
@@ -116,13 +122,15 @@ pipeline {
                 expression { params.IMPORT_ANDROID == true }
             }
             steps {
-                dir('android') {
-                    checkout([$class: 'GitSCM', branches: [[name: "develop"]],
-                    extensions: [[$class: 'LocalBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
-                }
-                dir('pixel-schema') {
-                    sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${env.DATE_TO_USE}"
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    dir('android') {
+                        checkout([$class: 'GitSCM', branches: [[name: "develop"]],
+                        extensions: [[$class: 'LocalBranch']],
+                        userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
+                    }
+                    dir('pixel-schema') {
+                        sh "/bin/bash scripts/detailedValidation.sh ../android/PixelDefinitions/ ${env.DATE_TO_USE}"
+                    }
                 }
             }
         }
