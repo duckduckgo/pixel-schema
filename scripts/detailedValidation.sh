@@ -30,3 +30,6 @@ cat $DETAILED_VALIDATION_OUTPUT_FILE | ddg-rw-ch -h clickhouse --query "INSERT I
 
 # Cleanup
 rm -r $TMP_DIR
+
+# Run table aggregations
+fnm exec node live_validation_scripts/validation_table_aggregations.mjs $DATE $DEFINITIONS_DIR
