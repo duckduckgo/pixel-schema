@@ -47,7 +47,7 @@ async function main(day, mainDir, csvFile) {
             SELECT DISTINCT pixel_id FROM metrics.pixels_validation_pixel_ids
         ) AND
         NOT is_test AND
-        (version_major > ${major} OR (version_major = ${major} AND version_minor >= ${minor}))
+        version_major >= ${major}
     GROUP BY date, agent, version, pixel_id, pixel, params_fixed
     INTO OUTFILE '${csvFile}'
     FORMAT CSVWithNames
