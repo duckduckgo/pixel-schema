@@ -101,6 +101,6 @@
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
-        },
+        }
     }
 }

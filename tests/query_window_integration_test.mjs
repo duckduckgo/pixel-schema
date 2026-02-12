@@ -36,7 +36,7 @@ describe('queryWindowInDays integration', () => {
         productDefWithVersion.target.version = '2.0.0';
         productDefWithVersion.target.key = 'appVersion';
         const versionValidator = buildLivePixelValidator({}, {}, productDefWithVersion, {}, tokenized);
-        const versionResult = versionValidator.validatePixel('versionRequiredPixel', 'param1=test');
+        const versionResult = versionValidator.validatePixel('versionRequiredPixel', 'appVersion=1.0.0&param1=test');
 
         expect(versionResult.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
         expect(queryWindowResult.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
