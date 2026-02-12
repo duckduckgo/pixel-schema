@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'child_process';
 
 import { PIXELS_TMP_CSV } from './constants.mjs';
 import { readTokenizedPixels, readProductDef, readNativeExperimentsDef, resolvePixelsDirs } from './file_utils.mjs';
+import { validatePixelPrefix } from './pixel_utils.mjs';
 
 /**
  * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
@@ -18,9 +19,10 @@ const CH_ARGS = [`--max_memory_usage=${MAX_MEMORY}`, '-h', 'clickhouse', '--quer
  * See tests/test_data/valid/expected_processing_results/tokenized_pixels.json for an example.
  * @param {ProductDefinition} productDef - Product metadata driving the query scope.
  * See tests/test_data/valid/product.json for an example.
+ * @param {string} pixelPrefix - Pixel prefix to match against with LIKE operator.
  * @returns {string}
  */
-function prepareCSVQuery(pixelIDs, productDef) {
+function prepareCSVQuery(pixelIDs, productDef, pixelPrefix = '') {
     const pixelIDsWhereClause = pixelIDs.map((id) => `pixel_id = '${id.split('-')[0]}'`).join(' OR ');
     const agentWhereClause = productDef.agents.map((agent) => `agent = '${agent}'`).join(' OR ');
     let dateFilter = '';
@@ -37,6 +39,7 @@ function prepareCSVQuery(pixelIDs, productDef) {
         FROM ${TABLE_NAME}
         WHERE (${agentWhereClause})
         AND (${pixelIDsWhereClause})
+        ${pixelPrefix ? `AND pixel LIKE '${pixelPrefix}%'` : ''}
         ${dateFilter};`;
 
     return queryString;
@@ -152,14 +155,18 @@ function preparePixelIDs(mainDir) {
 /**
  * Builds CSV containing recent pixel data from Clickhouse for validation workflows.
  * @param {string} mainDir - Path to the root directory containing product.json and pixels/ subdirectory.
+ * @param {string} pixelPrefix - Pixel prefix to match against with LIKE operator.
  * @returns {Promise<void>} Resolves when the CSV preparation is complete.
  */
-export async function preparePixelsCSV(mainDir) {
+export async function preparePixelsCSV(mainDir, pixelPrefix = '') {
+    if (!validatePixelPrefix(pixelPrefix))
+        throw new Error(`Invalid pixel prefix: ${pixelPrefix}. Pixel prefix must only contain letters, numbers, and dots.`);
+
     try {
         const pixelIDs = preparePixelIDs(mainDir);
 
         updatePixelIDs(pixelIDs);
-        const queryString = prepareCSVQuery(pixelIDs, readProductDef(mainDir));
+        const queryString = prepareCSVQuery(pixelIDs, readProductDef(mainDir), pixelPrefix);
         await outputTableToCSV(queryString);
     } catch (err) {
         console.error(err);

@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { parseSearchExperiments, matchPixel, matchSearchExperiment, mergeParameters } from '../src/pixel_utils.mjs';
+import { parseSearchExperiments, matchPixel, matchSearchExperiment, mergeParameters, validatePixelPrefix } from '../src/pixel_utils.mjs';
 import { tokenizePixelDefs } from '../src/tokenizer.mjs';
 import { ROOT_PREFIX } from '../src/constants.mjs';
 
@@ -341,5 +341,21 @@ describe('mergeParameters', () => {
         const invalidParams = { a: 'b' };
         const extraParams = ['c', 'd'];
         expect(() => mergeParameters(invalidParams, extraParams)).to.throw(TypeError);
+    });
+});
+
+describe('validatePixelPrefix', () => {
+    it('should allow alphanumeric characters, hyphens, and dots', () => {
+        const validPrefixes = ['', 'abc', 'ABC123', 'a-b.c', '123', 'foo.bar-baz'];
+        validPrefixes.forEach((prefix) => {
+            expect(validatePixelPrefix(prefix)).to.be.true;
+        });
+    });
+
+    it('should reject prefixes with disallowed characters', () => {
+        const invalidPrefixes = ['a_b', 'prefix!', 'space ', '/slash', 'colon:'];
+        invalidPrefixes.forEach((prefix) => {
+            expect(validatePixelPrefix(prefix)).to.be.false;
+        });
     });
 });

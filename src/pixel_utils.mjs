@@ -15,6 +15,10 @@ import { PIXEL_DELIMITER, ROOT_PREFIX } from './constants.mjs';
  */
 
 /**
+ * @typedef {import('./types.mjs').ProductDefinition} ProductDefinition
+ */
+
+/**
  * Parses experiments matching schemas/search_experiments_schema.json5, remapping them to a format compatible with ignoreParams.
  * @param {Record<string, SearchExperimentDefinition>} searchExperiments The raw search experiments.
  * @returns {Record<string, ParsedExperiment>} Parsed experiments keyed by name and alternate name.
@@ -197,4 +201,14 @@ export async function resolveTargetVersion(target) {
     }
 
     throw new Error('target must have either "version", both "versionUrl" and "versionRef", or "queryWindowInDays"');
+}
+
+/**
+ * Validates that a pixel prefix only contains letters, numbers, hyphens, and dots.
+ * Empty pixel prefix is valid.
+ * @param {string} pixelPrefix The pixel prefix to validate.
+ * @returns {boolean} True if the pixel prefix is valid, false otherwise.
+ */
+export function validatePixelPrefix(pixelPrefix) {
+    return /^[A-Za-z0-9.-]*$/.test(pixelPrefix);
 }
