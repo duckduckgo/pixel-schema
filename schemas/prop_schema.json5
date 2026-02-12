@@ -2,9 +2,6 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "prop_schema.json",
     "type": "object",
-    "additionalProperties": {
-        "$ref": "#/$defs/propertyDefinition"
-    },
     "$defs": {
         "stringValueProperty": {
             "type": "object",
@@ -103,33 +100,5 @@
             },
             "additionalProperties": true
         },
-        "objectProperty": {
-            "type": "object",
-            "description": "A nested object property with its own properties.",
-            "required": ["type", "description", "properties"],
-            "properties": {
-                "type": { "const": "object" },
-                "description": { "type": "string" },
-                "properties": {
-                    "type": "object",
-                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
-                },
-                "examples": { "type": "array" }
-            },
-            "additionalProperties": true
-        },
-        "propertyDefinition": {
-            "description": "A property definition for custom data. Must be a value type (no enum) OR an enum type (with enum array).",
-            "oneOf": [
-                { "$ref": "#/$defs/stringValueProperty" },
-                { "$ref": "#/$defs/stringEnumProperty" },
-                { "$ref": "#/$defs/numberValueProperty" },
-                { "$ref": "#/$defs/numberEnumProperty" },
-                { "$ref": "#/$defs/integerValueProperty" },
-                { "$ref": "#/$defs/integerEnumProperty" },
-                { "$ref": "#/$defs/booleanProperty" },
-                { "$ref": "#/$defs/objectProperty" }
-            ]
-        }
     }
 }

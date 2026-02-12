@@ -14,8 +14,6 @@
         "integerValueProperty": { "$ref": "prop_schema.json#/$defs/integerValueProperty" },
         "integerEnumProperty": { "$ref": "prop_schema.json#/$defs/integerEnumProperty" },
         "booleanProperty": { "$ref": "prop_schema.json#/$defs/booleanProperty" },
-        "objectProperty": { "$ref": "prop_schema.json#/$defs/objectProperty" },
-        "propertyDefinition": { "$ref": "prop_schema.json#/$defs/propertyDefinition" },
 
         // Domain-specific property definitions with constrained enum values
         "platformDefinition": {
