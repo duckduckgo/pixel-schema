@@ -102,7 +102,9 @@ describe('Validate live pixels', () => {
                 expect(error).to.equal(null);
 
                 // Check output files
-                const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validDefsPath, 'pixels'))).toString());
+                const pixelErrors = JSON5.parse(
+                    fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validDefsPath, 'pixels'))).toString(),
+                );
                 const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
                 expect(pixelErrors).to.deep.equal(expectedErrors);
 
