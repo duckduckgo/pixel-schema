@@ -97,52 +97,54 @@ describe('Validate live pixels', () => {
             );
             const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')).toString());
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
-        });
 
-        exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/pixels/test_live_pixels.csv`, (error, _, stderr) => {
-            expect(error).to.equal(null);
+            exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/pixels/test_live_pixels.csv`, (error, _, stderr) => {
+                expect(error).to.equal(null);
 
-            // Check output files
-            const pixelErrors = JSON5.parse(fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validDefsPath, 'pixels'))).toString());
-            const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
-            expect(pixelErrors).to.deep.equal(expectedErrors);
+                // Check output files
+                const pixelErrors = JSON5.parse(
+                    fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validDefsPath, 'pixels'))).toString(),
+                );
+                const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
+                expect(pixelErrors).to.deep.equal(expectedErrors);
 
-            const undocumentedPixels = JSON5.parse(
-                fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels'))).toString(),
-            );
-            const expectedUndocumented = JSON5.parse(
-                fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')).toString(),
-            );
-            expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
+                const undocumentedPixels = JSON5.parse(
+                    fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels'))).toString(),
+                );
+                const expectedUndocumented = JSON5.parse(
+                    fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')).toString(),
+                );
+                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
-            done();
+                done();
+            });
         });
     }).timeout(timeout);
 
     it('case insensitive - should produce zero errors', (done) => {
         exec(`npm run preprocess-defs ${validCaseInsensitiveDefsPath}`, (error, _, stderr) => {
             expect(error).to.equal(null);
+
+            exec(
+                `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/pixels/test_live_pixels.csv`,
+                (error, _, stderr) => {
+                    expect(error).to.equal(null);
+
+                    // Check output files
+                    const pixelErrors = JSON5.parse(
+                        fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
+                    );
+                    expect(pixelErrors).to.be.empty;
+
+                    const undocumentedPixels = JSON5.parse(
+                        fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
+                    );
+                    expect(undocumentedPixels).to.be.empty;
+
+                    done();
+                },
+            );
         });
-
-        exec(
-            `npm run validate-live-pixels ${validCaseInsensitiveDefsPath} ${validCaseInsensitiveDefsPath}/pixels/test_live_pixels.csv`,
-            (error, _, stderr) => {
-                expect(error).to.equal(null);
-
-                // Check output files
-                const pixelErrors = JSON5.parse(
-                    fs.readFileSync(fileUtils.getPixelErrorsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
-                );
-                expect(pixelErrors).to.be.empty;
-
-                const undocumentedPixels = JSON5.parse(
-                    fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
-                );
-                expect(undocumentedPixels).to.be.empty;
-
-                done();
-            },
-        );
     }).timeout(timeout);
 });
 
