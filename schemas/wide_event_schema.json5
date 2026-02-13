@@ -14,8 +14,6 @@
         "integerValueProperty": { "$ref": "prop_schema.json#/$defs/integerValueProperty" },
         "integerEnumProperty": { "$ref": "prop_schema.json#/$defs/integerEnumProperty" },
         "booleanProperty": { "$ref": "prop_schema.json#/$defs/booleanProperty" },
-        "objectProperty": { "$ref": "prop_schema.json#/$defs/objectProperty" },
-        "propertyDefinition": { "$ref": "prop_schema.json#/$defs/propertyDefinition" },
 
         // Domain-specific property definitions with constrained enum values
         "platformDefinition": {
@@ -90,7 +88,19 @@
                     "properties": {
                         "platform": { "$ref": "#/$defs/platformDefinition" },
                         "type": { "$ref": "#/$defs/typeDefinition" },
-                        "sample_rate": { "$ref": "#/$defs/numberValueProperty" },
+                        "sample_rate": {
+                            "allOf": [
+                                { "$ref": "#/$defs/numberValueProperty" },
+                                {
+                                    "type": "object",
+                                    "required": ["minimum", "maximum"],
+                                    "properties": {
+                                        "minimum": { "const": 0 },
+                                        "maximum": { "const": 1 }
+                                    }
+                                }
+                            ]
+                        },
                         "is_first_daily_occurrence": { "$ref": "#/$defs/booleanProperty" }
                     },
                     "additionalProperties": false
@@ -144,7 +154,27 @@
                                 "additionalProperties": { "const": false },
                                 "properties": {
                                     "type": "object",
-                                    "additionalProperties": { "$ref": "#/$defs/propertyDefinition" }
+                                    "additionalProperties": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "https://json-schema.org/draft/2020-12/schema"
+                                            },
+                                            {
+                                                "type": "object",
+                                                "required": ["description", "type"],
+                                                "properties": {
+                                                    "description": {
+                                                        "type": "string",
+                                                        "minLength": 1
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": ["string", "number", "integer", "boolean", "object", "array"]
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
                                 },
                                 "required": { "type": "array", "items": { "type": "string" } }
                             },
