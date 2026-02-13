@@ -51,6 +51,7 @@
         "asana": "^3.1.0",
         "compare-versions": "^6.1.1",
         "csv-parser": "^3.2.0",
+        "js-yaml": "^4.1.1",
         "json-schema-traverse": "^1.0.0",
         "json5": "^2.2.3",
         "typescript": "^5.9.3",
