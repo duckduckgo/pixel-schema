@@ -277,7 +277,7 @@ pipeline {
                     echo $DATE
 
                     ddg-perl /usr/local/ddg/sysadmin/scripts/asana_create_task.pl \
-                            --assignee jmatthews@duckduckgo.com \
+                            --assignee ladamski@duckduckgo.com \
                             --description "Pixel validation failed see console output at https://jenkins.duckduckgo.com/job/PixelValidation/" \
                             --project_id $ASANA_PROJECT \
                             "Pixel validation failed $DATE"
