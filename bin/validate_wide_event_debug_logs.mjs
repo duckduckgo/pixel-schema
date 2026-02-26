@@ -15,6 +15,7 @@ import { MAIN_DIR_ARG, getMainDirPositional } from '../src/args_utils.mjs';
 import { WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { formatAjvErrors } from '../src/error_utils.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
+import { readLogLines, printValidationErrors } from '../src/debug_log_utils.mjs';
 
 const argv = yargs(hideBin(process.argv))
     .command(`$0 ${MAIN_DIR_ARG} debugLogPath`, 'Validates a wide event debug log against definitions', (yargs) => {
@@ -97,10 +98,7 @@ function buildWideEventValidators(mainDir) {
 
 async function main() {
     const validators = buildWideEventValidators(argv.dirPath);
-    const data = fs.readFileSync(argv.debugLogPath, 'utf8');
-
-    for (const line of data.split(/\r?\n/)) {
-        const trimmed = line.trim();
+    for (const trimmed of readLogLines(argv.debugLogPath)) {
         if (!trimmed || !trimmed.startsWith('{')) {
             continue;
         }
@@ -132,9 +130,7 @@ async function main() {
             console.log(`✅ Valid: ${outputEvent}`);
         } else {
             console.error(`❌ Invalid: ${outputEvent} - see below for details`);
-            for (const error of formatAjvErrors(validate.errors)) {
-                console.error(`\t${error}`);
-            }
+            printValidationErrors(formatAjvErrors(validate.errors));
         }
     }
 }

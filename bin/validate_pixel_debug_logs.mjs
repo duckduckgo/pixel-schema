@@ -3,13 +3,13 @@
 /***
  * Tool for validating pixel debug logs against pixel definitions
  */
-import fs from 'node:fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 import { processPixelDefs, buildLivePixelValidator } from '../src/live_validation_utils.mjs';
 import { PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 import { MAIN_DIR_ARG, getMainDirPositional } from '../src/args_utils.mjs';
+import { readLogLines, printValidationErrors } from '../src/debug_log_utils.mjs';
 
 const argv = yargs(hideBin(process.argv))
     .command(`$0 ${MAIN_DIR_ARG} debugLogPath pixelPrefix`, 'Validates a debug log against pixel definitions', (yargs) => {
@@ -35,9 +35,7 @@ async function main() {
     console.log('Validator built');
 
     const pixelPrefix = argv.pixelPrefix;
-    const data = fs.readFileSync(argv.debugLogPath, 'utf8');
-    for (const line of data.split(/\r?\n/)) {
-        const trimmed = line.trim();
+    for (const trimmed of readLogLines(argv.debugLogPath)) {
         if (!trimmed.startsWith(pixelPrefix)) {
             continue;
         }
@@ -61,9 +59,7 @@ async function main() {
                 console.warn(`⚠️  Old app version, validation skipped: ${outputPixel}`);
             } else if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) {
                 console.error(`❌ Invalid: ${outputPixel} - see below for details`);
-                for (const errorObj of result.errors) {
-                    console.error(`\t${errorObj.error}`);
-                }
+                printValidationErrors(result.errors.map((errorObj) => errorObj.error));
             }
         } catch (e) {
             console.error(`Invalid log line ${pixelRequest} - skipping validation`);
