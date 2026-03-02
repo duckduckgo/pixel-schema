@@ -27,7 +27,6 @@
         "validate-ddg-pixel-defs": "node ./bin/validate_schema.mjs",
         "validate-ddg-pixel-logs": "node ./bin/validate_pixel_debug_logs.mjs",
         "validate-ddg-wide-event-logs": "node ./bin/validate_wide_event_debug_logs.mjs",
-        "validate-wide-event-debug-logs": "node ./bin/validate_wide_event_debug_logs.mjs",
         "preprocess-defs": "node ./live_validation_scripts/preprocess_defs.mjs",
         "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs",
         "validate-live-pixels": "node ./live_validation_scripts/validate_live_pixel.mjs",
