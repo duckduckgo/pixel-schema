@@ -5,14 +5,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import JSON5 from 'json5';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import addFormats from 'ajv-formats';
 import Ajv2020 from 'ajv/dist/2020.js';
 
 import { MAIN_DIR_ARG, getMainDirPositional } from '../src/args_utils.mjs';
-import { WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { formatAjvErrors } from '../src/error_utils.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
 import { readLogLines, printValidationErrors } from '../src/debug_log_utils.mjs';
@@ -30,52 +28,13 @@ const argv = yargs(hideBin(process.argv))
     .demandOption([MAIN_DIR_ARG, 'debugLogPath'])
     .parse();
 
-function readWideEventDefinitions(definitionsDir) {
-    const entries = fs.readdirSync(definitionsDir, { recursive: true, encoding: 'utf8' });
-    /** @type {Record<string, any>} */
-    const wideEvents = {};
-
-    for (const file of entries) {
-        const fullPath = path.join(definitionsDir, file);
-        if (fs.statSync(fullPath).isDirectory()) {
-            continue;
-        }
-
-        const parsed = JSON5.parse(fs.readFileSync(fullPath, 'utf8'));
-        for (const [eventName, eventDef] of Object.entries(parsed)) {
-            if (wideEvents[eventName]) {
-                throw new Error(`Duplicate wide event definition found: ${eventName}`);
-            }
-            wideEvents[eventName] = eventDef;
-        }
-    }
-
-    return wideEvents;
-}
-
 function buildWideEventValidators(mainDir) {
     const wideEventsDir = path.join(mainDir, 'wide_events');
-    const definitionsDir = path.join(wideEventsDir, 'definitions');
-    if (!fs.existsSync(definitionsDir)) {
-        throw new Error(`Wide events definitions directory not found: ${definitionsDir}`);
-    }
-
-    const baseEvent = fileUtils.readBaseEvent(wideEventsDir);
-    if (!baseEvent) {
-        throw new Error('base_event.json is required for wide event validation');
-    }
-
-    const commonProps = fileUtils.readCommonProps(wideEventsDir);
-    const validator = new WideEventDefinitionsValidator(commonProps);
-    const wideEvents = readWideEventDefinitions(definitionsDir);
-
-    const schemaErrors = [];
-    const schemasByEvent = validator.generateWideEventSchemas(wideEvents, baseEvent, schemaErrors);
-    if (schemaErrors.length > 0) {
-        for (const error of schemaErrors) {
-            console.error(error);
-        }
-        process.exit(1);
+    const generatedSchemasDir = fileUtils.getGeneratedSchemasDir(wideEventsDir);
+    if (!fs.existsSync(generatedSchemasDir)) {
+        throw new Error(
+            `Generated schemas not found at ${generatedSchemasDir}. Run "node ./bin/validate_schema.mjs ${mainDir}" first.`,
+        );
     }
 
     const ajv = new Ajv2020.default({ allErrors: true });
@@ -83,13 +42,20 @@ function buildWideEventValidators(mainDir) {
     /** @type {Record<string, import('ajv').ValidateFunction>} */
     const validators = {};
 
-    for (const [eventName, schema] of Object.entries(schemasByEvent)) {
-        const version = schema?.properties?.meta?.properties?.version?.const;
-        if (!version) {
-            console.error(`Generated schema missing meta.version for ${eventName}`);
+    const entries = fs.readdirSync(generatedSchemasDir, { encoding: 'utf8' });
+    for (const entry of entries) {
+        if (!entry.endsWith('.json')) {
             continue;
         }
-        const key = `${eventName}-${version}`;
+        const schemaPath = path.join(generatedSchemasDir, entry);
+        const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+        const eventType = schema?.properties?.meta?.properties?.type?.const;
+        const version = schema?.properties?.meta?.properties?.version?.const;
+        if (!eventType || !version) {
+            console.error(`Generated schema missing meta.type or meta.version: ${schemaPath}`);
+            continue;
+        }
+        const key = `${eventType}-${version}`;
         validators[key] = ajv.compile(/** @type {import('ajv').AnySchema} */ (schema));
     }
 
