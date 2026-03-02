@@ -10,7 +10,8 @@
     ],
     "bin": {
         "validate-ddg-pixel-defs": "./bin/validate_schema.mjs",
-        "validate-ddg-pixel-logs": "./bin/validate_pixel_debug_logs.mjs"
+        "validate-ddg-pixel-logs": "./bin/validate_pixel_debug_logs.mjs",
+        "validate-ddg-wide-event-logs": "./bin/validate_wide_event_debug_logs.mjs"
     },
     "exports": {
         ".": "./main.mjs"
@@ -25,6 +26,7 @@
         "tsc-watch": "tsc --watch",
         "validate-ddg-pixel-defs": "node ./bin/validate_schema.mjs",
         "validate-ddg-pixel-logs": "node ./bin/validate_pixel_debug_logs.mjs",
+        "validate-ddg-wide-event-logs": "sh -c 'node ./bin/validate_schema.mjs \"$1\" && node ./bin/validate_wide_event_debug_logs.mjs \"$1\" \"$2\"' --",
         "preprocess-defs": "node ./live_validation_scripts/preprocess_defs.mjs",
         "fetch-clickhouse-data": "node ./live_validation_scripts/fetch_clickhouse_data.mjs",
         "validate-live-pixels": "node ./live_validation_scripts/validate_live_pixel.mjs",
