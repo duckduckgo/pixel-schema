@@ -17,13 +17,11 @@ import { readLogLines, printValidationErrors } from '../src/debug_log_utils.mjs'
 
 const argv = yargs(hideBin(process.argv))
     .command(`$0 ${MAIN_DIR_ARG} debugLogPath`, 'Validates a wide event debug log against definitions', (yargs) => {
-        return yargs
-            .positional(MAIN_DIR_ARG, getMainDirPositional())
-            .positional('debugLogPath', {
-                describe: 'path to wide event debug log file (JSONL)',
-                type: 'string',
-                demandOption: true,
-            });
+        return yargs.positional(MAIN_DIR_ARG, getMainDirPositional()).positional('debugLogPath', {
+            describe: 'path to wide event debug log file (JSONL)',
+            type: 'string',
+            demandOption: true,
+        });
     })
     .demandOption([MAIN_DIR_ARG, 'debugLogPath'])
     .parse();
@@ -32,11 +30,10 @@ function buildWideEventValidators(mainDir) {
     const wideEventsDir = path.join(mainDir, 'wide_events');
     const generatedSchemasDir = fileUtils.getGeneratedSchemasDir(wideEventsDir);
     if (!fs.existsSync(generatedSchemasDir)) {
-        throw new Error(
-            `Generated schemas not found at ${generatedSchemasDir}. Run "node ./bin/validate_schema.mjs ${mainDir}" first.`,
-        );
+        throw new Error(`Generated schemas not found at ${generatedSchemasDir}. Run "node ./bin/validate_schema.mjs ${mainDir}" first.`);
     }
 
+    // eslint-disable-next-line new-cap
     const ajv = new Ajv2020.default({ allErrors: true });
     addFormats.default(ajv);
     /** @type {Record<string, import('ajv').ValidateFunction>} */
