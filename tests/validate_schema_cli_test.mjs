@@ -145,7 +145,9 @@ describe('validate_schema.mjs CLI branches', () => {
             const result = runValidateSchema([defsCopy]);
 
             expect(result.status).to.equal(1);
-            expect(result.stderr).to.include('ERROR in product.json target version: Cannot specify both "version" and "versionUrl"/"versionRef"');
+            expect(result.stderr).to.include(
+                'ERROR in product.json target version: Cannot specify both "version" and "versionUrl"/"versionRef"',
+            );
         } finally {
             fs.rmSync(defsCopy, { recursive: true, force: true });
         }
