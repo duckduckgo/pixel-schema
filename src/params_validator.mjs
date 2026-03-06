@@ -91,6 +91,26 @@ export class ParamsValidator {
     }
 
     /**
+     * Normalizes suffix value fields to lowercase while preserving shortcut keys.
+     * Applies only to resolved schema values (e.g. key/const/enum).
+     * @param {object} suffix
+     * @returns {void}
+     */
+    lowerCaseSuffixValueFields(suffix) {
+        traverse(suffix, (schema) => {
+            if (typeof schema.key === 'string') {
+                schema.key = schema.key.toLowerCase();
+            }
+            if (typeof schema.const === 'string') {
+                schema.const = schema.const.toLowerCase();
+            }
+            if (Array.isArray(schema.enum)) {
+                schema.enum = schema.enum.map((val) => (typeof val === 'string' ? val.toLowerCase() : val));
+            }
+        });
+    }
+
+    /**
      * Replaces shortcuts to common suffixes and compiles the suffix schema.
      * Supports either:
      *  - a single ordered list of suffixes, e.g. ['a','b','c']
@@ -108,6 +128,7 @@ export class ParamsValidator {
             let idx = 0;
             sequence.forEach((item) => {
                 const suffix = this.getUpdatedItem(item, this.#commonSuffixes);
+                this.lowerCaseSuffixValueFields(suffix);
                 if (suffix.key) {
                     // Static token in the pixel name
                     properties[idx] = { enum: [suffix.key] };
