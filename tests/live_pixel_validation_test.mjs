@@ -434,6 +434,41 @@ describe('Alternative suffix sequences (anyOf)', () => {
     });
 });
 
+describe('Case-insensitive suffix shortcut resolution', () => {
+    it('keeps camelCase shortcut lookup while lowercasing resolved suffix values', () => {
+        const caseInsensitiveProductDef = {
+            target: {
+                key: 'appVersion',
+                version: '1.0.0',
+            },
+            agents: [],
+            forceLowerCase: true,
+        };
+
+        const commonSuffixes = {
+            webviewInitRunType: {
+                key: 'webviewInitRunType',
+                enum: ['control', 'experiment'],
+            },
+        };
+        const paramsValidator = new ParamsValidator({}, commonSuffixes, {});
+        const pixelDefs = {
+            simplePixel: {
+                suffixes: ['webviewInitRunType'],
+            },
+        };
+
+        const tokenizedDefs = {};
+        tokenizePixelDefs(pixelDefs, tokenizedDefs);
+        const liveValidator = new LivePixelsValidator(tokenizedDefs, caseInsensitiveProductDef, {}, paramsValidator);
+
+        const pixel = 'simplePixel_webviewinitruntype_control';
+        const pixelStatus = liveValidator.validatePixel(pixel, '');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+});
+
 describe('Require version', () => {
     const productDefWithVersion = {
         target: {
