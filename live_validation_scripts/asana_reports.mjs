@@ -275,7 +275,8 @@ async function main() {
     }
 
     // Load the pixelsWithErrors object produced by validate_live_pixel.mjs
-    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);
+    const { pixelsConfigDir } = fileUtils.resolvePixelsDirs(dirPath);
+    const pixelsErrorsPath = fileUtils.getPixelErrorsPath(pixelsConfigDir);
     console.log(`Pixel with errors path from fileUtils: ${pixelsErrorsPath}`);
 
     try {
