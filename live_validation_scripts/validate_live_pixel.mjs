@@ -39,15 +39,6 @@ async function main(mainDir, csvFile) {
                 console.error(e);
             }
 
-            // Defense-in-depth: filter REDACTED params that should have been excluded upstream.
-            // Log when encountered to help trace the source (the Prefect ETL already filters these).
-            const redactedParams = parsedParams.filter((p) => /=REDACTED$/i.test(p));
-            if (redactedParams.length > 0) {
-                console.warn(`WARNING [row ${processedPixels}]: REDACTED params found for pixel '${pixelRequestFormat}': ${JSON.stringify(redactedParams)} (raw row.params: ${row.params})`);
-                parsedParams = parsedParams.filter((p) => !/=REDACTED$/i.test(p));
-                if (parsedParams.length === 0) return;
-            }
-
             // Append version param (e.g. appVersion=1.2.3) when defined in product.json
             const versionKey = productDef.target.key ?? null;
             if (versionKey) {
