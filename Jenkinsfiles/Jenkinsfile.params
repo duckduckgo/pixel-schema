@@ -4,6 +4,7 @@ pipeline {
     environment {
         USER_MAP="../internal-github-asana-utils/user_map.yml"
         ASANA_PROJECT="1210856607616307"
+        NOTIFY_PIXEL_OWNERS = "${params.NOTIFY_PIXEL_OWNERS}"
     }
     stages {
         stage('Setup parameters') {
@@ -44,8 +45,8 @@ pipeline {
                             ),
                             booleanParam(
                                 defaultValue: true,
-                                description: 'Run Apple browser (macOS and iOS) pixel validation',
-                                name: 'RUN_APPLE_VALIDATION'
+                                description: 'Notify pixel owners in their Asana tasks via internal-github-asana-utils',
+                                name: 'NOTIFY_PIXEL_OWNERS'
                             )
                         ])
                     ])
@@ -81,9 +82,6 @@ pipeline {
             }
         }
         stage('clone apple-browsers repo') {
-            when {
-                expression { params.RUN_APPLE_VALIDATION == true }
-            }
             steps {
                 dir('apple-browsers') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
@@ -175,9 +173,6 @@ pipeline {
             }
         }
         stage('Validate pixels for apple-browsers (macOS)'){
-            when {
-                expression { params.RUN_APPLE_VALIDATION == true }
-            }
              steps {
                 script {
                     def result = sh(
@@ -201,9 +196,6 @@ pipeline {
             }
         }
         stage('Validate pixels for apple-browsers (iOS)'){
-            when {
-                expression { params.RUN_APPLE_VALIDATION == true }
-            }
              steps {
                 script {
                     def result = sh(
