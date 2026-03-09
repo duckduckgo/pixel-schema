@@ -267,6 +267,13 @@ async function main() {
     // Load the asana notify file
     readAsanaNotifyFile(dirPath);
 
+    // Allow NOTIFY_PIXEL_OWNERS env var to override the tagPixelOwners setting from asana_notify.json
+    if (process.env.NOTIFY_PIXEL_OWNERS !== undefined) {
+        const envNotifyOwners = process.env.NOTIFY_PIXEL_OWNERS.toLowerCase() === 'true';
+        toNotify.tagPixelOwners = envNotifyOwners;
+        console.log(`Environment variable override: tagPixelOwners = ${envNotifyOwners}`);
+    }
+
     // Load the pixelsWithErrors object produced by validate_live_pixel.mjs
     const pixelsErrorsPath = fileUtils.getPixelErrorsPath(dirPath);
     console.log(`Pixel with errors path from fileUtils: ${pixelsErrorsPath}`);
