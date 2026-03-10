@@ -1251,3 +1251,125 @@ describe('Wide Event Version Combining', () => {
         expect(generated.properties.meta.properties.version).to.not.have.property('description');
     });
 });
+
+describe('Wide Event base_require', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet'] },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+            is_first_daily_occurrence: { type: 'boolean', description: 'First daily occurrence' },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+        context: {
+            name: { type: 'string', description: 'Context name' },
+        },
+    };
+
+    const eventBase = {
+        description: 'Event with optional base-require',
+        owners: ['tester'],
+        meta: { type: 'w_base_require', version: '0.0' },
+        context: ['onboarding'],
+        feature: {
+            name: 'base-require-feature',
+            status: ['SUCCESS'],
+            data: { ext: {} },
+        },
+    };
+
+    it('requires listed optional global/app keys and forbids unlisted ones', () => {
+        const event = {
+            w_base_require: {
+                ...eventBase,
+                base_require: {
+                    global: ['is_first_daily_occurrence'],
+                    app: ['form_factor'],
+                },
+            },
+        };
+
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_base_require;
+        expect(generated.properties.global.properties).to.have.property('is_first_daily_occurrence');
+        expect(generated.properties.global.required).to.include('is_first_daily_occurrence');
+        expect(generated.properties.app.properties).to.have.property('form_factor');
+        expect(generated.properties.app.required).to.include('form_factor');
+    });
+
+    it('forbids optional base keys when not listed in base_require', () => {
+        const event = { w_base_require: { ...eventBase } };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_base_require;
+        expect(generated.properties.global.properties).to.not.have.property('is_first_daily_occurrence');
+        expect(generated.properties.app.properties).to.not.have.property('form_factor');
+    });
+
+    it('rejects base_require key not allowed by metaschema', () => {
+        const event = {
+            w_base_require: {
+                ...eventBase,
+                base_require: { global: ['not_allowed_global_key'] },
+            },
+        };
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((e) => e.includes("is not allowed by wide_event_schema"))).to.be.true;
+    });
+
+    it('rejects base_require key that is already required', () => {
+        const event = {
+            w_base_require: {
+                ...eventBase,
+                base_require: { global: ['platform'] },
+            },
+        };
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((e) => e.includes('already required in section'))).to.be.true;
+    });
+
+    it('rejects base_require key missing in base_event section', () => {
+        const event = {
+            w_base_require: {
+                ...eventBase,
+                base_require: { global: ['is_first_daily_occurrence'] },
+            },
+        };
+        const baseWithoutOptional = JSON.parse(JSON.stringify(baseEvent));
+        delete baseWithoutOptional.global.is_first_daily_occurrence;
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseWithoutOptional);
+        expect(errors.some((e) => e.includes('must be defined in base_event.global'))).to.be.true;
+    });
+
+    it('rejects context base_require when event context is absent', () => {
+        const eventWithoutContext = {
+            w_base_require: {
+                ...eventBase,
+                context: undefined,
+                base_require: { context: ['extra_context'] },
+            },
+        };
+        const { errors } = makeValidator().validateWideEventDefinition(eventWithoutContext, baseEvent);
+        expect(errors.some((e) => e.includes("requires event 'context' to be defined"))).to.be.true;
+    });
+});

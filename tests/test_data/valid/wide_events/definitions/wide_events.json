@@ -187,6 +187,9 @@
             "type": "w_wide_import_cancelled",
             "version": "1.0"
         },
+        "base_require": {
+            "global": ["is_first_daily_occurrence"]
+        },
         "context": ["onboarding", "settings"],
         "feature": {
             "name": "browser-import",

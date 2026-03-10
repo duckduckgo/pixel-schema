@@ -21,6 +21,36 @@ const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPat
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
 
+const WIDE_EVENT_BASE_REQUIRE_SECTIONS = ['app', 'global', 'feature', 'context'];
+const WIDE_EVENT_SECTION_SCHEMA_DEF_MAP = {
+    app: 'appSchemaProperty',
+    global: 'globalSchemaProperty',
+    feature: 'featureSchemaProperty',
+    context: 'contextSchemaProperty',
+};
+
+function getSectionRequiredKeysFromMetaSchema(sectionName) {
+    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
+    const required = sectionDef?.properties?.properties?.required;
+    return Array.isArray(required) ? required : [];
+}
+
+function getSectionOptionalKeysFromMetaSchema(sectionName) {
+    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
+    const properties = sectionDef?.properties?.properties?.properties ?? {};
+    const required = new Set(getSectionRequiredKeysFromMetaSchema(sectionName));
+    return Object.keys(properties).filter((key) => !required.has(key));
+}
+
+function getSectionKnownKeysFromMetaSchema(sectionName) {
+    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
+    const properties = sectionDef?.properties?.properties?.properties ?? {};
+    return Object.keys(properties);
+}
+
 /**
  * Base validator class with shared AJV infrastructure and utilities.
  * Not intended to be used directly - use PixelDefinitionsValidator or WideEventDefinitionsValidator.
@@ -257,6 +287,80 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
     }
 
     /**
+     * Validates and normalizes event-level base_require directives.
+     * base_require can only require section keys that are optional in wide_event_schema.json5.
+     * @param {string} eventName
+     * @param {object} eventDef
+     * @param {object} baseEvent
+     * @param {string[]} errors
+     * @returns {Record<string, Set<string>>}
+     */
+    #normalizeBaseRequire(eventName, eventDef, baseEvent, errors) {
+        /** @type {Record<string, Set<string>>} */
+        const normalized = {
+            app: new Set(),
+            global: new Set(),
+            feature: new Set(),
+            context: new Set(),
+        };
+
+        const baseRequire = eventDef.base_require;
+        if (!baseRequire) {
+            return normalized;
+        }
+
+        if (typeof baseRequire !== 'object' || Array.isArray(baseRequire)) {
+            errors.push(`${eventName}: 'base_require' must be an object keyed by section name`);
+            return normalized;
+        }
+
+        for (const [sectionName, keys] of Object.entries(baseRequire)) {
+            if (!WIDE_EVENT_BASE_REQUIRE_SECTIONS.includes(sectionName)) {
+                errors.push(`${eventName}: 'base_require.${sectionName}' is not a supported section`);
+                continue;
+            }
+            if (!Array.isArray(keys) || !keys.every((key) => typeof key === 'string')) {
+                errors.push(`${eventName}: 'base_require.${sectionName}' must be an array of strings`);
+                continue;
+            }
+
+            if (sectionName === 'context' && keys.length > 0 && !eventDef.context) {
+                errors.push(`${eventName}: 'base_require.context' requires event 'context' to be defined`);
+                continue;
+            }
+
+            const optionalKeys = new Set(getSectionOptionalKeysFromMetaSchema(sectionName));
+            const requiredKeys = new Set(getSectionRequiredKeysFromMetaSchema(sectionName));
+            const seen = new Set();
+
+            for (const key of keys) {
+                if (seen.has(key)) {
+                    errors.push(`${eventName}: duplicate key '${key}' in 'base_require.${sectionName}'`);
+                    continue;
+                }
+                seen.add(key);
+
+                if (requiredKeys.has(key)) {
+                    errors.push(`${eventName}: '${key}' is already required in section '${sectionName}', do not include it in base_require`);
+                    continue;
+                }
+                if (!optionalKeys.has(key)) {
+                    errors.push(`${eventName}: '${key}' in 'base_require.${sectionName}' is not allowed by wide_event_schema`);
+                    continue;
+                }
+                if (!baseEvent?.[sectionName] || !Object.prototype.hasOwnProperty.call(baseEvent[sectionName], key)) {
+                    errors.push(`${eventName}: '${key}' in 'base_require.${sectionName}' must be defined in base_event.${sectionName}`);
+                    continue;
+                }
+
+                normalized[sectionName].add(key);
+            }
+        }
+
+        return normalized;
+    }
+
+    /**
      * Generates a valid JSON Schema for a single wide event by merging with base event.
      * The output is a valid JSON Schema that can validate wide event data.
      * @param {string} eventName - The event name
@@ -264,7 +368,8 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
      * @param {object} baseEvent - The base event template
      * @returns {object} Valid JSON Schema for this event
      */
-    #generateEventJsonSchema(eventName, eventDef, baseEvent) {
+    #generateEventJsonSchema(eventName, eventDef, baseEvent, errors) {
+        const baseRequire = this.#normalizeBaseRequire(eventName, eventDef, baseEvent, errors);
         // Get base version for combining with event version
         const baseVersion = baseEvent.meta?.version?.value;
         const eventVersion = eventDef.meta.version;
@@ -291,13 +396,25 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // app section from base_event (if present)
         if (baseEvent.app) {
-            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
+            const appKnown = new Set(getSectionKnownKeysFromMetaSchema('app'));
+            const appOptional = new Set(getSectionOptionalKeysFromMetaSchema('app'));
+            const appProps = {};
+            for (const [key, value] of Object.entries(baseEvent.app)) {
+                if (appKnown.has(key) && appOptional.has(key) && !baseRequire.app.has(key)) continue;
+                appProps[key] = JSON.parse(JSON.stringify(value));
+            }
             const appRequired = Object.keys(appProps);
             properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
         }
 
         // global section from base_event
-        const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
+        const globalKnown = new Set(getSectionKnownKeysFromMetaSchema('global'));
+        const globalOptional = new Set(getSectionOptionalKeysFromMetaSchema('global'));
+        const globalProps = {};
+        for (const [key, value] of Object.entries(baseEvent.global ?? {})) {
+            if (globalKnown.has(key) && globalOptional.has(key) && !baseRequire.global.has(key)) continue;
+            globalProps[key] = JSON.parse(JSON.stringify(value));
+        }
         const globalRequired = Object.keys(globalProps);
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
@@ -316,10 +433,13 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             status: featureStatusDef,
         };
 
-        // Include base_event feature props beyond name/status as required
+        // Include base_event feature props beyond name/status/data.
+        // Known optional keys require base_require; unknown keys are preserved.
         const baseFeature = baseEvent.feature ?? {};
+        const featureKnown = new Set(getSectionKnownKeysFromMetaSchema('feature'));
         for (const [key, value] of Object.entries(baseFeature)) {
             if (key === 'name' || key === 'status' || key === 'data') continue;
+            if (featureKnown.has(key) && !baseRequire.feature.has(key)) continue;
             featureProperties[key] = JSON.parse(JSON.stringify(value));
             featureRequired.push(key);
         }
@@ -388,8 +508,10 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 name: contextNameDef,
             };
             const baseContext = baseEvent.context ?? {};
+            const contextKnown = new Set(getSectionKnownKeysFromMetaSchema('context'));
             for (const [key, value] of Object.entries(baseContext)) {
                 if (key === 'name') continue;
+                if (contextKnown.has(key) && !baseRequire.context.has(key)) continue;
                 contextProperties[key] = JSON.parse(JSON.stringify(value));
                 contextRequired.push(key);
             }
@@ -451,7 +573,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 errors.push(error);
             }
 
-            const generatedSchema = this.#generateEventJsonSchema(eventName, eventDef, baseEvent);
+            const generatedSchema = this.#generateEventJsonSchema(eventName, eventDef, baseEvent, errors);
 
             // Validate generated schema against metaschema
             if (!ajvMetaSchema(generatedSchema)) {
