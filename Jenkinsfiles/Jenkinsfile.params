@@ -12,7 +12,6 @@ pipeline {
                 script {
                     properties([
                         parameters([
-
                             string(
                                 defaultValue: 'main',
                                 description: 'Pixel Schema Branch',
@@ -23,25 +22,45 @@ pipeline {
                                 description: 'Windows Browser Branch',
                                 name: 'WINDOWS_BROWSER_BRANCH'
                             ),
-                            string(
-                                defaultValue: 'main',
-                                description: 'Asana Utils Branch',
-                                name: 'ASANA_UTILS_BRANCH'
+                            booleanParam(
+                                defaultValue: true,
+                                description: 'Run Windows validation',
+                                name: 'RUN_WINDOWS_VALIDATION'
                             ),
                             string(
                                 defaultValue: 'main',
                                 description: 'DuckDuckGo Extension Branch',
                                 name: 'EXTENSION_BRANCH'
                             ),
+                            booleanParam(
+                                defaultValue: true,
+                                description: 'Run Extension validation',
+                                name: 'RUN_EXTENSION_VALIDATION'
+                            ),
                             string(
                                 defaultValue: 'main',
                                 description: 'Apple Browsers Branch',
                                 name: 'APPLE_BROWSERS_BRANCH'
                             ),
+                            booleanParam(
+                                defaultValue: true,
+                                description: 'Run Apple (macOS and iOS) validation',
+                                name: 'RUN_APPLE_VALIDATION'
+                            ),
                             string(
                                 defaultValue: 'develop',
                                 description: 'Android',
                                 name: 'ANDROID_BRANCH'
+                            ),
+                            booleanParam(
+                                defaultValue: true,
+                                description: 'Run Android validation',
+                                name: 'RUN_ANDROID_VALIDATION'
+                            ),
+                            string(
+                                defaultValue: 'main',
+                                description: 'Asana Utils Branch',
+                                name: 'ASANA_UTILS_BRANCH'
                             ),
                             booleanParam(
                                 defaultValue: true,
@@ -64,6 +83,9 @@ pipeline {
             }
         }
         stage('clone duckduckgo-privacy-extension repo ') {
+            when {
+                expression { params.RUN_EXTENSION_VALIDATION }
+            }
             steps {
                 dir('duckduckgo-privacy-extension') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
@@ -73,6 +95,9 @@ pipeline {
             }
         }
         stage('clone windows-browser repo with credentials') {
+            when {
+                expression { params.RUN_WINDOWS_VALIDATION }
+            }
             steps {
                 dir('windows-browser') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
@@ -82,6 +107,9 @@ pipeline {
             }
         }
         stage('clone apple-browsers repo') {
+            when {
+                expression { params.RUN_APPLE_VALIDATION }
+            }
             steps {
                 dir('apple-browsers') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
@@ -91,6 +119,9 @@ pipeline {
             }
         }
         stage('clone android repo') {
+            when {
+                expression { params.RUN_ANDROID_VALIDATION }
+            }
             steps {
                 dir('android') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
@@ -127,6 +158,9 @@ pipeline {
             }
         }
         stage('Validate pixels for duckduckgo-privacy-extension'){
+            when {
+                expression { params.RUN_EXTENSION_VALIDATION }
+            }
              steps {
                 script {
                     def result = sh(
@@ -150,6 +184,9 @@ pipeline {
             }
         }
         stage('Validate pixels for windows-browser'){
+            when {
+                expression { params.RUN_WINDOWS_VALIDATION }
+            }
              steps {
                 script {
                     def result = sh(
@@ -173,6 +210,9 @@ pipeline {
             }
         }
         stage('Validate pixels for apple-browsers (macOS)'){
+            when {
+                expression { params.RUN_APPLE_VALIDATION }
+            }
              steps {
                 script {
                     def result = sh(
@@ -196,6 +236,9 @@ pipeline {
             }
         }
         stage('Validate pixels for apple-browsers (iOS)'){
+            when {
+                expression { params.RUN_APPLE_VALIDATION }
+            }
              steps {
                 script {
                     def result = sh(
@@ -219,6 +262,9 @@ pipeline {
             }
         }
         stage('Validate pixels for android'){
+            when {
+                expression { params.RUN_ANDROID_VALIDATION }
+            }
              steps {
                 script {
                     def result = sh(
