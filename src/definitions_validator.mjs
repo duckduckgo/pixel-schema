@@ -331,7 +331,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             ...baseEvent.feature?.status,
             enum: eventDef.feature?.status,
         };
-        const featureRequired = ['name', 'status', 'data'];
+        const featureRequired = getSectionRequiredKeysFromMetaSchema('feature');
         const featureProperties = {
             name: featureNameDef,
             status: featureStatusDef,
