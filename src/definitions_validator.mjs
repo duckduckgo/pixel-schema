@@ -32,7 +32,7 @@ function getSectionRequiredKeysFromMetaSchema(sectionName) {
     const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
     const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
     const required = sectionDef?.properties?.properties?.required;
-    return Array.isArray(required) ? required : [];
+    return Array.isArray(required) ? [...required] : [];
 }
 
 /**
