@@ -23,7 +23,7 @@
         },
         "global": {
             "type": "object",
-            "required": ["platform2", "sample_rate"],
+            "required": ["platform", "type", "sample_rate"],
             "additionalProperties": false,
             "properties": {
                 "platform2": { "type": "string", "description": "The platform the app is running on", "enum": ["Windows"] },

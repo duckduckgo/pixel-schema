@@ -21,6 +21,20 @@ const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPat
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
 
+const WIDE_EVENT_SECTION_SCHEMA_DEF_MAP = {
+    app: 'appSchemaProperty',
+    global: 'globalSchemaProperty',
+    feature: 'featureSchemaProperty',
+    context: 'contextSchemaProperty',
+};
+
+function getSectionRequiredKeysFromMetaSchema(sectionName) {
+    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
+    const required = sectionDef?.properties?.properties?.required;
+    return Array.isArray(required) ? required : [];
+}
+
 /**
  * Base validator class with shared AJV infrastructure and utilities.
  * Not intended to be used directly - use PixelDefinitionsValidator or WideEventDefinitionsValidator.
@@ -291,14 +305,21 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // app section from base_event (if present)
         if (baseEvent.app) {
-            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
-            const appRequired = Object.keys(appProps);
+            const appProps = {};
+            for (const [key, value] of Object.entries(baseEvent.app)) {
+                appProps[key] = JSON.parse(JSON.stringify(value));
+            }
+            const appRequired = getSectionRequiredKeysFromMetaSchema('app');
             properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
         }
 
         // global section from base_event
-        const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
-        const globalRequired = Object.keys(globalProps);
+        const globalProps = {};
+        const baseEventGlobal = baseEvent.global ?? {};
+        for (const [key, value] of Object.entries(baseEventGlobal)) {
+            globalProps[key] = JSON.parse(JSON.stringify(value));
+        }
+        const globalRequired = getSectionRequiredKeysFromMetaSchema('global');
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
         // feature section - merge base structure with event-specific values
@@ -316,12 +337,11 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             status: featureStatusDef,
         };
 
-        // Include base_event feature props beyond name/status as required
+        // Include base_event feature props beyond name/status/data (optional unless in metaschema required set)
         const baseFeature = baseEvent.feature ?? {};
         for (const [key, value] of Object.entries(baseFeature)) {
             if (key === 'name' || key === 'status' || key === 'data') continue;
             featureProperties[key] = JSON.parse(JSON.stringify(value));
-            featureRequired.push(key);
         }
 
         // Expand shortcuts in feature.data.ext
@@ -383,7 +403,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
                 ...baseEvent.context?.name,
                 enum: eventDef.context,
             };
-            const contextRequired = ['name'];
+            const contextRequired = getSectionRequiredKeysFromMetaSchema('context');
             const contextProperties = {
                 name: contextNameDef,
             };
@@ -391,7 +411,6 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             for (const [key, value] of Object.entries(baseContext)) {
                 if (key === 'name') continue;
                 contextProperties[key] = JSON.parse(JSON.stringify(value));
-                contextRequired.push(key);
             }
             properties.context = {
                 type: 'object',

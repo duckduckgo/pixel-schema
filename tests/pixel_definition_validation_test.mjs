@@ -995,7 +995,7 @@ describe('Wide Event Base Event Merging', () => {
         expect(generated.properties.feature.properties.status.enum).to.deep.equal(['SUCCESS']);
     });
 
-    it('requires all base_event props but not event ext props', () => {
+    it('requires metaschema keys but not event ext props', () => {
         const event = {
             w_required_base_only: {
                 description: 'Event with optional ext props',
@@ -1020,8 +1020,8 @@ describe('Wide Event Base Event Merging', () => {
         expect(errors).to.be.empty;
 
         const generated = generatedSchemas.w_required_base_only;
-        expect(generated.properties.app.required).to.include.members(Object.keys(baseEvent.app));
-        expect(generated.properties.global.required).to.include.members(Object.keys(baseEvent.global));
+        expect(generated.properties.app.required).to.deep.equal(['name', 'version']);
+        expect(generated.properties.global.required).to.deep.equal(['platform', 'type', 'sample_rate']);
         expect(generated.properties.feature.properties.data.properties.ext).to.not.have.property('required');
     });
 
@@ -1249,5 +1249,78 @@ describe('Wide Event Version Combining', () => {
         expect(generated.properties.meta.properties.version.const).to.equal('2.1.0');
         expect(generated.properties.meta.properties.version).to.not.have.property('value');
         expect(generated.properties.meta.properties.version).to.not.have.property('description');
+    });
+});
+
+describe('Wide Event required fields follow metaschema', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet'] },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+            is_first_daily_occurrence: { type: 'boolean', description: 'First daily occurrence' },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+        context: {
+            name: { type: 'string', description: 'Context name' },
+        },
+    };
+
+    const eventBase = {
+        description: 'Event with optional base fields',
+        owners: ['tester'],
+        meta: { type: 'w_optional_base_fields', version: '0.0' },
+        context: ['onboarding'],
+        feature: {
+            name: 'optional-base-fields-feature',
+            status: ['SUCCESS'],
+            data: { ext: {} },
+        },
+    };
+
+    it('includes non-required base fields but does not require them', () => {
+        const event = {
+            w_optional_base_fields: {
+                ...eventBase,
+            },
+        };
+
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_optional_base_fields;
+        expect(generated.properties.global.properties).to.have.property('is_first_daily_occurrence');
+        expect(generated.properties.global.required).to.not.include('is_first_daily_occurrence');
+        expect(generated.properties.app.properties).to.have.property('form_factor');
+        expect(generated.properties.app.required).to.not.include('form_factor');
+    });
+
+    it('uses metaschema required keys for each section', () => {
+        const event = { w_optional_base_fields: { ...eventBase } };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_optional_base_fields;
+        expect(generated.properties.app.required).to.deep.equal(['name', 'version']);
+        expect(generated.properties.global.required).to.deep.equal(['platform', 'type', 'sample_rate']);
+        expect(generated.properties.feature.required).to.deep.equal(['name', 'status', 'data']);
+        expect(generated.properties.context.required).to.deep.equal(['name']);
     });
 });
