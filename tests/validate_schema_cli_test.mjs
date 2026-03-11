@@ -86,7 +86,7 @@ describe('validate_schema.mjs CLI branches', () => {
         }
     });
 
-    it('skips directories while recursively validating wide event definitions', () => {
+    it('skips empty directories while recursively validating wide event definitions', () => {
         const defsCopy = createTempDefsCopy();
         const nestedWideEventDir = path.join(defsCopy, 'wide_events', 'definitions', 'nested');
         const emptyWideEventDir = path.join(defsCopy, 'wide_events', 'definitions', 'empty');
