@@ -89,5 +89,24 @@
         "must be equal to one of the allowed values": [
             "metric=search&value=invalid"
         ]
+    },
+    "test_nested_suffixes": {
+        "owners": [
+            "tester"
+        ],
+        "Suffix 'invalid' must be equal to one of the allowed values": [
+            "test_nested_suffixes_invalid"
+        ],
+        "must match a schema in anyOf": [
+            "test_nested_suffixes_invalid"
+        ]
+    },
+    "test_pattern_suffix": {
+        "owners": [
+            "tester"
+        ],
+        "/0 must match pattern \"^\\D$\"": [
+            "test_pattern_suffix_1"
+        ]
     }
 }

@@ -25,5 +25,11 @@
         "owners": ["tester"],
         "triggers": ["other"],
         "suffixes": [["first_daily_count"], ["device_type", "first_daily_count"]]
+    },
+    "test_pattern_suffix": {
+        "description": "Test pixel with a case-sensitive regex pattern suffix shortcut",
+        "owners": ["tester"],
+        "triggers": ["other"],
+        "suffixes": ["nonNumericChar"]
     }
 }
