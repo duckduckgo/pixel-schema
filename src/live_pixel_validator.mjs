@@ -155,7 +155,7 @@ export class LivePixelsValidator {
 
             // Pre-compile each schema and remember owners
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
-            const suffixesSchema = paramsValidator.compileSuffixesSchema(normalizedSuffixes);
+            const suffixesSchema = paramsValidator.compileSuffixesSchema(parsedSuffixes, { lowerCaseValues: true });
             const owners = pixelDef.owners;
             const requireVersion = pixelDef.requireVersion ?? false;
             tokenizedPixels[prefixPart] = {

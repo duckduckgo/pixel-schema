@@ -120,7 +120,7 @@ export class ParamsValidator {
      * @returns {ValidateFunction} an ajv compiled schema
      * @throws if any errors are found
      */
-    compileSuffixesSchema(suffixes) {
+    compileSuffixesSchema(suffixes, { lowerCaseValues = false } = {}) {
         if (!suffixes) return this.#ajv.compile({});
 
         const buildSequenceSchema = (sequence) => {
@@ -128,7 +128,7 @@ export class ParamsValidator {
             let idx = 0;
             sequence.forEach((item) => {
                 const suffix = this.getUpdatedItem(item, this.#commonSuffixes);
-                this.lowerCaseSuffixValueFields(suffix);
+                if (lowerCaseValues) this.lowerCaseSuffixValueFields(suffix);
                 if (suffix.key) {
                     // Static token in the pixel name
                     properties[idx] = { enum: [suffix.key] };
