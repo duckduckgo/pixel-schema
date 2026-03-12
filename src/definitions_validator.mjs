@@ -305,20 +305,13 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // app section from base_event (if present)
         if (baseEvent.app) {
-            const appProps = {};
-            for (const [key, value] of Object.entries(baseEvent.app)) {
-                appProps[key] = JSON.parse(JSON.stringify(value));
-            }
+            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
             const appRequired = getSectionRequiredKeysFromMetaSchema('app');
             properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
         }
 
         // global section from base_event
-        const globalProps = {};
-        const baseEventGlobal = baseEvent.global ?? {};
-        for (const [key, value] of Object.entries(baseEventGlobal)) {
-            globalProps[key] = JSON.parse(JSON.stringify(value));
-        }
+        const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
         const globalRequired = getSectionRequiredKeysFromMetaSchema('global');
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
