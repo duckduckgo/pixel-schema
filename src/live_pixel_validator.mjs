@@ -149,13 +149,13 @@ export class LivePixelsValidator {
                 return;
             }
 
-            // Pixel name is always lower case:
-            const lowerCasedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes).toLowerCase()) : [];
             const normalizedParams = pixelDef.parameters ? JSON.parse(this.#getNormalizedVal(JSON.stringify(pixelDef.parameters))) : [];
+            // Clone suffixes before compilation to avoid mutating tokenized definitions.
+            const parsedSuffixes = pixelDef.suffixes ? JSON.parse(JSON.stringify(pixelDef.suffixes)) : [];
 
             // Pre-compile each schema and remember owners
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
-            const suffixesSchema = paramsValidator.compileSuffixesSchema(lowerCasedSuffixes);
+            const suffixesSchema = paramsValidator.compileSuffixesSchema(parsedSuffixes);
             const owners = pixelDef.owners;
             const requireVersion = pixelDef.requireVersion ?? false;
             tokenizedPixels[prefixPart] = {

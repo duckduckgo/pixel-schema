@@ -153,6 +153,18 @@
                     ]
                 }
             }
+        },
+        "pattern": {
+            "suffix": {
+                "__root_prefix__": {
+                    "owners": [
+                        "tester"
+                    ],
+                    "suffixes": [
+                        "nonNumericChar"
+                    ]
+                }
+            }
         }
     }
 }

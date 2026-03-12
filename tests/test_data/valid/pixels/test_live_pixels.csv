@@ -28,3 +28,8 @@ experiment.metrics.defaultBrowser.control.android.tablet,"['metric=stageImpressi
 experiment.metrics.defaultBrowser.control.android.tablet,"['metric=app_use', 'value=4']",
 experiment.metrics.defaultBrowser.control.android.tablet,"['metric=search', 'value=21']",
 experiment.metrics.defaultBrowser.control.android.tablet,"['metric=search', 'value=invalid']",
+test.nested.suffixes.first,[],
+test.nested.suffixes.android.phone.daily,[],
+test.nested.suffixes.invalid,[],
+test.pattern.suffix.a,[],
+test.pattern.suffix.1,[],

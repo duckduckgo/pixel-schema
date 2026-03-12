@@ -9,5 +9,10 @@
         "type": "string",
         "description": "The type of device used by the user.",
         "enum": ["phone", "tablet"]
+    },
+    "nonNumericChar": {
+        "type": "string",
+        "description": "Non-numeric single character suffix",
+        "pattern": "^\\D$"
     }
 }
