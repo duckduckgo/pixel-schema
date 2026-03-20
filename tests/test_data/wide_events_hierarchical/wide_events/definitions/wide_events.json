@@ -1,0 +1,33 @@
+{
+    "w_data_clearing_hierarchical": {
+        "description": "Demonstrates hierarchical action metrics without key patterns.",
+        "owners": ["tester"],
+        "meta": {
+            "type": "w_data_clearing_hierarchical",
+            "version": "0.2"
+        },
+        "context": ["settings"],
+        "feature": {
+            "name": "data-clearing",
+            "status": ["SUCCESS", "FAILURE", "UNKNOWN"],
+            "data": {
+                "ext": {
+                    "trigger": {
+                        "type": "string",
+                        "description": "What initiated the clearing flow",
+                        "enum": ["manualFire", "autoClearOnLaunch"]
+                    },
+                    "actions": {
+                        "type": "object",
+                        "description": "Per-action metrics keyed by action name",
+                        "additionalProperties": false,
+                        "properties": {
+                            "clear_tabs": "dataClearingActionMetrics",
+                            "clear_all_history": "dataClearingActionMetrics"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

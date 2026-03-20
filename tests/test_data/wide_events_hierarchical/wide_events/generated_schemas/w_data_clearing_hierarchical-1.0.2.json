@@ -1,0 +1,146 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "Demonstrates hierarchical action metrics without key patterns.",
+    "$comment": "{\"owners\":[\"tester\"]}",
+    "type": "object",
+    "required": ["meta", "global", "feature", "app", "context"],
+    "additionalProperties": false,
+    "properties": {
+        "meta": {
+            "type": "object",
+            "required": ["type", "version"],
+            "additionalProperties": false,
+            "properties": {
+                "type": { "const": "w_data_clearing_hierarchical" },
+                "version": { "const": "1.0.2" }
+            }
+        },
+        "app": {
+            "type": "object",
+            "required": ["name", "version"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "description": "The name of the application", "enum": ["Windows"] },
+                "version": { "type": "string", "description": "The version of the application", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+            }
+        },
+        "global": {
+            "type": "object",
+            "required": ["platform", "type", "sample_rate"],
+            "additionalProperties": false,
+            "properties": {
+                "platform": { "type": "string", "description": "The platform the app is running on", "enum": ["Windows"] },
+                "type": { "type": "string", "description": "The type of application", "enum": ["app"] },
+                "sample_rate": { "type": "number", "description": "Sample rate for this event", "minimum": 0, "maximum": 1 }
+            }
+        },
+        "feature": {
+            "type": "object",
+            "required": ["name", "status", "data"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "description": "The feature name for this event", "enum": ["data-clearing"] },
+                "status": {
+                    "type": "string",
+                    "description": "The overall status of the operation",
+                    "enum": ["SUCCESS", "FAILURE", "UNKNOWN"]
+                },
+                "data": {
+                    "type": "object",
+                    "required": ["ext"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "ext": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "trigger": {
+                                    "type": "string",
+                                    "description": "What initiated the clearing flow",
+                                    "enum": ["manualFire", "autoClearOnLaunch"]
+                                },
+                                "actions": {
+                                    "type": "object",
+                                    "description": "Per-action metrics keyed by action name",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "clear_tabs": {
+                                            "type": "object",
+                                            "required": ["status", "latency_ms", "error"],
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Final status of this action",
+                                                    "enum": ["SUCCESS", "FAILURE"]
+                                                },
+                                                "latency_ms": {
+                                                    "type": "integer",
+                                                    "description": "Action latency in milliseconds"
+                                                },
+                                                "error": {
+                                                    "type": "object",
+                                                    "required": ["domain", "code", "description", "underlying_domain", "underlying_code"],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "domain": { "type": "string", "description": "Top-level error domain" },
+                                                        "code": { "type": "integer", "description": "Top-level error code" },
+                                                        "description": {
+                                                            "type": "string",
+                                                            "description": "Human-readable error description"
+                                                        },
+                                                        "underlying_domain": { "type": "string", "description": "Underlying error domain" },
+                                                        "underlying_code": { "type": "integer", "description": "Underlying error code" }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "clear_all_history": {
+                                            "type": "object",
+                                            "required": ["status", "latency_ms", "error"],
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "description": "Final status of this action",
+                                                    "enum": ["SUCCESS", "FAILURE"]
+                                                },
+                                                "latency_ms": {
+                                                    "type": "integer",
+                                                    "description": "Action latency in milliseconds"
+                                                },
+                                                "error": {
+                                                    "type": "object",
+                                                    "required": ["domain", "code", "description", "underlying_domain", "underlying_code"],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "domain": { "type": "string", "description": "Top-level error domain" },
+                                                        "code": { "type": "integer", "description": "Top-level error code" },
+                                                        "description": {
+                                                            "type": "string",
+                                                            "description": "Human-readable error description"
+                                                        },
+                                                        "underlying_domain": { "type": "string", "description": "Underlying error domain" },
+                                                        "underlying_code": { "type": "integer", "description": "Underlying error code" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "context": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "description": "Context name for the event", "enum": ["settings"] }
+            }
+        }
+    }
+}

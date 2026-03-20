@@ -1,0 +1,75 @@
+{
+    "dataClearingActionError": {
+        "type": "object",
+        "description": "Error details for a failed data-clearing action",
+        "required": ["domain", "code", "description", "underlying_domain", "underlying_code"],
+        "additionalProperties": false,
+        "properties": {
+            "domain": {
+                "type": "string",
+                "description": "Top-level error domain"
+            },
+            "code": {
+                "type": "integer",
+                "description": "Top-level error code"
+            },
+            "description": {
+                "type": "string",
+                "description": "Human-readable error description"
+            },
+            "underlying_domain": {
+                "type": "string",
+                "description": "Underlying error domain"
+            },
+            "underlying_code": {
+                "type": "integer",
+                "description": "Underlying error code"
+            }
+        }
+    },
+    "dataClearingActionMetrics": {
+        "type": "object",
+        "description": "Per-action data-clearing metrics",
+        "required": ["status", "latency_ms", "error"],
+        "additionalProperties": false,
+        "properties": {
+            "status": {
+                "type": "string",
+                "description": "Final status of this action",
+                "enum": ["SUCCESS", "FAILURE"]
+            },
+            "latency_ms": {
+                "type": "integer",
+                "description": "Action latency in milliseconds"
+            },
+            "error": {
+                "type": "object",
+                "description": "Error details for a failed data-clearing action",
+                "required": ["domain", "code", "description", "underlying_domain", "underlying_code"],
+                "additionalProperties": false,
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "description": "Top-level error domain"
+                    },
+                    "code": {
+                        "type": "integer",
+                        "description": "Top-level error code"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Human-readable error description"
+                    },
+                    "underlying_domain": {
+                        "type": "string",
+                        "description": "Underlying error domain"
+                    },
+                    "underlying_code": {
+                        "type": "integer",
+                        "description": "Underlying error code"
+                    }
+                }
+            }
+        }
+    }
+}
