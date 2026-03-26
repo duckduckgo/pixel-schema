@@ -85,7 +85,6 @@ Each pixel **must** contain the following properties:
   * `other`: catch-all
 
 Additionally, a pixel **may** contain the following properties:
-* `requireVersion` - when set to `true`, **live validation** will treat any pixel instances without a version param as being out of date.  Defaults to `false`.
 
 #### Pixels with dynamic names
 If the pixel name is parameterized, you can utilize the `suffixes` property.

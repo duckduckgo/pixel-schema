@@ -58,10 +58,6 @@
                         ]
                     }
                 },
-                "requireVersion": {
-                    "type": "boolean",
-                    "description": "Whether pixels lacking version info shoudld be skipped.  Default is false (all pixels included)."
-                },
                 "suffixes": {
                     "type": "array",
                     "description": "List of pixel suffix combinations under the main pixel prefix. Can be a shortcut to a common suffix",

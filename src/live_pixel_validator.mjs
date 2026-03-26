@@ -157,12 +157,10 @@ export class LivePixelsValidator {
             const paramsSchema = paramsValidator.compileParamsSchema(normalizedParams, currentPrefix);
             const suffixesSchema = paramsValidator.compileSuffixesSchema(parsedSuffixes);
             const owners = pixelDef.owners;
-            const requireVersion = pixelDef.requireVersion ?? false;
             tokenizedPixels[prefixPart] = {
                 paramsSchema,
                 suffixesSchema,
                 owners,
-                requireVersion,
             };
         });
     }
@@ -278,7 +276,6 @@ export class LivePixelsValidator {
         // Found a match: remember owners
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         this.#currentPixelState.owners = pixelMatch.owners;
-        this.#currentPixelState.requireVersion = pixelMatch.requireVersion;
 
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
         return this.#currentPixelState;
@@ -302,8 +299,9 @@ export class LivePixelsValidator {
         });
 
         if (this.#defsVersionKey && this.#defsVersion) {
-            // 1) Skip pixels where requireVersion is set but version param is absent
-            if (this.#currentPixelState.requireVersion && !paramsStruct[this.#defsVersionKey]) {
+            const hasTargetVersionParam = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
+            // 1) Skip pixels that define the app version key but do not include it in the live params.
+            if (hasTargetVersionParam && !paramsStruct[this.#defsVersionKey]) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
             }
