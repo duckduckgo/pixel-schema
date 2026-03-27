@@ -42,7 +42,11 @@
                     "type": "array",
                     "items": { "type": "string" }
                 },
-                "exclusionGroup": { "type": "string" }
+                "exclusionGroup": { "type": "string" },
+                "is_triggering": {
+                    "description": "Whether this experiment impacts Instant Answer triggering",
+                    "type": "boolean"
+                }
             }
         }
     }
