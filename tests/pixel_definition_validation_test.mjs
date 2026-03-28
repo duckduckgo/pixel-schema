@@ -1,4 +1,9 @@
 import { expect } from 'chai';
+import Ajv2020 from 'ajv/dist/2020.js';
+import fs from 'fs';
+import JSON5 from 'json5';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -1322,5 +1327,83 @@ describe('Wide Event required fields follow metaschema', () => {
         expect(generated.properties.global.required).to.deep.equal(['platform', 'type', 'sample_rate']);
         expect(generated.properties.feature.required).to.deep.equal(['name', 'status', 'data']);
         expect(generated.properties.context.required).to.deep.equal(['name']);
+    });
+});
+
+describe('Wide Event metaschema section definitions', () => {
+    const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas');
+    const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
+    const propSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'prop_schema.json5')).toString());
+
+    // eslint-disable-next-line new-cap
+    const ajv = new Ajv2020.default({ allErrors: true });
+    ajv.addSchema(propSchema);
+
+    const contextSchemaValidator = ajv.compile({
+        $ref: '#/$defs/contextSchemaProperty',
+        $defs: wideEventSchema.$defs,
+    });
+
+    const journeySchemaValidator = ajv.compile({
+        $ref: '#/$defs/journeySchemaProperty',
+        $defs: wideEventSchema.$defs,
+    });
+
+    it('accepts a valid contextSchemaProperty section', () => {
+        const validContextSection = {
+            type: 'object',
+            required: ['name'],
+            additionalProperties: false,
+            properties: {
+                name: {
+                    type: 'string',
+                    description: 'Context name',
+                    enum: ['onboarding', 'settings'],
+                },
+            },
+        };
+
+        expect(contextSchemaValidator(validContextSection)).to.be.true;
+    });
+
+    it('rejects an invalid contextSchemaProperty section', () => {
+        const invalidContextSection = {
+            type: 'object',
+            required: ['name'],
+            additionalProperties: false,
+            properties: {},
+        };
+
+        expect(contextSchemaValidator(invalidContextSection)).to.be.false;
+        expect(contextSchemaValidator.errors?.some((error) => error.message?.includes("must have required property 'name'"))).to.be.true;
+    });
+
+    it('accepts a valid journeySchemaProperty section', () => {
+        const validJourneySection = {
+            type: 'object',
+            required: ['name'],
+            additionalProperties: false,
+            properties: {
+                name: {
+                    type: 'string',
+                    description: 'Journey name',
+                    enum: ['first_run', 'returning_user'],
+                },
+            },
+        };
+
+        expect(journeySchemaValidator(validJourneySection)).to.be.true;
+    });
+
+    it('rejects an invalid journeySchemaProperty section', () => {
+        const invalidJourneySection = {
+            type: 'object',
+            required: ['name'],
+            additionalProperties: false,
+            properties: {},
+        };
+
+        expect(journeySchemaValidator(invalidJourneySection)).to.be.false;
+        expect(journeySchemaValidator.errors?.some((error) => error.message?.includes("must have required property 'name'"))).to.be.true;
     });
 });
