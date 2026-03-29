@@ -308,11 +308,11 @@
                     "required": ["name"],
                     "properties": {
                         "name": { "$ref": "#/$defs/stringEnumProperty" }
-		            },
-		            "additionalProperties": false
-		        }
-	        },
-	        "additionalProperties": false
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
         },
 
         // The main wide event schema definition
