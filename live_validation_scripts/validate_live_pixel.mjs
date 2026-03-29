@@ -57,12 +57,18 @@ async function main(mainDir, csvFile) {
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {
+            const unusedPixelDefinitions = liveValidator.getUnusedPixelNames();
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
             console.log(`Undocumented pixels: ${undocumentedPixels.size.toLocaleString('en-US')}`);
             console.log(`Pixels with validation errors: ${Object.keys(pixelErrors).length.toLocaleString('en-US')}`);
+            console.log(`Unused pixel definitions: ${unusedPixelDefinitions.length.toLocaleString('en-US')}`);
+            if (unusedPixelDefinitions.length > 0) {
+                console.log(`Unused pixel definition names: ${unusedPixelDefinitions.join(', ')}`);
+            }
 
             fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(pixelsConfigDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
             fs.writeFileSync(fileUtils.getPixelErrorsPath(pixelsConfigDir), JSON.stringify(pixelErrors, setReplacer, 4));
+            fs.writeFileSync(fileUtils.getUnusedPixelDefinitionsPath(pixelsConfigDir), JSON.stringify(unusedPixelDefinitions, null, 4));
             console.log(`Validation results saved to ${fileUtils.getResultsDir(pixelsConfigDir)}`);
         });
 }

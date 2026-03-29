@@ -183,6 +183,15 @@ export function getUndocumentedPixelsPath(mainPixelDir) {
 }
 
 /**
+ * Get path to unused pixel definitions encountered during live validation
+ * @param {string} mainPixelDir - path to the main pixels directory
+ * @returns {string} unused pixel definitions path
+ */
+export function getUnusedPixelDefinitionsPath(mainPixelDir) {
+    return getResultsFilePath(mainPixelDir, 'unused_pixel_definitions.json');
+}
+
+/**
  * Get tokenized pixels path
  * @param {string} mainPixelDir - path to the main pixels directory
  * @returns {string} tokenized pixels path

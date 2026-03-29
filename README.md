@@ -201,6 +201,9 @@ To avoid having to put your pixel defintions on a dev node and setup there, simp
 
 4. Validate: `./scripts/revalidateRepo.sh <Path to your client repo's PixelDefintions>`
 5. Review errors in `<Path to your client repo's PixelDefintions/pixels/pixel_processing_results/>`
+    * `pixel_errors.json`: documented pixels that failed validation
+    * `undocumented_pixels.json`: live pixels with no matching definition
+    * `unused_pixel_definitions.json`: defined pixel names not seen during live validation (name only, suffix/params ignored; excludes `native_experiments.json`)
 
 As needed, you can re-run step 4 and step 5 after updating your definitions.
 

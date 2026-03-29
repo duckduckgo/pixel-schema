@@ -569,3 +569,44 @@ describe('Key pattern parameters with explicit types', () => {
         expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
     });
 });
+
+describe('Used and unused pixel definition tracking', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const pixelDefs = {
+        tracked_pixel: {
+            description: 'tracked pixel',
+            owners: ['tester'],
+            triggers: ['other'],
+            suffixes: [
+                {
+                    enum: ['a', 'b'],
+                },
+            ],
+        },
+        never_seen_pixel: {
+            description: 'unused pixel',
+            owners: ['tester'],
+            triggers: ['other'],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const experimentsDef = {
+        activeExperiments: {
+            expA: {
+                cohorts: ['control'],
+                metrics: {},
+            },
+        },
+    };
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, experimentsDef, paramsValidator);
+
+    it('tracks usage by pixel name only and reports unused regular definitions', () => {
+        liveValidator.validatePixel(`tracked${PIXEL_DELIMITER}pixel${PIXEL_DELIMITER}a`, '');
+        liveValidator.validatePixel(`tracked${PIXEL_DELIMITER}pixel${PIXEL_DELIMITER}b`, '');
+        liveValidator.validatePixel(`experiment${PIXEL_DELIMITER}metrics${PIXEL_DELIMITER}expA${PIXEL_DELIMITER}control`, 'metric=app_use&value=1');
+
+        expect(liveValidator.getUsedPixelNames()).to.include.members(['experiment_metrics_expA', 'tracked_pixel']);
+        expect(liveValidator.getUnusedPixelNames()).to.deep.equal(['never_seen_pixel']);
+    });
+});
