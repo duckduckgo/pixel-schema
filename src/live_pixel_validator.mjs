@@ -16,6 +16,8 @@ export class LivePixelsValidator {
     #defsVersion;
     #defsVersionKey;
     #forceLowerCase;
+    #definedPixelNames;
+    #usedPixelNames;
 
     #commonExperimentParamsSchema;
     #commonExperimentSuffixesSchema;
@@ -32,6 +34,7 @@ export class LivePixelsValidator {
     constructor(tokenizedPixels, productDef, experimentsDef, paramsValidator) {
         this.#initPixelState();
         this.#forceLowerCase = productDef.forceLowerCase;
+        this.#usedPixelNames = new Set();
         // version should be resolved before constructing validator (via resolveTargetVersion)
         if (productDef.target.version) {
             this.#defsVersion = this.#getNormalizedVal(productDef.target.version);
@@ -58,6 +61,8 @@ export class LivePixelsValidator {
             experimentDef.metrics.app_use = defaultsSchema;
             experimentDef.metrics.search = defaultsSchema;
         });
+
+        this.#definedPixelNames = this.#collectDefinedPixelNames(tokenizedPixels);
     }
 
     /**
@@ -181,6 +186,58 @@ export class LivePixelsValidator {
     }
 
     /**
+     * Builds a list of all defined pixel names.
+     * Includes only regular pixel definitions from the `pixels/definitions` files.
+     *
+     * @param {object} tokenizedPixels tokenized regular pixel definitions.
+     * @returns {Set<string>} all pixel definition names.
+     */
+    #collectDefinedPixelNames(tokenizedPixels) {
+        const names = new Set();
+
+        const walkTokenizedDefs = (node, prefix = '') => {
+            Object.entries(node).forEach(([key, value]) => {
+                if (key === ROOT_PREFIX) {
+                    if (prefix) {
+                        names.add(prefix);
+                    }
+                    return;
+                }
+                const nextPrefix = prefix ? `${prefix}${PIXEL_DELIMITER}${key}` : key;
+                walkTokenizedDefs(value, nextPrefix);
+            });
+        };
+
+        walkTokenizedDefs(tokenizedPixels);
+
+        return names;
+    }
+
+    /**
+     * Returns all defined pixel names, sorted alphabetically.
+     * @returns {string[]} list of all pixel definition names.
+     */
+    getDefinedPixelNames() {
+        return Array.from(this.#definedPixelNames).sort();
+    }
+
+    /**
+     * Returns all used pixel names, sorted alphabetically.
+     * @returns {string[]} list of used pixel definition names.
+     */
+    getUsedPixelNames() {
+        return Array.from(this.#usedPixelNames).sort();
+    }
+
+    /**
+     * Returns pixel definition names that were never matched during validation.
+     * @returns {string[]} list of unused pixel definition names.
+     */
+    getUnusedPixelNames() {
+        return this.getDefinedPixelNames().filter((pixelName) => !this.#usedPixelNames.has(pixelName));
+    }
+
+    /**
      * Validates a native experiment pixel name and parameters.
      * @param {string} pixel full pixel name.
      * @param {string} paramsUrlFormat query string without cache buster.
@@ -209,6 +266,7 @@ export class LivePixelsValidator {
             this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
             return this.#currentPixelState;
         }
+        this.#usedPixelNames.add(pixelPrefix);
 
         // Check cohort
         const cohortName = pixelParts[2];
@@ -279,6 +337,7 @@ export class LivePixelsValidator {
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         this.#currentPixelState.owners = pixelMatch.owners;
         this.#currentPixelState.requireVersion = pixelMatch.requireVersion;
+        this.#usedPixelNames.add(prefix);
 
         this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
         return this.#currentPixelState;

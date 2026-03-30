@@ -116,6 +116,14 @@ describe('Validate live pixels', () => {
                 );
                 expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
 
+                const unusedPixelDefinitions = JSON5.parse(
+                    fs.readFileSync(fileUtils.getUnusedPixelDefinitionsPath(path.join(validDefsPath, 'pixels'))).toString(),
+                );
+                const expectedUnusedDefinitions = JSON5.parse(
+                    fs.readFileSync(path.join(liveValidationResultsPath, 'unused_pixel_definitions.json')).toString(),
+                );
+                expect(unusedPixelDefinitions).to.deep.equal(expectedUnusedDefinitions);
+
                 done();
             });
         });
@@ -140,6 +148,11 @@ describe('Validate live pixels', () => {
                         fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
                     );
                     expect(undocumentedPixels).to.be.empty;
+
+                    const unusedPixelDefinitions = JSON5.parse(
+                        fs.readFileSync(fileUtils.getUnusedPixelDefinitionsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
+                    );
+                    expect(unusedPixelDefinitions).to.be.empty;
 
                     done();
                 },

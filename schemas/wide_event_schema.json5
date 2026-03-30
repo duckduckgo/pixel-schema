@@ -292,6 +292,28 @@
             },
             "additionalProperties": false
         },
+        "journeySchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the journey section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringEnumProperty" }
+		            },
+		            "additionalProperties": false
+		        }
+	        },
+	        "additionalProperties": false
+        },
 
         // The main wide event schema definition
         // This is a JSON Schema that validates wide event data
@@ -334,7 +356,8 @@
                         "app": { "$ref": "#/$defs/appSchemaProperty" },
                         "global": { "$ref": "#/$defs/globalSchemaProperty" },
                         "feature": { "$ref": "#/$defs/featureSchemaProperty" },
-                        "context": { "$ref": "#/$defs/contextSchemaProperty" }
+                        "context": { "$ref": "#/$defs/contextSchemaProperty" },
+                        "journey": { "$ref": "#/$defs/journeySchemaProperty" }
                     }
                 }
             }
