@@ -5,7 +5,8 @@
         "assignment": "backend_spu",
         "persistent": false,
         "variants": ["a", "b"],
-        "services": ["deep"]
+        "services": ["deep"],
+        "is_triggering": true
     },
     "expValidB": {
         "allocation": 1.0,
