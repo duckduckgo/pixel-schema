@@ -84,7 +84,6 @@ Each pixel **must** contain the following properties:
   * `exception`: pixel fires when an exception/crash occurs
   * `other`: catch-all
 
-Additionally, a pixel **may** contain the following properties:
 
 #### Pixels with dynamic names
 If the pixel name is parameterized, you can utilize the `suffixes` property.
