@@ -132,6 +132,32 @@
             },
             "additionalProperties": false
         },
+        "serviceSchemaProperty": {
+            "type": "object",
+            "description": "JSON Schema for the service section",
+            "required": ["type", "required", "additionalProperties", "properties"],
+            "properties": {
+                "type": { "const": "object" },
+                "required": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "additionalProperties": { "const": false },
+                "properties": {
+                    "type": "object",
+                    "required": ["name", "version", "host", "region", "environment"],
+                    "properties": {
+                        "name": { "$ref": "#/$defs/stringValueProperty" },
+                        "version": { "$ref": "#/$defs/stringValueProperty" },
+                        "host": { "$ref": "#/$defs/stringValueProperty" },
+                        "region": { "$ref": "#/$defs/stringValueProperty" },
+                        "environment": { "$ref": "#/$defs/stringValueProperty" }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "dataSchemaProperty": {
             "type": "object",
             "description": "JSON Schema for the feature.data section",
@@ -351,9 +377,20 @@
                     "description": "Property schemas for validating wide event data",
                     "required": ["meta", "global", "feature"],
                     "additionalProperties": false,
+                    "oneOf": [
+                        {
+                            "required": ["app"],
+                            "not": { "required": ["service"] }
+                        },
+                        {
+                            "required": ["service"],
+                            "not": { "required": ["app"] }
+                        }
+                    ],
                     "properties": {
                         "meta": { "$ref": "#/$defs/metaSchemaProperty" },
                         "app": { "$ref": "#/$defs/appSchemaProperty" },
+                        "service": { "$ref": "#/$defs/serviceSchemaProperty" },
                         "global": { "$ref": "#/$defs/globalSchemaProperty" },
                         "feature": { "$ref": "#/$defs/featureSchemaProperty" },
                         "context": { "$ref": "#/$defs/contextSchemaProperty" },
