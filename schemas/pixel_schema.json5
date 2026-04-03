@@ -13,7 +13,7 @@
                 },
                 {
                     "type": "string",
-                    "pattern": ".*\\..*" // `.` not allowed - pixel names must use `_` instead
+                    "pattern": "[^a-z0-9_-]+" // expect '_' for '.', otherwise only '-', lowercase alpha and numbers
                 }
             ]
         }

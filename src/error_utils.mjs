@@ -32,7 +32,8 @@ function formatAjvErrors(validationErrors, suffixes = null) {
 
             if (error.message === 'property name must be valid') {
                 formattedError = `Invalid property name '${error.params.propertyName}'. If this is a pixel:`;
-                formattedError += `\n\t* pixel names must not contain '.' --> use '_' instead`;
+                formattedError += `\n\t* pixel names must only contain lowercase alpha, numbers, and '_' & '-' ( [a-z0-9_-] )`;
+                formattedError += `\n\t* for pixel delimiter use '_' instead of '.'`;
                 formattedError += `\n\t* experiments must be defined in the 'native_experiments.json' file`;
             }
         }
