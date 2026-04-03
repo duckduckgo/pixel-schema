@@ -10,7 +10,6 @@ describe('queryWindowInDays integration', () => {
     it('skips version checks when product.json only has queryWindowInDays', () => {
         const pixelDefs = {
             versionRequiredPixel: {
-                requireVersion: true,
                 parameters: [
                     {
                         key: 'appVersion',
@@ -23,19 +22,19 @@ describe('queryWindowInDays integration', () => {
                 ],
             },
         };
-        const tokenized = buildTokenizedPixels([pixelDefs]);
-
         // Test only queryWindowInDays
+        const queryWindowTokenized = buildTokenizedPixels([pixelDefs]);
         const productDefPath = path.join('tests', 'test_data', 'query_window', 'product.json');
         const queryWindowDef = JSON5.parse(fs.readFileSync(productDefPath));
-        const queryWindowValidator = buildLivePixelValidator({}, {}, queryWindowDef, {}, tokenized);
+        const queryWindowValidator = buildLivePixelValidator({}, {}, queryWindowDef, {}, queryWindowTokenized);
         const queryWindowResult = queryWindowValidator.validatePixel('versionRequiredPixel', 'param1=test');
 
         // Test queryWindowInDays + version
+        const versionTokenized = buildTokenizedPixels([pixelDefs]);
         const productDefWithVersion = JSON.parse(JSON.stringify(queryWindowDef));
         productDefWithVersion.target.version = '2.0.0';
         productDefWithVersion.target.key = 'appVersion';
-        const versionValidator = buildLivePixelValidator({}, {}, productDefWithVersion, {}, tokenized);
+        const versionValidator = buildLivePixelValidator({}, {}, productDefWithVersion, {}, versionTokenized);
         const versionResult = versionValidator.validatePixel('versionRequiredPixel', 'appVersion=1.0.0&param1=test');
 
         expect(versionResult.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);

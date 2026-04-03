@@ -5,14 +5,15 @@ m.my.first.pixel.test,[],
 m.my.first.pixel.test,['expValidA=a'],
 m.my.first.pixel.test,['extraParam=10'],
 m.my.first.pixel.test.extra-suffix,[],
-m.my.first.pixel.unexpected-suffix,[],
-m.my.first.pixel.new.unexpected-suffix2,[],
-m.my.first.pixel.new.exceptiontype.some-exception.unexpected-suffix3,[],
-m.my.first.pixel.new.exceptiontype.x.android.unexpected-4,[],
+m.my.first.pixel.unexpected-suffix,[],appVersion=2.0.3
+m.my.first.pixel.new.unexpected-suffix2,[],appVersion=2.0.3
+m.my.first.pixel.new.exceptiontype.some-exception.unexpected-suffix3,[],appVersion=2.0.3
+m.my.first.pixel.new.exceptiontype.x.android.unexpected-4,[],appVersion=2.0.3
 m.my.first.pixel.new.exceptiontype.x.android.phone,[],appVersion=wrongFormat
 m.my.first.pixel.skip-due-to-version,"['count=unexpectedButSkip']",appVersion=0.0
 m.my.first.pixel,"['count=wrongFormat']",appVersion=2.0.0
 m.my.first.pixel,"['count=42', 'date=2025-03-12']",appVersion=2.0.3
+m.my.first.pixel,['count=42'],
 experiment.enroll.defaultBrowser.control,"['enrollmentDate=2025-04-22', 'conversionWindowDays=8-15']",
 experiment.enroll.defaultBrowser.control,"['enrollmentDate=not_a_date', 'conversionWindowDays=x-x-x']",
 experiment.enroll.x,[],
