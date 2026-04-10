@@ -1,9 +1,4 @@
 import { expect } from 'chai';
-import Ajv2020 from 'ajv/dist/2020.js';
-import fs from 'fs';
-import JSON5 from 'json5';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -1330,80 +1325,95 @@ describe('Wide Event required fields follow metaschema', () => {
     });
 });
 
-describe('Wide Event metaschema section definitions', () => {
-    const schemasPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas');
-    const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
-    const propSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'prop_schema.json5')).toString());
+describe('Wide Event app/service section handling', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+    const event = {
+        w_app_or_service: {
+            description: 'Validates app xor service section generation',
+            owners: ['tester'],
+            meta: { type: 'w_app_or_service', version: '0.0' },
+            feature: {
+                name: 'feature',
+                status: ['SUCCESS'],
+                data: { ext: {} },
+            },
+        },
+    };
 
-    // eslint-disable-next-line new-cap
-    const ajv = new Ajv2020.default({ allErrors: true });
-    ajv.addSchema(propSchema);
+    const baseCommon = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Linux'] },
+            type: { type: 'string', description: 'Type', enum: ['service', 'app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+    };
 
-    const contextSchemaValidator = ajv.compile({
-        $ref: '#/$defs/contextSchemaProperty',
-        $defs: wideEventSchema.$defs,
-    });
-
-    const journeySchemaValidator = ajv.compile({
-        $ref: '#/$defs/journeySchemaProperty',
-        $defs: wideEventSchema.$defs,
-    });
-
-    it('accepts a valid contextSchemaProperty section', () => {
-        const validContextSection = {
-            type: 'object',
-            required: ['name'],
-            additionalProperties: false,
-            properties: {
-                name: {
-                    type: 'string',
-                    description: 'Context name',
-                    enum: ['onboarding', 'settings'],
-                },
+    it('supports app section from base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            app: {
+                name: { type: 'string', description: 'App name', enum: ['Windows'] },
+                version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
             },
         };
-
-        expect(contextSchemaValidator(validContextSection)).to.be.true;
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_app_or_service;
+        expect(generated.properties).to.have.property('app');
+        expect(generated.properties).to.not.have.property('service');
     });
 
-    it('rejects an invalid contextSchemaProperty section', () => {
-        const invalidContextSection = {
-            type: 'object',
-            required: ['name'],
-            additionalProperties: false,
-            properties: {},
-        };
-
-        expect(contextSchemaValidator(invalidContextSection)).to.be.false;
-        expect(contextSchemaValidator.errors?.some((error) => error.message?.includes("must have required property 'name'"))).to.be.true;
-    });
-
-    it('accepts a valid journeySchemaProperty section', () => {
-        const validJourneySection = {
-            type: 'object',
-            required: ['name'],
-            additionalProperties: false,
-            properties: {
-                name: {
-                    type: 'string',
-                    description: 'Journey name',
-                    enum: ['first_run', 'returning_user'],
-                },
+    it('supports service section from base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            service: {
+                name: { type: 'string', description: 'Service name' },
+                version: { type: 'string', description: 'Service version' },
+                host: { type: 'string', description: 'Host name' },
+                region: { type: 'string', description: 'Region name' },
+                environment: { type: 'string', description: 'Environment name' },
             },
         };
-
-        expect(journeySchemaValidator(validJourneySection)).to.be.true;
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_app_or_service;
+        expect(generated.properties).to.have.property('service');
+        expect(generated.properties).to.not.have.property('app');
+        expect(generated.properties.service.required).to.deep.equal(['name', 'version', 'host', 'region', 'environment']);
     });
 
-    it('rejects an invalid journeySchemaProperty section', () => {
-        const invalidJourneySection = {
-            type: 'object',
-            required: ['name'],
-            additionalProperties: false,
-            properties: {},
+    it('rejects schema generation when both app and service are present in base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            app: {
+                name: { type: 'string', description: 'App name', enum: ['Windows'] },
+                version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            },
+            service: {
+                name: { type: 'string', description: 'Service name' },
+                version: { type: 'string', description: 'Service version' },
+                host: { type: 'string', description: 'Host name' },
+                region: { type: 'string', description: 'Region name' },
+                environment: { type: 'string', description: 'Environment name' },
+            },
         };
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
+    });
 
-        expect(journeySchemaValidator(invalidJourneySection)).to.be.false;
-        expect(journeySchemaValidator.errors?.some((error) => error.message?.includes("must have required property 'name'"))).to.be.true;
+    it('rejects schema generation when neither app nor service are present in base_event', () => {
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseCommon);
+        expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
     });
 });

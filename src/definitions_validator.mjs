@@ -280,6 +280,7 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         // Determine required top-level properties
         const requiredProps = ['meta', 'global', 'feature'];
         if (baseEvent.app) requiredProps.push('app');
+        if (baseEvent.service) requiredProps.push('service');
         if (eventDef.context) requiredProps.push('context');
 
         // Build properties object
@@ -301,6 +302,11 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             const appProps = JSON.parse(JSON.stringify(baseEvent.app));
             const appRequired = getSectionRequiredKeysFromMetaSchema('app');
             properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
+        }
+        if (baseEvent.service) {
+            const serviceProps = JSON.parse(JSON.stringify(baseEvent.service));
+            const serviceRequired = getSectionRequiredKeysFromMetaSchema('service');
+            properties.service = this.#wrapSectionAsJsonSchema(serviceProps, serviceRequired);
         }
 
         // global section from base_event
@@ -449,6 +455,10 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             }
             if (eventDef.app) {
                 const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
+                errors.push(error);
+            }
+            if (eventDef.service) {
+                const error = `${eventName}: 'service' section should not be defined in event - it comes from base_event.json`;
                 errors.push(error);
             }
             if (eventDef.global) {
