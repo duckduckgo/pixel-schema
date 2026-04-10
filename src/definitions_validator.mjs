@@ -21,15 +21,8 @@ const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPat
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
 
-const WIDE_EVENT_SECTION_SCHEMA_DEF_MAP = {
-    app: 'appSchemaProperty',
-    global: 'globalSchemaProperty',
-    feature: 'featureSchemaProperty',
-    context: 'contextSchemaProperty',
-};
-
 function getSectionRequiredKeysFromMetaSchema(sectionName) {
-    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const schemaDefName = `${sectionName}SchemaProperty`;
     const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
     const required = sectionDef?.properties?.properties?.required;
     return Array.isArray(required) ? [...required] : [];
