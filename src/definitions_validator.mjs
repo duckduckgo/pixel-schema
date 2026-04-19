@@ -20,6 +20,8 @@ const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_
 const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')).toString());
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
+const WIDE_EVENT_OPTIONAL_BASE_SECTIONS = ['app', 'service'];
+const WIDE_EVENT_DISALLOWED_EVENT_SECTIONS = ['app', 'service', 'global'];
 
 function getSectionRequiredKeysFromMetaSchema(sectionName) {
     const schemaDefName = `${sectionName}SchemaProperty`;
@@ -279,8 +281,9 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // Determine required top-level properties
         const requiredProps = ['meta', 'global', 'feature'];
-        if (baseEvent.app) requiredProps.push('app');
-        if (baseEvent.service) requiredProps.push('service');
+        for (const sectionName of WIDE_EVENT_OPTIONAL_BASE_SECTIONS) {
+            if (baseEvent[sectionName]) requiredProps.push(sectionName);
+        }
         if (eventDef.context) requiredProps.push('context');
 
         // Build properties object
@@ -297,16 +300,12 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             },
         };
 
-        // app section from base_event (if present)
-        if (baseEvent.app) {
-            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
-            const appRequired = getSectionRequiredKeysFromMetaSchema('app');
-            properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
-        }
-        if (baseEvent.service) {
-            const serviceProps = JSON.parse(JSON.stringify(baseEvent.service));
-            const serviceRequired = getSectionRequiredKeysFromMetaSchema('service');
-            properties.service = this.#wrapSectionAsJsonSchema(serviceProps, serviceRequired);
+        // Optional sections sourced from base_event (e.g. app/service)
+        for (const sectionName of WIDE_EVENT_OPTIONAL_BASE_SECTIONS) {
+            if (!baseEvent[sectionName]) continue;
+            const sectionProps = JSON.parse(JSON.stringify(baseEvent[sectionName]));
+            const sectionRequired = getSectionRequiredKeysFromMetaSchema(sectionName);
+            properties[sectionName] = this.#wrapSectionAsJsonSchema(sectionProps, sectionRequired);
         }
 
         // global section from base_event
@@ -453,16 +452,9 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             if (eventDef.meta.type !== eventName) {
                 throw new Error(`${eventName}: 'meta.type' must match event key`);
             }
-            if (eventDef.app) {
-                const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
-                errors.push(error);
-            }
-            if (eventDef.service) {
-                const error = `${eventName}: 'service' section should not be defined in event - it comes from base_event.json`;
-                errors.push(error);
-            }
-            if (eventDef.global) {
-                const error = `${eventName}: 'global' section should not be defined in event - it comes from base_event.json`;
+            for (const sectionName of WIDE_EVENT_DISALLOWED_EVENT_SECTIONS) {
+                if (!eventDef[sectionName]) continue;
+                const error = `${eventName}: '${sectionName}' section should not be defined in event - it comes from base_event.json`;
                 errors.push(error);
             }
 
