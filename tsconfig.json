@@ -15,7 +15,8 @@
         "strictNullChecks": true,
         "maxNodeModuleJsDepth": 0,
         "useUnknownInCatchVariables": false,
-        "typeRoots": ["./node_modules/@types", "./types"]
+        "typeRoots": ["./node_modules/@types", "./types"],
+        "types": ["node"]
     },
     "include": ["main.mjs", "bin/**/*.mjs", "src/**/*.mjs"],
     "exclude": []
