@@ -157,8 +157,9 @@ describe('Validate pixel debug logs', () => {
 
             // Check errors
             const expectedErrors = [
-                `❌ Invalid: 'm_my_first_pixel?extraParam=hello' - see below for details`,
+                `❌ Invalid: 'm_my_first_pixel?extraParam=hello&appVersion=2.0.3' - see below for details`,
                 `\tmust NOT have additional properties. Found extra property 'extraParam'`,
+                "⚠️  Old app version, validation skipped: 'm_my_first_pixel?count=42&date=2025-03-12'",
                 "⚠️  Old app version, validation skipped: 'm_my_first_pixel?count=42&date=2025-03-12&appVersion=0.0.1'",
                 "⚠️  Undocumented: 'unknown-pixel'",
             ];
@@ -182,6 +183,7 @@ describe('Validate pixel debug logs', () => {
 
             // Check errors
             const expectedErrors = [
+                "⚠️  Old app version, validation skipped: 'm_my_first_pixel'",
                 `❌ Invalid: 'experiment_enroll_defaultBrowser_control?extraParam=20' - see below for details`,
                 `\tmust NOT have additional properties. Found extra property 'extraParam'`,
                 "⚠️  Undocumented: 'experiment_enroll_x'",
@@ -190,9 +192,8 @@ describe('Validate pixel debug logs', () => {
             expect(errors).to.include.members(expectedErrors);
 
             // Check regular output
-            const expectedLogs = ["✅ Valid: 'm_my_first_pixel'"];
             const logs = stdout.trim().split('\n');
-            expect(logs).to.include.members(expectedLogs);
+            expect(logs).to.not.include("✅ Valid: 'm_my_first_pixel'");
 
             done();
         });

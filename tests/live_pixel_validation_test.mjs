@@ -346,6 +346,15 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
+    it('missing app version should return OLD_APP_VERSION status by default', () => {
+        const prefix = 'versionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
     it('current app version should pass validation', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=2.0.0&param1=test';
@@ -469,7 +478,42 @@ describe('Case-insensitive suffix shortcut resolution', () => {
     });
 });
 
-describe('Require version', () => {
+describe('Require version defaults', () => {
+    const productDefWithVersion = {
+        target: {
+            key: 'appVersion',
+            version: '2.0.0',
+        },
+        agents: [],
+        forceLowerCase: false,
+    };
+
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const pixelDefs = {
+        nonVersionedPixel: {
+            parameters: [
+                {
+                    key: 'param1',
+                    type: 'string',
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDefWithVersion, {}, paramsValidator);
+
+    it('should not require app version when target key is not defined in the pixel params', () => {
+        const prefix = 'nonVersionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+});
+
+describe('Missing app version in versioned pixels', () => {
     const productDefWithVersion = {
         target: {
             key: 'appVersion',
@@ -482,7 +526,6 @@ describe('Require version', () => {
     const paramsValidator = new ParamsValidator({}, {}, {});
     const pixelDefs = {
         versionRequiredPixel: {
-            requireVersion: true,
             parameters: [
                 {
                     key: 'appVersion',
@@ -499,7 +542,7 @@ describe('Require version', () => {
     tokenizePixelDefs(pixelDefs, tokenizedDefs);
     const liveValidator = new LivePixelsValidator(tokenizedDefs, productDefWithVersion, {}, paramsValidator);
 
-    it('should return OLD_APP_VERSION status if version param is missing when required', () => {
+    it('should return OLD_APP_VERSION status if app version param is missing', () => {
         const prefix = 'versionRequiredPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
@@ -508,7 +551,7 @@ describe('Require version', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('should proceed with validation if version param is present when required', () => {
+    it('should proceed with validation if app version param is present', () => {
         const prefix = 'versionRequiredPixel';
         const params = 'appVersion=2.0.0&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
