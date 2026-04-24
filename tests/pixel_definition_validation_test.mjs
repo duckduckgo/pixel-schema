@@ -1417,3 +1417,105 @@ describe('Wide Event app/service section handling', () => {
         expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
     });
 });
+
+describe('Wide Event journey section handling', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+        journey: {
+            name: { type: 'string', description: 'Journey name' },
+        },
+    };
+
+    it('includes journey section when event definition provides it', () => {
+        const event = {
+            w_with_journey: {
+                description: 'Event with journey',
+                owners: ['tester'],
+                meta: { type: 'w_with_journey', version: '0.0' },
+                journey: ['first_run', 'returning_user'],
+                feature: {
+                    name: 'with-journey',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_with_journey;
+        expect(generated.properties).to.have.property('journey');
+        expect(generated.required).to.include('journey');
+        expect(generated.properties.journey.required).to.deep.equal(['name']);
+        expect(generated.properties.journey.properties.name.enum).to.deep.equal(['first_run', 'returning_user']);
+    });
+
+    it('omits journey section when event definition does not provide it', () => {
+        const event = {
+            w_without_journey: {
+                description: 'Event without journey',
+                owners: ['tester'],
+                meta: { type: 'w_without_journey', version: '0.0' },
+                feature: {
+                    name: 'without-journey',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_without_journey;
+        expect(generated.properties).to.not.have.property('journey');
+        expect(generated.required).to.not.include('journey');
+    });
+
+    it('works alongside context when both are present', () => {
+        const baseWithContext = {
+            ...baseEvent,
+            context: {
+                name: { type: 'string', description: 'Context name' },
+            },
+        };
+        const event = {
+            w_journey_and_context: {
+                description: 'Event with both journey and context',
+                owners: ['tester'],
+                meta: { type: 'w_journey_and_context', version: '0.0' },
+                context: ['settings'],
+                journey: ['onboarding'],
+                feature: {
+                    name: 'journey-and-context',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseWithContext);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_journey_and_context;
+        expect(generated.properties).to.have.property('context');
+        expect(generated.properties).to.have.property('journey');
+        expect(generated.properties.journey.properties.name.enum).to.deep.equal(['onboarding']);
+        expect(generated.properties.context.properties.name.enum).to.deep.equal(['settings']);
+    });
+});

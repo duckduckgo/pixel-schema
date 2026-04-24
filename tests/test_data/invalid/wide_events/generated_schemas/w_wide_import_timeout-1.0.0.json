@@ -42,6 +42,7 @@
                     "required": ["ext"],
                     "additionalProperties": false,
                     "properties": {
+                        "failure_detail": { "type": "string", "description": "Failure detail for timeout", "enum": ["TimeoutFailure"] },
                         "ext": {
                             "type": "object",
                             "additionalProperties": false,
@@ -70,8 +71,7 @@
                                     "enum": [1, 5, 10, 20, 50, 100, 500, 1000]
                                 }
                             }
-                        },
-                        "failure_detail": { "type": "string", "description": "Failure detail for timeout", "enum": ["TimeoutFailure"] }
+                        }
                     }
                 }
             }
