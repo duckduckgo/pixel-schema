@@ -125,7 +125,8 @@
                     "properties": {
                         "name": { "$ref": "#/$defs/stringEnumProperty" },
                         "version": { "$ref": "#/$defs/stringValueWithPatternProperty" },
-                        "form_factor": { "$ref": "#/$defs/form_factorDefinition" }
+                        "form_factor": { "$ref": "#/$defs/form_factorDefinition" },
+                        "dev_mode": { "$ref": "#/$defs/booleanProperty" }
                     },
                     "additionalProperties": false
                 }
@@ -249,6 +250,7 @@
                     "properties": {
                         "name": { "$ref": "#/$defs/stringEnumProperty" },
                         "status": { "$ref": "#/$defs/statusDefinition" },
+                        "status_reason": { "$ref": "#/$defs/stringEnumProperty" },
                         "data": { "$ref": "#/$defs/dataSchemaProperty" }
                     },
                     "additionalProperties": false

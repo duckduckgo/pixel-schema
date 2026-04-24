@@ -6,7 +6,7 @@
             "type": "w_wide_import_summary",
             "version": "0.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "data": {
@@ -124,7 +124,7 @@
             "type": "w_wide_import_credentials",
             "version": "0.0"
         },
-        "context": ["onboarding.import", "settings.import"],
+        "context": { "name": ["onboarding.import", "settings.import"] },
         "feature": {
             "data": {
                 "latency_ms_bucketed": {
@@ -175,7 +175,7 @@
             "type": "w_wide_import_timeout",
             "version": "0.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "status": ["FAILURE"],
@@ -220,7 +220,7 @@
             "type": "w_wide_import_cancelled",
             "version": "0.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "status": ["CANCELLED"],

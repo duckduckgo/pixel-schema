@@ -356,11 +356,17 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         properties.feature = this.#wrapSectionAsJsonSchema(featureProperties, featureRequired);
 
         // Optional sections sourced from event definition (e.g. context/journey)
-        // Deep clone from base_event and set name.enum from the event's array value.
+        // Deep clone base, then overlay each event-defined property (arrays become enums).
         for (const sectionName of WIDE_EVENT_EVENT_SECTIONS) {
             if (!eventDef[sectionName]) continue;
             const sectionProps = JSON.parse(JSON.stringify(baseEvent[sectionName] ?? {}));
-            sectionProps.name = { ...sectionProps.name, enum: eventDef[sectionName] };
+            for (const [key, value] of Object.entries(eventDef[sectionName])) {
+                if (Array.isArray(value)) {
+                    sectionProps[key] = { ...sectionProps[key], enum: value };
+                } else {
+                    sectionProps[key] = JSON.parse(JSON.stringify(value));
+                }
+            }
             const sectionRequired = getSectionRequiredKeysFromMetaSchema(sectionName);
             properties[sectionName] = this.#wrapSectionAsJsonSchema(sectionProps, sectionRequired);
         }

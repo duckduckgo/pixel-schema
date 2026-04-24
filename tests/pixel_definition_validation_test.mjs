@@ -630,7 +630,7 @@ describe('Wide Event Validation', () => {
                 type: 'w_test_event',
                 version: '0.0',
             },
-            context: ['test-context'],
+            context: { name: ['test-context'] },
             feature: {
                 name: 'test-feature',
                 status: ['SUCCESS'],
@@ -772,7 +772,7 @@ describe('Wide Event Validation', () => {
                 description: 'Event missing feature',
                 owners: ['tester'],
                 meta: { type: 'w_no_feature', version: '0.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 // feature is missing - schema validation catches malformed merged result
             },
         };
@@ -864,7 +864,7 @@ describe('Wide Event Base Event Merging', () => {
                 type: 'w_test_merge',
                 version: '0.0',
             },
-            context: ['onboarding', 'settings'],
+            context: { name: ['onboarding', 'settings'] },
             feature: {
                 name: 'test-feature',
                 status: ['SUCCESS', 'FAILURE'],
@@ -911,7 +911,7 @@ describe('Wide Event Base Event Merging', () => {
                     type: 'w_test_shortcut_merge',
                     version: '0.0',
                 },
-                context: ['settings'],
+                context: { name: ['settings'] },
                 feature: {
                     name: 'shortcut-test',
                     status: ['SUCCESS'],
@@ -942,7 +942,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'First event',
                 owners: ['tester'],
                 meta: { type: 'w_event_one', version: '0.0' },
-                context: ['ctx1'],
+                context: { name: ['ctx1'] },
                 feature: {
                     name: 'feature-one',
                     status: ['SUCCESS'],
@@ -953,7 +953,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'Second event',
                 owners: ['tester'],
                 meta: { type: 'w_event_two', version: '0.0' },
-                context: ['ctx2'],
+                context: { name: ['ctx2'] },
                 feature: {
                     name: 'feature-two',
                     status: ['FAILURE'],
@@ -1090,7 +1090,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'Event with custom feature/data props',
                 owners: ['tester'],
                 meta: { type: 'w_no_drops', version: '0.0' },
-                context: ['alpha'],
+                context: { name: ['alpha'] },
                 feature: {
                     name: 'no-drops',
                     status: ['SUCCESS'],
@@ -1186,7 +1186,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Version test event',
                 owners: ['tester'],
                 meta: { type: 'w_version_test', version: '3.5' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'version-feature',
                     status: ['SUCCESS'],
@@ -1209,7 +1209,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Zero version event',
                 owners: ['tester'],
                 meta: { type: 'w_zero_version', version: '0.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'zero-feature',
                     status: ['SUCCESS'],
@@ -1232,7 +1232,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Test that base meta is not included',
                 owners: ['tester'],
                 meta: { type: 'w_no_base_meta', version: '1.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'test-feature',
                     status: ['SUCCESS'],
@@ -1287,7 +1287,7 @@ describe('Wide Event required fields follow metaschema', () => {
         description: 'Event with optional base fields',
         owners: ['tester'],
         meta: { type: 'w_optional_base_fields', version: '0.0' },
-        context: ['onboarding'],
+        context: { name: ['onboarding'] },
         feature: {
             name: 'optional-base-fields-feature',
             status: ['SUCCESS'],
@@ -1452,7 +1452,7 @@ describe('Wide Event journey section handling', () => {
                 description: 'Event with journey',
                 owners: ['tester'],
                 meta: { type: 'w_with_journey', version: '0.0' },
-                journey: ['first_run', 'returning_user'],
+                journey: { name: ['first_run', 'returning_user'] },
                 feature: {
                     name: 'with-journey',
                     status: ['SUCCESS'],
@@ -1501,8 +1501,8 @@ describe('Wide Event journey section handling', () => {
                 description: 'Event with both journey and context',
                 owners: ['tester'],
                 meta: { type: 'w_journey_and_context', version: '0.0' },
-                context: ['settings'],
-                journey: ['onboarding'],
+                context: { name: ['settings'] },
+                journey: { name: ['onboarding'] },
                 feature: {
                     name: 'journey-and-context',
                     status: ['SUCCESS'],
