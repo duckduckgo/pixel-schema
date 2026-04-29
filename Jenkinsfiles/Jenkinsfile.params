@@ -77,7 +77,7 @@ pipeline {
             steps {
                 dir('pixel-schema') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
                 }
             }
@@ -89,7 +89,7 @@ pipeline {
             steps {
                 dir('duckduckgo-privacy-extension') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
                 }
             }
@@ -101,7 +101,7 @@ pipeline {
             steps {
                 dir('windows-browser') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
                 }
             }
@@ -113,7 +113,7 @@ pipeline {
             steps {
                 dir('apple-browsers') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
                 }
             }
@@ -125,7 +125,7 @@ pipeline {
             steps {
                 dir('android') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
                 }
             }
@@ -134,7 +134,7 @@ pipeline {
             steps {
                 dir('internal-github-asana-utils') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
             }

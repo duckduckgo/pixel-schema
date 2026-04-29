@@ -20,16 +20,12 @@ const suffixSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'suffix_
 const nativeExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'native_experiments_schema.json5')).toString());
 const searchExperimentsSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'search_experiments_schema.json5')).toString());
 const wideEventSchema = JSON5.parse(fs.readFileSync(path.join(schemasPath, 'wide_event_schema.json5')).toString());
-
-const WIDE_EVENT_SECTION_SCHEMA_DEF_MAP = {
-    app: 'appSchemaProperty',
-    global: 'globalSchemaProperty',
-    feature: 'featureSchemaProperty',
-    context: 'contextSchemaProperty',
-};
+const WIDE_EVENT_BASE_SECTIONS = ['app', 'service'];
+const WIDE_EVENT_EVENT_SECTIONS = ['context', 'journey'];
+const WIDE_EVENT_DISALLOWED_EVENT_SECTIONS = [...WIDE_EVENT_BASE_SECTIONS, 'global'];
 
 function getSectionRequiredKeysFromMetaSchema(sectionName) {
-    const schemaDefName = WIDE_EVENT_SECTION_SCHEMA_DEF_MAP[sectionName];
+    const schemaDefName = `${sectionName}SchemaProperty`;
     const sectionDef = wideEventSchema?.$defs?.[schemaDefName];
     const required = sectionDef?.properties?.properties?.required;
     return Array.isArray(required) ? [...required] : [];
@@ -286,8 +282,12 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // Determine required top-level properties
         const requiredProps = ['meta', 'global', 'feature'];
-        if (baseEvent.app) requiredProps.push('app');
-        if (eventDef.context) requiredProps.push('context');
+        for (const sectionName of WIDE_EVENT_BASE_SECTIONS) {
+            if (baseEvent[sectionName]) requiredProps.push(sectionName);
+        }
+        for (const sectionName of WIDE_EVENT_EVENT_SECTIONS) {
+            if (eventDef[sectionName]) requiredProps.push(sectionName);
+        }
 
         // Build properties object
         const properties = {};
@@ -303,11 +303,12 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             },
         };
 
-        // app section from base_event (if present)
-        if (baseEvent.app) {
-            const appProps = JSON.parse(JSON.stringify(baseEvent.app));
-            const appRequired = getSectionRequiredKeysFromMetaSchema('app');
-            properties.app = this.#wrapSectionAsJsonSchema(appProps, appRequired);
+        // Optional sections sourced from base_event (e.g. app/service)
+        for (const sectionName of WIDE_EVENT_BASE_SECTIONS) {
+            if (!baseEvent[sectionName]) continue;
+            const sectionProps = JSON.parse(JSON.stringify(baseEvent[sectionName]));
+            const sectionRequired = getSectionRequiredKeysFromMetaSchema(sectionName);
+            properties[sectionName] = this.#wrapSectionAsJsonSchema(sectionProps, sectionRequired);
         }
 
         // global section from base_event
@@ -315,102 +316,58 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         const globalRequired = getSectionRequiredKeysFromMetaSchema('global');
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
-        // feature section - merge base structure with event-specific values
-        const featureNameDef = {
-            ...baseEvent.feature?.name,
-            enum: [eventDef.feature?.name],
-        };
-        const featureStatusDef = {
-            ...baseEvent.feature?.status,
-            enum: eventDef.feature?.status,
-        };
-        const featureRequired = getSectionRequiredKeysFromMetaSchema('feature');
-        const featureProperties = {
-            name: featureNameDef,
-            status: featureStatusDef,
-        };
+        // feature section — deep clone base, then overlay event-specific values
+        const featureProperties = JSON.parse(JSON.stringify(baseEvent.feature ?? {}));
+        featureProperties.name = { ...featureProperties.name, enum: [eventDef.feature?.name] };
+        featureProperties.status = { ...featureProperties.status, enum: eventDef.feature?.status };
 
-        // Include base_event feature props beyond name/status/data (optional unless in metaschema required set)
-        const baseFeature = baseEvent.feature ?? {};
-        for (const [key, value] of Object.entries(baseFeature)) {
-            if (key === 'name' || key === 'status' || key === 'data') continue;
-            featureProperties[key] = JSON.parse(JSON.stringify(value));
-        }
-
-        // Expand shortcuts in feature.data.ext
-        const eventData = eventDef.feature?.data || { ext: {} };
-        const expandedExt = this.#expandPropertiesShortcuts(eventData.ext || {});
-
-        const extProperties = {
-            type: 'object',
-            additionalProperties: false,
-            properties: expandedExt,
-        };
-
-        const dataProperties = { ext: extProperties };
-        const dataRequired = ['ext'];
-
-        // Include error if present in event data
-        if (eventData.error) {
-            dataProperties.error = {
-                type: 'object',
-                required: ['domain', 'code'],
-                additionalProperties: false,
-                properties: eventData.error,
-            };
-        }
-
-        // Include any other properties defined directly under feature.data
-        for (const [key, value] of Object.entries(eventData)) {
-            if (key === 'ext' || key === 'error') continue;
-            dataProperties[key] = value;
-        }
-
-        const featureDataDef = {
-            type: 'object',
-            required: dataRequired,
-            additionalProperties: false,
-            properties: dataProperties,
-        };
-
-        // Include event-defined feature props beyond name/status/data
+        // Merge additional event-defined feature properties (event overrides base)
         const eventFeature = eventDef.feature ?? {};
         for (const [key, value] of Object.entries(eventFeature)) {
             if (key === 'name' || key === 'status' || key === 'data') continue;
             featureProperties[key] = JSON.parse(JSON.stringify(value));
         }
 
-        properties.feature = {
+        // Build feature.data — deep clone then transform ext and error in place
+        const eventData = eventDef.feature?.data || { ext: {} };
+        const dataProperties = JSON.parse(JSON.stringify(eventData));
+        dataProperties.ext = {
             type: 'object',
-            required: featureRequired,
             additionalProperties: false,
-            properties: {
-                ...featureProperties,
-                data: featureDataDef,
-            },
+            properties: this.#expandPropertiesShortcuts(eventData.ext || {}),
         };
-
-        // context section (optional) - transform array to enum
-        if (eventDef.context) {
-            const contextNameDef = {
-                ...baseEvent.context?.name,
-                enum: eventDef.context,
-            };
-            const contextRequired = getSectionRequiredKeysFromMetaSchema('context');
-            const contextProperties = {
-                name: contextNameDef,
-            };
-            const baseContext = baseEvent.context ?? {};
-            for (const [key, value] of Object.entries(baseContext)) {
-                if (key === 'name') continue;
-                contextProperties[key] = JSON.parse(JSON.stringify(value));
-            }
-            properties.context = {
+        if (dataProperties.error) {
+            dataProperties.error = {
                 type: 'object',
-                required: contextRequired,
+                required: ['domain', 'code'],
                 additionalProperties: false,
-                properties: contextProperties,
+                properties: dataProperties.error,
             };
+        }
+
+        const featureRequired = getSectionRequiredKeysFromMetaSchema('feature');
+        featureProperties.data = {
+            type: 'object',
+            required: ['ext'],
+            additionalProperties: false,
+            properties: dataProperties,
+        };
+        properties.feature = this.#wrapSectionAsJsonSchema(featureProperties, featureRequired);
+
+        // Optional sections sourced from event definition (e.g. context/journey)
+        // Deep clone base, then overlay each event-defined property (arrays become enums).
+        for (const sectionName of WIDE_EVENT_EVENT_SECTIONS) {
+            if (!eventDef[sectionName]) continue;
+            const sectionProps = JSON.parse(JSON.stringify(baseEvent[sectionName] ?? {}));
+            for (const [key, value] of Object.entries(eventDef[sectionName])) {
+                if (Array.isArray(value)) {
+                    sectionProps[key] = { ...sectionProps[key], enum: value };
+                } else {
+                    sectionProps[key] = JSON.parse(JSON.stringify(value));
+                }
+            }
+            const sectionRequired = getSectionRequiredKeysFromMetaSchema(sectionName);
+            properties[sectionName] = this.#wrapSectionAsJsonSchema(sectionProps, sectionRequired);
         }
 
         // Build the complete JSON Schema
@@ -454,12 +411,9 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
             if (eventDef.meta.type !== eventName) {
                 throw new Error(`${eventName}: 'meta.type' must match event key`);
             }
-            if (eventDef.app) {
-                const error = `${eventName}: 'app' section should not be defined in event - it comes from base_event.json`;
-                errors.push(error);
-            }
-            if (eventDef.global) {
-                const error = `${eventName}: 'global' section should not be defined in event - it comes from base_event.json`;
+            for (const sectionName of WIDE_EVENT_DISALLOWED_EVENT_SECTIONS) {
+                if (!eventDef[sectionName]) continue;
+                const error = `${eventName}: '${sectionName}' section should not be defined in event - it comes from base_event.json`;
                 errors.push(error);
             }
 

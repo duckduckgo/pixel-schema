@@ -42,6 +42,11 @@
                     "required": ["ext"],
                     "additionalProperties": false,
                     "properties": {
+                        "latency_ms_bucketed": {
+                            "type": "integer",
+                            "description": "How long the bookmark import took in milliseconds, bucketed to preserve privacy",
+                            "enum": [1, 5, 10, 20, 50, 100, 500, 1000, 5000, 10000]
+                        },
                         "ext": {
                             "type": "object",
                             "additionalProperties": false,
@@ -70,11 +75,6 @@
                                     "enum": [1, 5, 10, 20, 50, 100, 500, 1000]
                                 }
                             }
-                        },
-                        "latency_ms_bucketed": {
-                            "type": "integer",
-                            "description": "How long the bookmark import took in milliseconds, bucketed to preserve privacy",
-                            "enum": [1, 5, 10, 20, 50, 100, 500, 1000, 5000, 10000]
                         },
                         "failure_detail": {
                             "type": "string",

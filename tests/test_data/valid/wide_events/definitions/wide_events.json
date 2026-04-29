@@ -6,7 +6,7 @@
             "type": "w_wide_import_summary",
             "version": "0.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "status": ["SUCCESS", "FAILURE", "CANCELLED"],
@@ -66,7 +66,7 @@
             "type": "w_wide_import_bookmarks",
             "version": "0.1"
         },
-        "context": ["onboarding.import", "settings.import"],
+        "context": { "name": ["onboarding.import", "settings.import"] },
         "feature": {
             "name": "browser-import-bookmarks",
             "status": ["SUCCESS", "FAILURE"],
@@ -102,7 +102,7 @@
             "type": "w_wide_import_credentials",
             "version": "0.1"
         },
-        "context": ["onboarding.import", "settings.import"],
+        "context": { "name": ["onboarding.import", "settings.import"] },
         "feature": {
             "name": "browser-import-credentials",
             "status": ["SUCCESS", "FAILURE"],
@@ -147,7 +147,7 @@
             "type": "w_wide_import_timeout",
             "version": "1.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "status": ["FAILURE"],
@@ -187,7 +187,7 @@
             "type": "w_wide_import_cancelled",
             "version": "1.0"
         },
-        "context": ["onboarding", "settings"],
+        "context": { "name": ["onboarding", "settings"] },
         "feature": {
             "name": "browser-import",
             "status": ["CANCELLED"],

@@ -630,7 +630,7 @@ describe('Wide Event Validation', () => {
                 type: 'w_test_event',
                 version: '0.0',
             },
-            context: ['test-context'],
+            context: { name: ['test-context'] },
             feature: {
                 name: 'test-feature',
                 status: ['SUCCESS'],
@@ -772,7 +772,7 @@ describe('Wide Event Validation', () => {
                 description: 'Event missing feature',
                 owners: ['tester'],
                 meta: { type: 'w_no_feature', version: '0.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 // feature is missing - schema validation catches malformed merged result
             },
         };
@@ -864,7 +864,7 @@ describe('Wide Event Base Event Merging', () => {
                 type: 'w_test_merge',
                 version: '0.0',
             },
-            context: ['onboarding', 'settings'],
+            context: { name: ['onboarding', 'settings'] },
             feature: {
                 name: 'test-feature',
                 status: ['SUCCESS', 'FAILURE'],
@@ -911,7 +911,7 @@ describe('Wide Event Base Event Merging', () => {
                     type: 'w_test_shortcut_merge',
                     version: '0.0',
                 },
-                context: ['settings'],
+                context: { name: ['settings'] },
                 feature: {
                     name: 'shortcut-test',
                     status: ['SUCCESS'],
@@ -942,7 +942,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'First event',
                 owners: ['tester'],
                 meta: { type: 'w_event_one', version: '0.0' },
-                context: ['ctx1'],
+                context: { name: ['ctx1'] },
                 feature: {
                     name: 'feature-one',
                     status: ['SUCCESS'],
@@ -953,7 +953,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'Second event',
                 owners: ['tester'],
                 meta: { type: 'w_event_two', version: '0.0' },
-                context: ['ctx2'],
+                context: { name: ['ctx2'] },
                 feature: {
                     name: 'feature-two',
                     status: ['FAILURE'],
@@ -1090,7 +1090,7 @@ describe('Wide Event Base Event Merging', () => {
                 description: 'Event with custom feature/data props',
                 owners: ['tester'],
                 meta: { type: 'w_no_drops', version: '0.0' },
-                context: ['alpha'],
+                context: { name: ['alpha'] },
                 feature: {
                     name: 'no-drops',
                     status: ['SUCCESS'],
@@ -1186,7 +1186,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Version test event',
                 owners: ['tester'],
                 meta: { type: 'w_version_test', version: '3.5' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'version-feature',
                     status: ['SUCCESS'],
@@ -1209,7 +1209,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Zero version event',
                 owners: ['tester'],
                 meta: { type: 'w_zero_version', version: '0.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'zero-feature',
                     status: ['SUCCESS'],
@@ -1232,7 +1232,7 @@ describe('Wide Event Version Combining', () => {
                 description: 'Test that base meta is not included',
                 owners: ['tester'],
                 meta: { type: 'w_no_base_meta', version: '1.0' },
-                context: ['test'],
+                context: { name: ['test'] },
                 feature: {
                     name: 'test-feature',
                     status: ['SUCCESS'],
@@ -1287,7 +1287,7 @@ describe('Wide Event required fields follow metaschema', () => {
         description: 'Event with optional base fields',
         owners: ['tester'],
         meta: { type: 'w_optional_base_fields', version: '0.0' },
-        context: ['onboarding'],
+        context: { name: ['onboarding'] },
         feature: {
             name: 'optional-base-fields-feature',
             status: ['SUCCESS'],
@@ -1322,5 +1322,200 @@ describe('Wide Event required fields follow metaschema', () => {
         expect(generated.properties.global.required).to.deep.equal(['platform', 'type', 'sample_rate']);
         expect(generated.properties.feature.required).to.deep.equal(['name', 'status', 'data']);
         expect(generated.properties.context.required).to.deep.equal(['name']);
+    });
+});
+
+describe('Wide Event app/service section handling', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+    const event = {
+        w_app_or_service: {
+            description: 'Validates app xor service section generation',
+            owners: ['tester'],
+            meta: { type: 'w_app_or_service', version: '0.0' },
+            feature: {
+                name: 'feature',
+                status: ['SUCCESS'],
+                data: { ext: {} },
+            },
+        },
+    };
+
+    const baseCommon = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Linux'] },
+            type: { type: 'string', description: 'Type', enum: ['service', 'app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+    };
+
+    it('supports app section from base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            app: {
+                name: { type: 'string', description: 'App name', enum: ['Windows'] },
+                version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_app_or_service;
+        expect(generated.properties).to.have.property('app');
+        expect(generated.properties).to.not.have.property('service');
+    });
+
+    it('supports service section from base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            service: {
+                name: { type: 'string', description: 'Service name' },
+                version: { type: 'string', description: 'Service version' },
+                host: { type: 'string', description: 'Host name' },
+                region: { type: 'string', description: 'Region name' },
+                environment: { type: 'string', description: 'Environment name' },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_app_or_service;
+        expect(generated.properties).to.have.property('service');
+        expect(generated.properties).to.not.have.property('app');
+        expect(generated.properties.service.required).to.deep.equal(['name', 'version', 'host', 'region', 'environment']);
+    });
+
+    it('rejects schema generation when both app and service are present in base_event', () => {
+        const baseEvent = {
+            ...baseCommon,
+            app: {
+                name: { type: 'string', description: 'App name', enum: ['Windows'] },
+                version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            },
+            service: {
+                name: { type: 'string', description: 'Service name' },
+                version: { type: 'string', description: 'Service version' },
+                host: { type: 'string', description: 'Host name' },
+                region: { type: 'string', description: 'Region name' },
+                environment: { type: 'string', description: 'Environment name' },
+            },
+        };
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
+    });
+
+    it('rejects schema generation when neither app nor service are present in base_event', () => {
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseCommon);
+        expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
+    });
+});
+
+describe('Wide Event journey section handling', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+    const baseEvent = {
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+        journey: {
+            name: { type: 'string', description: 'Journey name' },
+        },
+    };
+
+    it('includes journey section when event definition provides it', () => {
+        const event = {
+            w_with_journey: {
+                description: 'Event with journey',
+                owners: ['tester'],
+                meta: { type: 'w_with_journey', version: '0.0' },
+                journey: { name: ['first_run', 'returning_user'] },
+                feature: {
+                    name: 'with-journey',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_with_journey;
+        expect(generated.properties).to.have.property('journey');
+        expect(generated.required).to.include('journey');
+        expect(generated.properties.journey.required).to.deep.equal(['name']);
+        expect(generated.properties.journey.properties.name.enum).to.deep.equal(['first_run', 'returning_user']);
+    });
+
+    it('omits journey section when event definition does not provide it', () => {
+        const event = {
+            w_without_journey: {
+                description: 'Event without journey',
+                owners: ['tester'],
+                meta: { type: 'w_without_journey', version: '0.0' },
+                feature: {
+                    name: 'without-journey',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_without_journey;
+        expect(generated.properties).to.not.have.property('journey');
+        expect(generated.required).to.not.include('journey');
+    });
+
+    it('works alongside context when both are present', () => {
+        const baseWithContext = {
+            ...baseEvent,
+            context: {
+                name: { type: 'string', description: 'Context name' },
+            },
+        };
+        const event = {
+            w_journey_and_context: {
+                description: 'Event with both journey and context',
+                owners: ['tester'],
+                meta: { type: 'w_journey_and_context', version: '0.0' },
+                context: { name: ['settings'] },
+                journey: { name: ['onboarding'] },
+                feature: {
+                    name: 'journey-and-context',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseWithContext);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_journey_and_context;
+        expect(generated.properties).to.have.property('context');
+        expect(generated.properties).to.have.property('journey');
+        expect(generated.properties.journey.properties.name.enum).to.deep.equal(['onboarding']);
+        expect(generated.properties.context.properties.name.enum).to.deep.equal(['settings']);
     });
 });

@@ -36,7 +36,7 @@ pipeline {
             steps {
                 dir('pixel-schema') {
                     checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
                 }
             }
@@ -60,7 +60,7 @@ pipeline {
 
                     dir('client-repo') {
                         checkout([$class: 'GitSCM', branches: [[name: "${params.CLIENT_BRANCH}"]],
-                            extensions: [[$class: 'LocalBranch']],
+                            extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                             userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: "https://github.com/duckduckgo/${clientRepo}.git"]]] )
                     }
                 }
@@ -70,7 +70,7 @@ pipeline {
             steps {
                 dir('internal-github-asana-utils') {
                     checkout([$class: 'GitSCM', branches: [[name: "main"]],
-                    extensions: [[$class: 'LocalBranch']],
+                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                     userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
                 }
             }
