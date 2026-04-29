@@ -318,7 +318,6 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
 
         // feature section — deep clone base, then overlay event-specific values
         const featureProperties = JSON.parse(JSON.stringify(baseEvent.feature ?? {}));
-        delete featureProperties.data;
         featureProperties.name = { ...featureProperties.name, enum: [eventDef.feature?.name] };
         featureProperties.status = { ...featureProperties.status, enum: eventDef.feature?.status };
 
