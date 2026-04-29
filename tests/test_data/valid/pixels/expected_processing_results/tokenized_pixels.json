@@ -44,6 +44,28 @@
                                 ]
                             },
                             {
+                                "key": "colors",
+                                "description": "UI colors",
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": [
+                                        "red",
+                                        "green",
+                                        "blue"
+                                    ]
+                                },
+                                "examples": [
+                                    [
+                                        "red",
+                                        "green"
+                                    ],
+                                    [
+                                        "blue"
+                                    ]
+                                ]
+                            },
+                            {
                                 "key": "customMetadata",
                                 "description": "Complex object type",
                                 "type": "object",

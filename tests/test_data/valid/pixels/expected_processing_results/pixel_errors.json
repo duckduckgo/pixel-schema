@@ -31,6 +31,9 @@
         ],
         "/count must be integer": [
             "count=wrongFormat&appVersion=2.0.0"
+        ],
+        "/colors/1 must be equal to one of the allowed values": [
+            "colors=%5B%22red%22,%22unexpected_array_value%22%5D&appVersion=2.0.3"
         ]
     },
     "experiment_enroll_defaultBrowser_control": {
