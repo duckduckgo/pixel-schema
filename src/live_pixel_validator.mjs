@@ -71,7 +71,7 @@ export class LivePixelsValidator {
     /**
      * @param {String} paramValue
      * @param {import('ajv').SchemaObject | undefined} paramSchema - AJV schema fragment
-     * @returns {String|null} decoded and normalized param value
+     * @returns {string|object|Array<string>|null} decoded and normalized param value
      */
     #getDecodedAndNormalizedVal(paramValue, paramSchema) {
         if (!paramSchema) return null; // will fail validation later
@@ -103,8 +103,12 @@ export class LivePixelsValidator {
             updatedVal = updatedVal.toLowerCase();
         }
 
-        if (paramSchema.type === 'object') {
-            updatedVal = JSON.parse(updatedVal);
+        if (paramSchema.type === 'object' || paramSchema.type === 'array') {
+            try {
+                updatedVal = JSON.parse(updatedVal);
+            } catch (parseErr) {
+                // Keep the raw value so AJV can report a schema mismatch downstream
+            }
         }
 
         return updatedVal;

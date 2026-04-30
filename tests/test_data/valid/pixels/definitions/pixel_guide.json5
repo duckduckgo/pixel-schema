@@ -63,6 +63,18 @@
                 "examples": [["tracker1", "tracker2"], ["tracker3"]]
             },
             {
+                "key": "colors",
+                "description": "UI colors",
+                // Array with bounded values
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["red", "green", "blue"]
+                },
+                // Examples
+                "examples": [["red", "green"], ["blue"]]
+            },
+            {
                 "key": "customMetadata",
                 "description": "Complex object type",
                 // See https://json-schema.org/understanding-json-schema/reference/object

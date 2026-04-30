@@ -307,6 +307,53 @@ describe('Base64 simple param', () => {
     });
 });
 
+describe('Array params', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const prefix = 'arrayPixel';
+    const pixelDefs = {
+        arrayPixel: {
+            parameters: [
+                {
+                    key: 'trackers_blocked',
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                        enum: ['tracker1', 'tracker2', 'tracker3'],
+                    },
+                },
+            ],
+        },
+    };
+
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+    it('accepts JSON-encoded array params', () => {
+        const params = `trackers_blocked=${encodeURIComponent(JSON.stringify(['tracker1', 'tracker2']))}`;
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('rejects invalid array items', () => {
+        const params = `trackers_blocked=${encodeURIComponent(JSON.stringify(['tracker1', 'invalidTracker']))}`;
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        const expectedErrors = ['/trackers_blocked/1 must be equal to one of the allowed values'];
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(expectedErrors);
+        expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
+    });
+
+    it('rejects non-array values for array params', () => {
+        const params = 'trackers_blocked=tracker1';
+        const pixelStatus = liveValidator.validatePixel(prefix, params);
+        const expectedErrors = ['/trackers_blocked must be array'];
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(expectedErrors);
+        expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
+    });
+});
+
 describe('App version outdated', () => {
     const productDefWithVersion = {
         target: {
