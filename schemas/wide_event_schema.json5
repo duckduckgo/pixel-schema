@@ -222,10 +222,7 @@
                                         "domain": { "$ref": "#/$defs/stringValueProperty" },
                                         "code": { "$ref": "#/$defs/integerValueProperty" },
                                         "underlying_domain": {
-                                            "anyOf": [
-                                                { "$ref": "#/$defs/stringValueProperty" },
-                                                { "$ref": "#/$defs/stringArrayProperty" }
-                                            ]
+                                            "anyOf": [{ "$ref": "#/$defs/stringValueProperty" }, { "$ref": "#/$defs/stringArrayProperty" }]
                                         },
                                         "underlying_code": {
                                             "anyOf": [
