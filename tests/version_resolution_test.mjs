@@ -107,6 +107,32 @@ describe('resolveTargetVersion', () => {
             expect(version).to.equal('1.104.0');
         });
 
+        it('should fetch version from .properties response with simple key path', async () => {
+            nock('https://example.com').get('/version.properties').reply(200, 'version=3.2.1');
+
+            const target = {
+                key: 'appVersion',
+                versionUrl: 'https://example.com/version.properties',
+                versionRef: 'version',
+            };
+
+            const version = await resolveTargetVersion(target);
+            expect(version).to.equal('3.2.1');
+        });
+
+        it('should fetch version from .properties response with nested key path and converts to string', async () => {
+            nock('https://example.com').get('/metadata.properties').reply(200, 'latest_appstore_version.latest_version=205.0');
+
+            const target = {
+                key: 'appVersion',
+                versionUrl: 'https://example.com/metadata.properties',
+                versionRef: 'latest_appstore_version.latest_version',
+            };
+
+            const version = await resolveTargetVersion(target);
+            expect(version).to.equal('205.0');
+        });
+
         it('should throw when URL returns 404', async () => {
             nock('https://example.com').get('/notfound.json').reply(404, 'Not Found');
 

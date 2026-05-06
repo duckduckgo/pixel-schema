@@ -1,4 +1,5 @@
 import { PIXEL_DELIMITER, ROOT_PREFIX } from './constants.mjs';
+import { getProperties } from 'properties-file';
 
 /**
  * @typedef {Object} SearchExperimentDefinition
@@ -177,8 +178,15 @@ export async function resolveTargetVersion(target) {
         if (!response.ok) {
             throw new Error(`Failed to fetch version from ${target.versionUrl}: ${response.status} ${response.statusText}`);
         }
-        const data = await response.json();
-        const version = getValueByKeyPath(data, target.versionRef);
+        const responseText = await response.text();
+        let version;
+        try {
+            const data = JSON.parse(responseText);
+            version = getValueByKeyPath(data, target.versionRef);
+        } catch {
+            const data = getProperties(responseText);
+            version = data ? data[target.versionRef] : undefined;
+        }
         if (version === undefined) {
             throw new Error(`Version key "${target.versionRef}" not found in response from ${target.versionUrl}`);
         }
