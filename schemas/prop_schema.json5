@@ -101,6 +101,53 @@
                 "examples": { "type": "array" }
             },
             "additionalProperties": false
+        },
+        "stringArrayProperty": {
+            "type": "object",
+            "description": "An array property whose items are strings.",
+            "required": ["type", "description", "items"],
+            "properties": {
+                "type": { "const": "array" },
+                "description": { "type": "string" },
+                "items": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                        "type": { "const": "string" },
+                        "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                        "pattern": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                },
+                "examples": { "type": "array" },
+                "minItems": { "type": "integer", "minimum": 0 },
+                "maxItems": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+        },
+        "integerArrayProperty": {
+            "type": "object",
+            "description": "An array property whose items are integers.",
+            "required": ["type", "description", "items"],
+            "properties": {
+                "type": { "const": "array" },
+                "description": { "type": "string" },
+                "items": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                        "type": { "const": "integer" },
+                        "enum": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+                        "minimum": { "type": "integer" },
+                        "maximum": { "type": "integer" }
+                    },
+                    "additionalProperties": false
+                },
+                "examples": { "type": "array" },
+                "minItems": { "type": "integer", "minimum": 0 },
+                "maxItems": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
         }
     }
 }

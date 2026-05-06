@@ -781,6 +781,168 @@ describe('Wide Event Validation', () => {
         expect(errors.length).to.be.greaterThan(0);
         expect(errors.some((e) => e.includes('w_no_feature: Generated schema does not match metaschema'))).to.be.true;
     });
+
+    describe('feature.data.error array support', () => {
+        const buildEvent = (eventName, errorProps) => ({
+            [eventName]: {
+                description: 'Event with array error fields',
+                owners: ['tester'],
+                meta: { type: eventName, version: '0.0' },
+                context: { name: ['test-context'] },
+                feature: {
+                    name: 'test-feature',
+                    status: ['FAILURE'],
+                    data: {
+                        ext: {},
+                        error: {
+                            domain: { type: 'string', description: 'Top-level error domain' },
+                            code: { type: 'integer', description: 'Top-level error code' },
+                            ...errorProps,
+                        },
+                    },
+                },
+            },
+        });
+
+        it('accepts array of strings for underlying_domain', () => {
+            const event = buildEvent('w_underlying_domain_array', {
+                underlying_domain: {
+                    type: 'array',
+                    description: 'Stack of underlying error domains',
+                    items: { type: 'string' },
+                },
+            });
+            const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors).to.be.empty;
+            const errorProps = generatedSchemas.w_underlying_domain_array.properties.feature.properties.data.properties.error.properties;
+            expect(errorProps.underlying_domain).to.deep.equal({
+                type: 'array',
+                description: 'Stack of underlying error domains',
+                items: { type: 'string' },
+            });
+        });
+
+        it('accepts array of integers for underlying_code', () => {
+            const event = buildEvent('w_underlying_code_array', {
+                underlying_code: {
+                    type: 'array',
+                    description: 'Stack of underlying error codes',
+                    items: { type: 'integer' },
+                },
+            });
+            const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors).to.be.empty;
+            const errorProps = generatedSchemas.w_underlying_code_array.properties.feature.properties.data.properties.error.properties;
+            expect(errorProps.underlying_code).to.deep.equal({
+                type: 'array',
+                description: 'Stack of underlying error codes',
+                items: { type: 'integer' },
+            });
+        });
+
+        it('still accepts scalar underlying_domain and underlying_code', () => {
+            const event = buildEvent('w_underlying_scalar', {
+                underlying_domain: { type: 'string', description: 'Underlying error domain' },
+                underlying_code: { type: 'integer', description: 'Underlying error code' },
+            });
+            const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors).to.be.empty;
+        });
+
+        it('rejects array underlying_domain with non-string items', () => {
+            const event = buildEvent('w_underlying_domain_bad_items', {
+                underlying_domain: {
+                    type: 'array',
+                    description: 'Stack of underlying error domains',
+                    items: { type: 'integer' },
+                },
+            });
+            const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors.some((e) => e.includes('w_underlying_domain_bad_items: Generated schema does not match metaschema'))).to.be.true;
+        });
+
+        it('rejects array underlying_code with non-integer items', () => {
+            const event = buildEvent('w_underlying_code_bad_items', {
+                underlying_code: {
+                    type: 'array',
+                    description: 'Stack of underlying error codes',
+                    items: { type: 'string' },
+                },
+            });
+            const { errors } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors.some((e) => e.includes('w_underlying_code_bad_items: Generated schema does not match metaschema'))).to.be.true;
+        });
+
+        it('accepts and enforces enum on string array items', async () => {
+            const event = buildEvent('w_underlying_domain_enum', {
+                underlying_domain: {
+                    type: 'array',
+                    description: 'Bounded set of underlying error domains',
+                    items: { type: 'string', enum: ['NSURLErrorDomain', 'WebKitErrorDomain'] },
+                },
+            });
+            const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors).to.be.empty;
+
+            const Ajv2020 = (await import('ajv/dist/2020.js')).default;
+            // eslint-disable-next-line new-cap
+            const ajv = new Ajv2020.default({ allErrors: true });
+            const validate = ajv.compile(generatedSchemas.w_underlying_domain_enum);
+            const payload = {
+                meta: { type: 'w_underlying_domain_enum', version: '1.0.0' },
+                app: { name: 'TestApp', version: '1.2.3' },
+                global: { platform: 'Windows', type: 'app', sample_rate: 1 },
+                feature: {
+                    name: 'test-feature',
+                    status: 'FAILURE',
+                    data: {
+                        ext: {},
+                        error: { domain: 'X', code: 1, underlying_domain: ['NSURLErrorDomain'] },
+                    },
+                },
+                context: { name: 'test-context' },
+            };
+            expect(validate(payload), JSON.stringify(validate.errors)).to.be.true;
+
+            payload.feature.data.error.underlying_domain = ['NotInEnum'];
+            expect(validate(payload)).to.be.false;
+        });
+
+        it('accepts and enforces enum on integer array items', async () => {
+            const event = buildEvent('w_underlying_code_enum', {
+                underlying_code: {
+                    type: 'array',
+                    description: 'Bounded set of underlying error codes',
+                    items: { type: 'integer', enum: [-1009, -1001, 0] },
+                },
+            });
+            const { errors, generatedSchemas } = validator.validateWideEventDefinition(event, baseEvent);
+            expect(errors).to.be.empty;
+
+            const Ajv2020 = (await import('ajv/dist/2020.js')).default;
+            // eslint-disable-next-line new-cap
+            const ajv = new Ajv2020.default({ allErrors: true });
+            const validate = ajv.compile(generatedSchemas.w_underlying_code_enum);
+            const payload = {
+                meta: { type: 'w_underlying_code_enum', version: '1.0.0' },
+                app: { name: 'TestApp', version: '1.2.3' },
+                global: { platform: 'Windows', type: 'app', sample_rate: 1 },
+                feature: {
+                    name: 'test-feature',
+                    status: 'FAILURE',
+                    data: {
+                        ext: {},
+                        error: { domain: 'X', code: 1, underlying_code: [-1009, 0] },
+                    },
+                },
+                context: { name: 'test-context' },
+            };
+            expect(validate(payload), JSON.stringify(validate.errors)).to.be.true;
+
+            payload.feature.data.error.underlying_code = [42];
+            expect(validate(payload)).to.be.false;
+        });
+    });
 });
 
 describe('Wide Event Base Event Merging', () => {
