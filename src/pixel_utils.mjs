@@ -1,5 +1,5 @@
 import { PIXEL_DELIMITER, ROOT_PREFIX } from './constants.mjs';
-import properties from 'properties';
+import { getProperties } from 'properties-file';
 
 /**
  * @typedef {Object} SearchExperimentDefinition
@@ -179,14 +179,14 @@ export async function resolveTargetVersion(target) {
             throw new Error(`Failed to fetch version from ${target.versionUrl}: ${response.status} ${response.statusText}`);
         }
         const responseText = await response.text();
-        let data;
+        let version;
         try {
-            data = JSON.parse(responseText);
+            const data = JSON.parse(responseText);
+            version = getValueByKeyPath(data, target.versionRef);
         } catch {
-            // namespace is used to support nested key paths
-            data = properties.parse(responseText, { namespaces: true });
+            const data = getProperties(responseText);
+            version = data ? data[target.versionRef] : undefined;
         }
-        const version = getValueByKeyPath(data, target.versionRef);
         if (version === undefined) {
             throw new Error(`Version key "${target.versionRef}" not found in response from ${target.versionUrl}`);
         }
