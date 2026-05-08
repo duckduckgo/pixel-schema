@@ -6,16 +6,17 @@ import addFormats from 'ajv-formats';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { fileURLToPath } from 'url';
 
-describe('prop_schema array property defs', () => {
-    const propSchemaPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'prop_schema.json5');
-    const propSchema = JSON5.parse(fs.readFileSync(propSchemaPath, 'utf8'));
+const propSchemaPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'prop_schema.json5');
+const propSchema = JSON5.parse(fs.readFileSync(propSchemaPath, 'utf8'));
 
+// eslint-disable-next-line new-cap
+const ajv = new Ajv2020.default({ allErrors: true });
+addFormats.default(ajv);
+ajv.addSchema(propSchema);
+
+describe('prop_schema array property defs', () => {
     // Build a metaschema: every property in the input must match the requested $def.
     const buildMetaValidator = (defName) => {
-        // eslint-disable-next-line new-cap
-        const ajv = new Ajv2020.default({ allErrors: true });
-        addFormats.default(ajv);
-        ajv.addSchema(propSchema);
         return ajv.compile({
             type: 'object',
             additionalProperties: { $ref: `prop_schema.json#/$defs/${defName}` },
