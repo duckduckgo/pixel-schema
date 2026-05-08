@@ -16,6 +16,7 @@
         "booleanProperty": { "$ref": "prop_schema.json#/$defs/booleanProperty" },
         "stringArrayProperty": { "$ref": "prop_schema.json#/$defs/stringArrayProperty" },
         "integerArrayProperty": { "$ref": "prop_schema.json#/$defs/integerArrayProperty" },
+        "numberArrayProperty": { "$ref": "prop_schema.json#/$defs/numberArrayProperty" },
 
         // Domain-specific property definitions with constrained enum values
         "platformDefinition": {
@@ -221,15 +222,8 @@
                                     "properties": {
                                         "domain": { "$ref": "#/$defs/stringValueProperty" },
                                         "code": { "$ref": "#/$defs/integerValueProperty" },
-                                        "underlying_domain": {
-                                            "anyOf": [{ "$ref": "#/$defs/stringValueProperty" }, { "$ref": "#/$defs/stringArrayProperty" }]
-                                        },
-                                        "underlying_code": {
-                                            "anyOf": [
-                                                { "$ref": "#/$defs/integerValueProperty" },
-                                                { "$ref": "#/$defs/integerArrayProperty" }
-                                            ]
-                                        }
+                                        "underlying_domain": { "$ref": "#/$defs/stringValueProperty" },
+                                        "underlying_code": { "$ref": "#/$defs/integerValueProperty" }
                                     },
                                     "additionalProperties": false
                                 }

@@ -148,6 +148,30 @@
                 "maxItems": { "type": "integer", "minimum": 0 }
             },
             "additionalProperties": false
+        },
+        "numberArrayProperty": {
+            "type": "object",
+            "description": "An array property whose items are numbers.",
+            "required": ["type", "description", "items"],
+            "properties": {
+                "type": { "const": "array" },
+                "description": { "type": "string" },
+                "items": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                        "type": { "const": "number" },
+                        "enum": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
+                        "minimum": { "type": "number" },
+                        "maximum": { "type": "number" }
+                    },
+                    "additionalProperties": false
+                },
+                "examples": { "type": "array" },
+                "minItems": { "type": "integer", "minimum": 0 },
+                "maxItems": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
         }
     }
 }
