@@ -336,9 +336,10 @@
                 "additionalProperties": { "const": false },
                 "properties": {
                     "type": "object",
-                    "required": ["name"],
+                    "required": ["name", "id"],
                     "properties": {
-                        "name": { "$ref": "#/$defs/stringEnumProperty" }
+                        "name": { "$ref": "#/$defs/stringEnumProperty" },
+                        "id": { "$ref": "#/$defs/stringValueWithPatternProperty" }
                     },
                     "additionalProperties": false
                 }
