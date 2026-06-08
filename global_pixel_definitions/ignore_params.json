@@ -9,6 +9,16 @@
         "description": "added by 3rd party proxies for SERP",
         "enum": [1]
     },
+    "kc": {
+        "key": "kc",
+        "description": "added by 3rd party proxies for SERP",
+        "enum": [-1]
+    },
+    "kac": {
+        "key": "kac",
+        "description": "added by 3rd party proxies for SERP",
+        "enum": [-1]
+    },
     "test": {
         "key": "test",
         "description": "",
