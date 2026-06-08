@@ -1265,7 +1265,7 @@ describe('Wide Event required fields follow metaschema', () => {
         app: {
             name: { type: 'string', description: 'App name', enum: ['Windows'] },
             version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
-            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet'] },
+            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet', 'desktop', 'mobile'] },
         },
         global: {
             platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
