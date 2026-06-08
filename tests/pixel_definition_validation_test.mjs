@@ -1466,7 +1466,7 @@ describe('Wide Event journey section handling', () => {
         const generated = generatedSchemas.w_with_journey;
         expect(generated.properties).to.have.property('journey');
         expect(generated.required).to.include('journey');
-        expect(generated.properties.journey.required).to.deep.equal(['name', 'id']);
+        expect(generated.properties.journey.required).to.deep.equal(['name']);
         expect(generated.properties.journey.properties.name.enum).to.deep.equal(['first_run', 'returning_user']);
     });
 
