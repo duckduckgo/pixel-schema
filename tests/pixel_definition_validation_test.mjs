@@ -1265,7 +1265,7 @@ describe('Wide Event required fields follow metaschema', () => {
         app: {
             name: { type: 'string', description: 'App name', enum: ['Windows'] },
             version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
-            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet'] },
+            form_factor: { type: 'string', description: 'Form factor', enum: ['phone', 'tablet', 'desktop', 'mobile'] },
         },
         global: {
             platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
@@ -1443,6 +1443,7 @@ describe('Wide Event journey section handling', () => {
         },
         journey: {
             name: { type: 'string', description: 'Journey name' },
+            id: { type: 'string', description: 'Journey id', pattern: '^[0-9a-f]{32}$' },
         },
     };
 
@@ -1467,6 +1468,29 @@ describe('Wide Event journey section handling', () => {
         expect(generated.required).to.include('journey');
         expect(generated.properties.journey.required).to.deep.equal(['name']);
         expect(generated.properties.journey.properties.name.enum).to.deep.equal(['first_run', 'returning_user']);
+    });
+
+    it('carries the optional journey id from base_event without requiring it', () => {
+        const event = {
+            w_journey_with_id: {
+                description: 'Event whose journey carries the base id',
+                owners: ['tester'],
+                meta: { type: 'w_journey_with_id', version: '0.0' },
+                journey: { name: ['first_run'] },
+                feature: {
+                    name: 'journey-with-id',
+                    status: ['SUCCESS'],
+                    data: { ext: {} },
+                },
+            },
+        };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_journey_with_id;
+        expect(generated.properties.journey.properties).to.have.property('id');
+        expect(generated.properties.journey.properties.id.pattern).to.equal('^[0-9a-f]{32}$');
+        expect(generated.properties.journey.required).to.deep.equal(['name']);
+        expect(generated.properties.journey.required).to.not.include('id');
     });
 
     it('omits journey section when event definition does not provide it', () => {
@@ -1517,5 +1541,60 @@ describe('Wide Event journey section handling', () => {
         expect(generated.properties).to.have.property('journey');
         expect(generated.properties.journey.properties.name.enum).to.deep.equal(['onboarding']);
         expect(generated.properties.context.properties.name.enum).to.deep.equal(['settings']);
+    });
+});
+
+describe('Wide Event form_factor enum handling', () => {
+    const makeValidator = () => new WideEventDefinitionsValidator({});
+
+    const makeBaseEvent = (formFactorEnum) => ({
+        meta: {
+            version: {
+                description: 'Base event version',
+                value: 1,
+            },
+        },
+        app: {
+            name: { type: 'string', description: 'App name', enum: ['Windows'] },
+            version: { type: 'string', description: 'App version', pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$' },
+            form_factor: { type: 'string', description: 'Form factor', enum: formFactorEnum },
+        },
+        global: {
+            platform: { type: 'string', description: 'Platform', enum: ['Windows'] },
+            type: { type: 'string', description: 'Type', enum: ['app'] },
+            sample_rate: { type: 'number', description: 'Sample rate', minimum: 0, maximum: 1 },
+        },
+        feature: {
+            name: { type: 'string', description: 'Feature name' },
+            status: { type: 'string', description: 'Status' },
+            data: { ext: {} },
+        },
+    });
+
+    const event = {
+        w_form_factor: {
+            description: 'Event exercising form_factor values',
+            owners: ['tester'],
+            meta: { type: 'w_form_factor', version: '0.0' },
+            feature: {
+                name: 'form-factor-feature',
+                status: ['SUCCESS'],
+                data: { ext: {} },
+            },
+        },
+    };
+
+    it('accepts the desktop and mobile form_factor values', () => {
+        const baseEvent = makeBaseEvent(['phone', 'tablet', 'desktop', 'mobile']);
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors).to.be.empty;
+        const generated = generatedSchemas.w_form_factor;
+        expect(generated.properties.app.properties.form_factor.enum).to.deep.equal(['phone', 'tablet', 'desktop', 'mobile']);
+    });
+
+    it('rejects form_factor values outside the metaschema enum', () => {
+        const baseEvent = makeBaseEvent(['laptop']);
+        const { errors } = makeValidator().validateWideEventDefinition(event, baseEvent);
+        expect(errors.some((error) => error.includes('Generated schema does not match metaschema'))).to.be.true;
     });
 });
