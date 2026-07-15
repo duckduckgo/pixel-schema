@@ -26,7 +26,7 @@ export function getPixelFailureMessage(numFailures, isPerOwnerTask, targetVersio
         message = 'No errors found.';
     } else {
         let pixelPhrase = `${numFailures}`;
-        pixelPhrase += numFailures === 1 ? ' pixel' : 'pixels';
+        pixelPhrase += numFailures === 1 ? ' pixel' : ' pixels';
         if (isPerOwnerTask) {
             pixelPhrase += ' that you own';
         }
