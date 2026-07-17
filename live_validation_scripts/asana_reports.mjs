@@ -243,6 +243,7 @@ async function main() {
     readAsanaNotifyFile(dirPath);
 
     // Resolve the app version used as the live validation target.
+    // An app release between validation CH fetch and report generation could make this differ from the version validation used, but this window is very small.
     const productDef = fileUtils.readProductDef(dirPath);
     targetVersion = await resolveTargetVersion(productDef.target);
     if (targetVersion) {
@@ -355,9 +356,9 @@ async function main() {
     // Add attachment after task creation if there are pixels with errors
     if (numPixelsWithErrors > 0) {
         try {
-            /*  
+            /*
                 To avoid deleting attachments used for other purposes
-                delete_attachments.mjs looks for attachments that start with ASANA_and end with .json 
+                delete_attachments.mjs looks for attachments that start with ASANA_and end with .json
                 if we change that modify delete_attachments
             */
             const attachmentResult = await superagent.default
