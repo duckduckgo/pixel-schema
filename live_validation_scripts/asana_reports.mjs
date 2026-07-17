@@ -7,7 +7,9 @@ import yaml from 'js-yaml';
 
 import * as fileUtils from '../src/file_utils.mjs';
 import { getArgParserAsanaReports } from '../src/args_utils.mjs';
+import { getPixelFailureMessage } from '../src/asana_report_copy.mjs';
 import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
+import { resolveTargetVersion } from '../src/pixel_utils.mjs';
 
 const MAKE_PER_OWNER_SUBTASKS = true;
 
@@ -27,34 +29,7 @@ let ownerToPixelsMap = {};
 let userMap = null;
 
 const toNotify = {};
-
-// URL to the instructions task in Asanathat explains the report and its contents
-const INSTRUCTIONS_TASK_URL = 'https://app.asana.com/1/137249556945/project/1210856607616307/task/1210948723611775?focus=true';
-function getPixelFailureMessage(numFailures, isPerOwnerTask) {
-    if (numFailures === 0) {
-        return `No errors found.`;
-    }
-
-    let pixelPhrase = `${numFailures} `;
-    pixelPhrase += numFailures === 1 ? ' pixel' : 'pixels';
-    if (isPerOwnerTask) {
-        pixelPhrase += ' that you own';
-    }
-    pixelPhrase += numFailures === 1 ? ' has' : ' have';
-    pixelPhrase += ' failed live validation.';
-
-    if (isPerOwnerTask) {
-        pixelPhrase += ' Table below lists the errors encountered - check the attachment for examples of pixels triggering each error.';
-    } else {
-        pixelPhrase += ' Check per-owner subtasks and/or the attachment for details.';
-    }
-
-    pixelPhrase += `
-
- New to these reports ? See <a href="${INSTRUCTIONS_TASK_URL}">View task</a>`;
-
-    return `${pixelPhrase}`;
-}
+let targetVersion = null;
 
 function readAsanaNotifyFile() {
     const notifyFile = path.join(dirPath, 'asana_notify.json');
@@ -129,7 +104,7 @@ async function createOwnerSubtask(owner, parentTaskGid, ownersPixelData) {
     fs.writeFileSync(tempFilePath, JSON.stringify(ownersPixelData, null, 4));
 
     const numPixels = Object.keys(ownersPixelData).length;
-    const pixelPhrase = getPixelFailureMessage(numPixels, true);
+    const pixelPhrase = getPixelFailureMessage(numPixels, true, targetVersion);
     const header = `${pixelPhrase}`;
 
     const pixelNameWidth = 200;
@@ -267,6 +242,16 @@ async function main() {
     // Load the asana notify file
     readAsanaNotifyFile(dirPath);
 
+    // Resolve the app version used as the live validation target.
+    // An app release between validation CH fetch and report generation could make this differ from the version validation used, but this window is very small.
+    const productDef = fileUtils.readProductDef(dirPath);
+    targetVersion = await resolveTargetVersion(productDef.target);
+    if (targetVersion) {
+        console.log(`Target app version: ${targetVersion}`);
+    } else {
+        console.log('No target app version configured');
+    }
+
     // Allow NOTIFY_PIXEL_OWNERS env var to override the tagPixelOwners setting from asana_notify.json
     if (process.env.NOTIFY_PIXEL_OWNERS !== undefined) {
         const envNotifyOwners = process.env.NOTIFY_PIXEL_OWNERS.toLowerCase() === 'true';
@@ -324,7 +309,7 @@ async function main() {
 
     console.log(taskName);
 
-    const pixelPhrase = getPixelFailureMessage(numPixelsWithErrors, false);
+    const pixelPhrase = getPixelFailureMessage(numPixelsWithErrors, false, targetVersion);
 
     // For valid formatting options: https://developers.asana.com/docs/rich-text#reading-rich-text
     const taskNotes = `<body> ${pixelPhrase} </body>`;
@@ -371,9 +356,9 @@ async function main() {
     // Add attachment after task creation if there are pixels with errors
     if (numPixelsWithErrors > 0) {
         try {
-            /*  
+            /*
                 To avoid deleting attachments used for other purposes
-                delete_attachments.mjs looks for attachments that start with ASANA_and end with .json 
+                delete_attachments.mjs looks for attachments that start with ASANA_and end with .json
                 if we change that modify delete_attachments
             */
             const attachmentResult = await superagent.default
