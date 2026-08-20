@@ -39,21 +39,22 @@ async function main(mainDir, csvFile) {
                 console.error(e);
             }
 
-            // Append version param (e.g. appVersion=1.2.3) when defined in product.json
+            // Treat bare dedicated versions as request-age context, not pixel parameters.
             const versionKey = productDef.target.key ?? null;
+            let inferredVersion = null;
             if (versionKey) {
-                // ensure version present in a dedicated CSV column and not already in params
-                if (
-                    typeof row.version === 'string' &&
-                    row.version.trim() !== '' &&
-                    parsedParams.every((p) => !p.startsWith(versionKey + '='))
-                ) {
-                    parsedParams = parsedParams.concat(row.version.trim());
+                const dedicatedVersion = typeof row.version === 'string' ? row.version.trim() : '';
+                const explicitVersionPrefix = `${versionKey}=`;
+                const hasTargetVersionParam = parsedParams.some((param) => param.startsWith(explicitVersionPrefix));
+                if (!hasTargetVersionParam && dedicatedVersion.startsWith(explicitVersionPrefix)) {
+                    parsedParams = parsedParams.concat(dedicatedVersion);
+                } else if (!hasTargetVersionParam && dedicatedVersion && !dedicatedVersion.includes('=')) {
+                    inferredVersion = dedicatedVersion;
                 }
             }
             const paramsUrlFormat = parsedParams.join('&');
 
-            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, inferredVersion);
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {

@@ -420,6 +420,51 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
+    it('current inferred app version should pass without becoming a parameter', () => {
+        const prefix = 'versionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0');
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('newer four-part inferred app version should pass without becoming a parameter', () => {
+        const prefix = 'versionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0.1');
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('old inferred app version should return OLD_APP_VERSION status', () => {
+        const prefix = 'versionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, '1.5.0');
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('actual app version takes precedence over an old inferred version', () => {
+        const prefix = 'versionedPixel';
+        const params = 'appVersion=2.0.0&param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, '1.5.0');
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('malformed inferred app version follows missing-version behavior', () => {
+        const prefix = 'versionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, 'invalid');
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
     it('invalid version format should continue with normal validation', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=invalid&param1=test';
@@ -554,6 +599,15 @@ describe('Require version defaults', () => {
         const prefix = 'nonVersionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('should validate with an inferred app version without adding it to params', () => {
+        const prefix = 'nonVersionedPixel';
+        const params = 'param1=test';
+        const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0');
 
         expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
         expect(pixelStatus.errors).to.be.empty;

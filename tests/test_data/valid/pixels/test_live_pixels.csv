@@ -13,6 +13,9 @@ m.my.first.pixel.new.exceptiontype.x.android.phone,[],appVersion=wrongFormat
 m.my.first.pixel.skip-due-to-version,"['count=unexpectedButSkip']",appVersion=0.0
 m.my.first.pixel,"['count=wrongFormat']",appVersion=2.0.0
 m.my.first.pixel,"['count=42', 'date=2025-03-12']",appVersion=2.0.3
+m.my.first.pixel,"['count=wrongFormat']",2.0.3
+m.my.first.pixel,"['count=unexpectedButSkip']",0.0.1
+m.my.first.pixel,['count=42'],wrongFormat
 m.my.first.pixel,['count=42'],
 m.my.first.pixel,"['colors=%5B%22red%22,%22unexpected_array_value%22%5D']",appVersion=2.0.3
 m.my.first.pixel,"['colors=%5B%22red%22,%22blue%22%5D']",appVersion=2.0.3

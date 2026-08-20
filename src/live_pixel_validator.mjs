@@ -265,7 +265,7 @@ export class LivePixelsValidator {
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
      */
-    validatePixel(pixel, params) {
+    validatePixel(pixel, params, inferredVersion = null) {
         this.#initPixelState();
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateNativeExperimentPixel(pixel, params);
@@ -281,7 +281,7 @@ export class LivePixelsValidator {
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         this.#currentPixelState.owners = pixelMatch.owners;
 
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch, inferredVersion);
         return this.#currentPixelState;
     }
 
@@ -293,7 +293,7 @@ export class LivePixelsValidator {
      * @param {object} pixelSchemas compiled schemas for the pixel.
      * @returns {object} resulting validation state.
      */
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, inferredVersion = null) {
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
@@ -304,15 +304,18 @@ export class LivePixelsValidator {
 
         if (this.#defsVersionKey && this.#defsVersion) {
             const hasTargetVersionParam = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
-            // 1) Skip pixels that define the app version key but do not include it in the live params.
-            if (hasTargetVersionParam && !paramsStruct[this.#defsVersionKey]) {
+            const targetVersion = paramsStruct[this.#defsVersionKey];
+            const validInferredVersion = inferredVersion && validateVersion(inferredVersion) ? inferredVersion : null;
+            const versionForFreshness = targetVersion || validInferredVersion;
+            // Actual target params take precedence; inferred versions only provide request-age context.
+            if (hasTargetVersionParam && !versionForFreshness) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
             }
 
-            // 1b) Skip outdated pixels based on version
-            if (paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
-                if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+            // Skip outdated pixels based on the explicit or inferred version.
+            if (versionForFreshness && validateVersion(versionForFreshness)) {
+                if (compareVersions(versionForFreshness, this.#defsVersion) === -1) {
                     this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                     return this.#currentPixelState;
                 }
