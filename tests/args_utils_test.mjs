@@ -114,6 +114,13 @@ describe('getArgParserWithCsv', () => {
         expect(argv.csvFile).to.equal(VALID_CSV);
     });
 
+    it('accepts an optional release definitions directory', async () => {
+        const parser = configureParser(getArgParserWithCsv('Validate directory', 'CSV file'));
+        const argv = await parse(parser, VALID_DIR, VALID_CSV, VALID_DIR);
+
+        expect(argv.releaseDir).to.equal(VALID_DIR);
+    });
+
     it('throws when the directory path is invalid', async () => {
         const missingDir = '/missing/dir';
         stubFs({ exists: false, isDir: false });

@@ -22,6 +22,11 @@ pipeline {
                                 description: 'Windows Browser Branch',
                                 name: 'WINDOWS_BROWSER_BRANCH'
                             ),
+                            string(
+                                defaultValue: 'v{version}',
+                                description: 'Windows Browser release tag template',
+                                name: 'WINDOWS_BROWSER_RELEASE_TAG_TEMPLATE'
+                            ),
                             booleanParam(
                                 defaultValue: true,
                                 description: 'Run Windows validation',
@@ -31,6 +36,11 @@ pipeline {
                                 defaultValue: 'main',
                                 description: 'DuckDuckGo Extension Branch',
                                 name: 'EXTENSION_BRANCH'
+                            ),
+                            string(
+                                defaultValue: '{version}',
+                                description: 'DuckDuckGo Extension release tag template',
+                                name: 'EXTENSION_RELEASE_TAG_TEMPLATE'
                             ),
                             booleanParam(
                                 defaultValue: true,
@@ -42,6 +52,16 @@ pipeline {
                                 description: 'Apple Browsers Branch',
                                 name: 'APPLE_BROWSERS_BRANCH'
                             ),
+                            string(
+                                defaultValue: '{version}+macos',
+                                description: 'Apple Browsers macOS release tag template',
+                                name: 'APPLE_MACOS_RELEASE_TAG_TEMPLATE'
+                            ),
+                            string(
+                                defaultValue: '{version}+ios',
+                                description: 'Apple Browsers iOS release tag template',
+                                name: 'APPLE_IOS_RELEASE_TAG_TEMPLATE'
+                            ),
                             booleanParam(
                                 defaultValue: true,
                                 description: 'Run Apple (macOS and iOS) validation',
@@ -51,6 +71,11 @@ pipeline {
                                 defaultValue: 'develop',
                                 description: 'Android',
                                 name: 'ANDROID_BRANCH'
+                            ),
+                            string(
+                                defaultValue: '{version}',
+                                description: 'Android release tag template',
+                                name: 'ANDROID_RELEASE_TAG_TEMPLATE'
                             ),
                             booleanParam(
                                 defaultValue: true,
@@ -163,19 +188,21 @@ pipeline {
             }
              steps {
                 script {
-                    def result = sh(
+                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.EXTENSION_RELEASE_TAG_TEMPLATE}"]) {
+                        sh(
                         script: '''#!/bin/bash
                             MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
                             cd pixel-schema
                             echo "Starting validation for duckduckgo-privacy-extension..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
                             exit $exit_code
                         ''',
                         returnStatus: true
-                    )
+                        )
+                    }
                     if (result != 0) {
                         echo "WARNING: validateRepo.sh failed for duckduckgo-privacy-extension with exit code: ${result}"
                         unstable("Validation failed for duckduckgo-privacy-extension")
@@ -189,19 +216,21 @@ pipeline {
             }
              steps {
                 script {
-                    def result = sh(
+                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.WINDOWS_BROWSER_RELEASE_TAG_TEMPLATE}"]) {
+                        sh(
                         script: '''#!/bin/bash
                             MAIN_DIR="../windows-browser/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for windows-browser..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
                             exit $exit_code
                         ''',
                         returnStatus: true
-                    )
+                        )
+                    }
                     if (result != 0) {
                         echo "WARNING: validateRepo.sh failed for windows-browser with exit code: ${result}"
                         unstable("Validation failed for windows-browser")
@@ -215,19 +244,21 @@ pipeline {
             }
              steps {
                 script {
-                    def result = sh(
+                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.APPLE_MACOS_RELEASE_TAG_TEMPLATE}"]) {
+                        sh(
                         script: '''#!/bin/bash
                             MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (macOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
                             exit $exit_code
                         ''',
                         returnStatus: true
-                    )
+                        )
+                    }
                     if (result != 0) {
                         echo "WARNING: validateRepo.sh failed for apple-browsers (macOS) with exit code: ${result}"
                         unstable("Validation failed for apple-browsers (macOS)")
@@ -241,19 +272,21 @@ pipeline {
             }
              steps {
                 script {
-                    def result = sh(
+                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.APPLE_IOS_RELEASE_TAG_TEMPLATE}"]) {
+                        sh(
                         script: '''#!/bin/bash
                             MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for apple-browsers (iOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
                             exit $exit_code
                         ''',
                         returnStatus: true
-                    )
+                        )
+                    }
                     if (result != 0) {
                         echo "WARNING: validateRepo.sh failed for apple-browsers (iOS) with exit code: ${result}"
                         unstable("Validation failed for apple-browsers (iOS)")
@@ -267,19 +300,21 @@ pipeline {
             }
              steps {
                 script {
-                    def result = sh(
+                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.ANDROID_RELEASE_TAG_TEMPLATE}"]) {
+                        sh(
                         script: '''#!/bin/bash
                             MAIN_DIR="../android/PixelDefinitions/"
                             cd pixel-schema
                             echo "Starting validation for android..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT
+                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
                             exit_code=$?
                             echo "validateRepo.sh exit code: $exit_code"
                             cd ..
                             exit $exit_code
                         ''',
                         returnStatus: true
-                    )
+                        )
+                    }
                     if (result != 0) {
                         echo "WARNING: validateRepo.sh failed for android with exit code: ${result}"
                         unstable("Validation failed for android")

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { compareVersions, validate as validateVersion } from 'compare-versions';
 
-import { formatAjvErrors } from './error_utils.mjs';
+import { createValidationErrorIdentity, formatAjvErrorDetails } from './error_utils.mjs';
 import { ROOT_PREFIX, PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from './constants.mjs';
 import { matchPixel } from './pixel_utils.mjs';
 
@@ -208,14 +208,22 @@ export class LivePixelsValidator {
         const experimentName = pixelParts[1];
         const pixelPrefix = ['experiment', pixelType, experimentName].join(PIXEL_DELIMITER);
         if (!this.#compiledExperiments[experimentName]) {
-            this.#saveErrors(pixelPrefix, pixel, [`Unknown experiment '${experimentName}'`]);
+            this.#saveErrors(pixelPrefix, pixel, [
+                this.#createCustomError('unknown-experiment', { experimentName }, `Unknown experiment '${experimentName}'`),
+            ]);
             return this.#currentPixelState;
         }
 
         // Check cohort
         const cohortName = pixelParts[2];
         if (!this.#compiledExperiments[experimentName].cohorts.includes(cohortName)) {
-            this.#saveErrors(pixelPrefix, pixel, [`Unexpected cohort '${cohortName}' for experiment '${experimentName}'`]);
+            this.#saveErrors(pixelPrefix, pixel, [
+                this.#createCustomError(
+                    'unexpected-experiment-cohort',
+                    { cohortName, experimentName },
+                    `Unexpected cohort '${cohortName}' for experiment '${experimentName}'`,
+                ),
+            ]);
             return this.#currentPixelState;
         }
 
@@ -228,7 +236,11 @@ export class LivePixelsValidator {
                 structIdx++;
             }
             this.#commonExperimentSuffixesSchema(pixelNameStruct);
-            this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
+            this.#saveErrors(
+                pixelPrefix,
+                pixel,
+                formatAjvErrorDetails(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct, 'experiment-suffixes'),
+            );
         }
 
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
@@ -236,18 +248,30 @@ export class LivePixelsValidator {
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
             if (!metric || !metricValue) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Experiment metrics pixels must contain 'metric' and 'value' params`]);
+                this.#saveErrors(pixel, paramsUrlFormat, [
+                    this.#createCustomError(
+                        'missing-experiment-metric-values',
+                        { metric: !!metric, value: !!metricValue },
+                        "Experiment metrics pixels must contain 'metric' and 'value' params",
+                    ),
+                ]);
                 return this.#currentPixelState;
             }
 
             const metricSchema = this.#compiledExperiments[experimentName].metrics[metric];
             if (!metricSchema) {
-                this.#saveErrors(pixel, paramsUrlFormat, [`Unknown experiment metric '${metric}'`]);
+                this.#saveErrors(pixel, paramsUrlFormat, [
+                    this.#createCustomError(
+                        'unknown-experiment-metric',
+                        { experimentName, metric },
+                        `Unknown experiment metric '${metric}'`,
+                    ),
+                ]);
                 return this.#currentPixelState;
             }
 
             metricSchema(metricValue);
-            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(metricSchema.errors));
+            this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrorDetails(metricSchema.errors, null, 'experiment-metric'));
 
             // Remove metric and value from params for further validation
             delete rawParamsStruct.metric;
@@ -256,7 +280,11 @@ export class LivePixelsValidator {
 
         // Validate enrollmentDate and conversionWindow
         this.#commonExperimentParamsSchema(rawParamsStruct);
-        this.#saveErrors(pixel, paramsUrlFormat, formatAjvErrors(this.#commonExperimentParamsSchema.errors));
+        this.#saveErrors(
+            pixel,
+            paramsUrlFormat,
+            formatAjvErrorDetails(this.#commonExperimentParamsSchema.errors, null, 'experiment-params'),
+        );
         return this.#currentPixelState;
     }
 
@@ -321,7 +349,7 @@ export class LivePixelsValidator {
 
         // 2) Validate regular params
         pixelSchemas.paramsSchema(paramsStruct);
-        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrors(pixelSchemas.paramsSchema.errors));
+        this.#saveErrors(prefix, paramsUrlFormat, formatAjvErrorDetails(pixelSchemas.paramsSchema.errors, null, 'pixel-params'));
 
         // 3) Validate suffixes if they exist
         if (pixel.length === prefix.length) {
@@ -334,7 +362,7 @@ export class LivePixelsValidator {
             pixelNameStruct[idx] = suffix;
         });
         pixelSchemas.suffixesSchema(pixelNameStruct);
-        this.#saveErrors(prefix, pixel, formatAjvErrors(pixelSchemas.suffixesSchema.errors, pixelNameStruct));
+        this.#saveErrors(prefix, pixel, formatAjvErrorDetails(pixelSchemas.suffixesSchema.errors, pixelNameStruct, 'pixel-suffixes'));
 
         return this.#currentPixelState;
     }
@@ -343,7 +371,7 @@ export class LivePixelsValidator {
      * Persists validation errors on the current pixel state.
      * @param {string} prefix prefix used in error reporting.
      * @param {string} example source example for the error.
-     * @param {string[]|null|undefined} errors AJV error messages.
+     * @param {Array<{error: string, identity: string}>|null|undefined} errors error details.
      * @returns {void}
      */
     #saveErrors(prefix, example, errors) {
@@ -353,10 +381,21 @@ export class LivePixelsValidator {
         this.#currentPixelState.prefixForErrors = prefix;
 
         for (const error of errors) {
-            this.#currentPixelState.errors.push({
-                error,
-                example,
-            });
+            this.#currentPixelState.errors.push({ ...error, example });
         }
+    }
+
+    /**
+     * Creates an identity for non-AJV native experiment validation errors.
+     * @param {string} category named error category.
+     * @param {object} values defining error values.
+     * @param {string} error formatted error text.
+     * @returns {{error: string, identity: string}} error detail.
+     */
+    #createCustomError(category, values, error) {
+        return {
+            error,
+            identity: createValidationErrorIdentity('native-experiment', category, '', values),
+        };
     }
 }

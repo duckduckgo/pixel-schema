@@ -40,19 +40,31 @@ export function getArgParser(description) {
 }
 
 /**
- * Builds a yargs parser for commands that require a directory path and optional CSV file.
+ * Builds a yargs parser for commands that require a directory path, optional CSV file, and optional release directory.
  * @param {string} description - CLI command description.
  * @param {string} csvFileDescription - Help text for the CSV file argument.
  * @returns {Argv} Configured yargs parser.
  */
 export function getArgParserWithCsv(description, csvFileDescription) {
     return yargs(hideBin(process.argv))
-        .command(`$0 [${MAIN_DIR_ARG}] [csvFile]`, description, (yargs) => {
-            return yargs.positional(MAIN_DIR_ARG, getMainDirPositional()).positional('csvFile', {
-                describe: csvFileDescription,
-                type: 'string',
-                default: PIXELS_TMP_CSV,
-            });
+        .command(`$0 [${MAIN_DIR_ARG}] [csvFile] [releaseDir]`, description, (yargs) => {
+            return yargs
+                .positional(MAIN_DIR_ARG, getMainDirPositional())
+                .positional('csvFile', {
+                    describe: csvFileDescription,
+                    type: 'string',
+                    default: PIXELS_TMP_CSV,
+                })
+                .positional('releaseDir', {
+                    describe: 'path to preprocessed release definitions, when validating against a release snapshot',
+                    type: 'string',
+                    coerce: (releaseDir) => {
+                        if (releaseDir && (!fs.existsSync(releaseDir) || !fs.statSync(releaseDir).isDirectory())) {
+                            throw new Error(`Release directory path ${releaseDir} does not exist!`);
+                        }
+                        return releaseDir;
+                    },
+                });
         })
         .demandOption(MAIN_DIR_ARG);
 }
