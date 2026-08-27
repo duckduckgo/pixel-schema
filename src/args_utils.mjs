@@ -70,6 +70,22 @@ export function getArgParserWithCsv(description, csvFileDescription) {
 }
 
 /**
+ * Builds a yargs parser for resolving a release tag from a product definition.
+ * @param {string} description - CLI command description.
+ * @returns {Argv} Configured yargs parser.
+ */
+export function getArgParserReleaseTag(description) {
+    return yargs(hideBin(process.argv))
+        .command(`$0 [${MAIN_DIR_ARG}] [tagTemplate]`, description, (yargs) => {
+            return yargs.positional(MAIN_DIR_ARG, getMainDirPositional()).positional('tagTemplate', {
+                describe: 'release tag template containing {version}',
+                type: 'string',
+            });
+        })
+        .demandOption(MAIN_DIR_ARG);
+}
+
+/**
  * Builds a yargs parser for generating Asana reports.
  * @param {string} description - CLI command description.
  * @returns {Argv} Configured yargs parser.

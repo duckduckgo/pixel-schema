@@ -1,9 +1,63 @@
+def validationConfigs(params) {
+    return [
+        [
+            name: 'duckduckgo-privacy-extension',
+            enabled: params.RUN_EXTENSION_VALIDATION,
+            repo: 'duckduckgo-privacy-extension',
+            branch: params.EXTENSION_BRANCH,
+            definitionsDir: 'pixel-definitions',
+            tagTemplate: params.EXTENSION_RELEASE_TAG_TEMPLATE,
+        ],
+        [
+            name: 'windows-browser',
+            enabled: params.RUN_WINDOWS_VALIDATION,
+            repo: 'windows-browser',
+            branch: params.WINDOWS_BROWSER_BRANCH,
+            definitionsDir: 'PixelDefinitions',
+            tagTemplate: params.WINDOWS_BROWSER_RELEASE_TAG_TEMPLATE,
+            credentialsId: 'windows-browser-rw',
+        ],
+        [
+            name: 'apple-browsers (macOS)',
+            enabled: params.RUN_APPLE_VALIDATION,
+            repo: 'apple-browsers',
+            branch: params.APPLE_BROWSERS_BRANCH,
+            definitionsDir: 'macOS/PixelDefinitions',
+            tagTemplate: params.APPLE_MACOS_RELEASE_TAG_TEMPLATE,
+        ],
+        [
+            name: 'apple-browsers (iOS)',
+            enabled: params.RUN_APPLE_VALIDATION,
+            repo: 'apple-browsers',
+            branch: params.APPLE_BROWSERS_BRANCH,
+            definitionsDir: 'iOS/PixelDefinitions',
+            tagTemplate: params.APPLE_IOS_RELEASE_TAG_TEMPLATE,
+        ],
+        [
+            name: 'android',
+            enabled: params.RUN_ANDROID_VALIDATION,
+            repo: 'android',
+            branch: params.ANDROID_BRANCH,
+            definitionsDir: 'PixelDefinitions',
+            tagTemplate: params.ANDROID_RELEASE_TAG_TEMPLATE,
+        ],
+    ]
+}
+
+def remoteConfig(config) {
+    def remote = [url: "https://github.com/duckduckgo/${config.repo}.git"]
+    if (config.credentialsId) {
+        remote.credentialsId = config.credentialsId
+    }
+    return remote
+}
+
 pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H 0 * * 0') }
     environment {
         USER_MAP="../internal-github-asana-utils/user_map.yml"
-        ASANA_PROJECT="1210856607616307"
+        ASANA_PROJECT="${params.ASANA_PROJECT ?: '1210856607616307'}"
         NOTIFY_PIXEL_OWNERS = "${params.NOTIFY_PIXEL_OWNERS}"
     }
     stages {
@@ -87,6 +141,11 @@ pipeline {
                                 description: 'Asana Utils Branch',
                                 name: 'ASANA_UTILS_BRANCH'
                             ),
+                            string(
+                                defaultValue: '1210856607616307',
+                                description: 'Asana project for validation reports',
+                                name: 'ASANA_PROJECT'
+                            ),
                             booleanParam(
                                 defaultValue: true,
                                 description: 'Notify pixel owners in their Asana tasks via internal-github-asana-utils',
@@ -94,242 +153,121 @@ pipeline {
                             )
                         ])
                     ])
+                }
+            }
+        }
+        stage('Checkout repositories') {
+            steps {
+                script {
+                    dir('pixel-schema') {
+                        checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
+                            extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
+                            userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
+                    }
+                    dir('internal-github-asana-utils') {
+                        checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
+                            extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
+                            userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
+                    }
 
+                    def configs = validationConfigs(params).findAll { it.enabled }
+                    configs.groupBy { it.repo }.each { repo, repoConfigs ->
+                        def config = repoConfigs[0]
+                        echo "Checking out ${config.repo} HEAD from ${config.branch}"
+                        dir(repo) {
+                            checkout([$class: 'GitSCM', branches: [[name: "${config.branch}"]],
+                                extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
+                                userRemoteConfigs: [remoteConfig(config)]])
+                        }
+                    }
+
+                    sh '''#!/bin/bash
+                        cd pixel-schema
+                        fnm install
+                        fnm exec npm ci
+                    '''
+
+                    configs.each { config ->
+                        def headDefinitionsDir = "../${config.repo}/${config.definitionsDir}/"
+                        def releaseOutput = withEnv([
+                            "MAIN_DIR=${headDefinitionsDir}",
+                            "RELEASE_TAG_TEMPLATE=${config.tagTemplate}",
+                        ]) {
+                            sh(
+                                script: '''#!/bin/bash
+                                    cd pixel-schema
+                                    fnm exec node ./scripts/resolve_release_tag.mjs "$MAIN_DIR" "$RELEASE_TAG_TEMPLATE"
+                                ''',
+                                returnStdout: true
+                            ).trim()
+                        }
+
+                        if (!releaseOutput) {
+                            echo "No application version target for ${config.name}; validating HEAD only"
+                            return
+                        }
+
+                        def releaseValues = releaseOutput.readLines()
+                        if (releaseValues.size() != 2) {
+                            error("Unexpected release resolver output for ${config.name}: ${releaseOutput}")
+                        }
+                        def releaseVersion = releaseValues[0]
+                        def releaseTag = releaseValues[1]
+                        echo "Checking out ${config.name} release ${releaseVersion} from tag ${releaseTag}"
+                        dir("release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}") {
+                            checkout([$class: 'GitSCM', branches: [[name: "refs/tags/${releaseTag}"]],
+                                extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
+                                userRemoteConfigs: [remoteConfig(config)]])
+                        }
+                    }
                 }
             }
         }
-        stage('clone pixel-schema repo ') {
+        stage('Confirm settings') {
             steps {
-                dir('pixel-schema') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.PIXEL_SCHEMA_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/pixel-schema.git']]])
-                }
-            }
-        }
-        stage('clone duckduckgo-privacy-extension repo ') {
-            when {
-                expression { params.RUN_EXTENSION_VALIDATION }
-            }
-            steps {
-                dir('duckduckgo-privacy-extension') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.EXTENSION_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/duckduckgo-privacy-extension.git']]])
-                }
-            }
-        }
-        stage('clone windows-browser repo with credentials') {
-            when {
-                expression { params.RUN_WINDOWS_VALIDATION }
-            }
-            steps {
-                dir('windows-browser') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.WINDOWS_BROWSER_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/windows-browser.git']]])
-                }
-            }
-        }
-        stage('clone apple-browsers repo') {
-            when {
-                expression { params.RUN_APPLE_VALIDATION }
-            }
-            steps {
-                dir('apple-browsers') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.APPLE_BROWSERS_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/apple-browsers.git']]])
-                }
-            }
-        }
-        stage('clone android repo') {
-            when {
-                expression { params.RUN_ANDROID_VALIDATION }
-            }
-            steps {
-                dir('android') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.ANDROID_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[url: 'https://github.com/duckduckgo/android.git']]])
-                }
-            }
-        }
-        stage('clone internal-github-asana-utils repo ') {
-            steps {
-                dir('internal-github-asana-utils') {
-                    checkout([$class: 'GitSCM', branches: [[name: "${params.ASANA_UTILS_BRANCH}"]],
-                    extensions: [[$class: 'LocalBranch'], [$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
-                    userRemoteConfigs: [[credentialsId: 'windows-browser-rw', url: 'https://github.com/duckduckgo/internal-github-asana-utils.git']]])
-                }
-            }
-        }
-        stage('Install ') {
-             steps {
-                sh '''#!/bin/bash
-                    cd pixel-schema
-                    fnm install
-                    fnm exec npm ci
-                    cd ..
-                '''
-            }
-        }
-        stage('Confirm settings ') {
-             steps {
                 sh '''#!/bin/bash
                     echo "User map: $USER_MAP"
                     echo "Asana Project: $ASANA_PROJECT"
                 '''
             }
         }
-        stage('Validate pixels for duckduckgo-privacy-extension'){
-            when {
-                expression { params.RUN_EXTENSION_VALIDATION }
-            }
-             steps {
+        stage('Validate products') {
+            steps {
                 script {
-                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.EXTENSION_RELEASE_TAG_TEMPLATE}"]) {
-                        sh(
-                        script: '''#!/bin/bash
-                            MAIN_DIR="../duckduckgo-privacy-extension/pixel-definitions/"
-                            cd pixel-schema
-                            echo "Starting validation for duckduckgo-privacy-extension..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
-                            exit_code=$?
-                            echo "validateRepo.sh exit code: $exit_code"
-                            cd ..
-                            exit $exit_code
-                        ''',
-                        returnStatus: true
-                        )
-                    }
-                    if (result != 0) {
-                        echo "WARNING: validateRepo.sh failed for duckduckgo-privacy-extension with exit code: ${result}"
-                        unstable("Validation failed for duckduckgo-privacy-extension")
+                    validationConfigs(params).findAll { it.enabled }.each { config ->
+                        def releaseCheckoutDir = "release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}"
+                        def releaseDefinitionsDir = fileExists("${releaseCheckoutDir}/${config.definitionsDir}")
+                            ? "../${releaseCheckoutDir}/${config.definitionsDir}/"
+                            : ''
+                        def result = withEnv([
+                            "MAIN_DIR=../${config.repo}/${config.definitionsDir}/",
+                            "RELEASE_MAIN_DIR=${releaseDefinitionsDir}",
+                        ]) {
+                            sh(
+                                script: '''#!/bin/bash
+                                    cd pixel-schema
+                                    echo "Starting validation for $MAIN_DIR..."
+                                    ./scripts/validateRepo.sh "$MAIN_DIR" "$USER_MAP" "$ASANA_PROJECT" "$RELEASE_MAIN_DIR"
+                                ''',
+                                returnStatus: true
+                            )
+                        }
+                        if (result != 0) {
+                            echo "WARNING: validateRepo.sh failed for ${config.name} with exit code: ${result}"
+                            unstable("Validation failed for ${config.name}")
+                        }
                     }
                 }
             }
         }
-        stage('Validate pixels for windows-browser'){
-            when {
-                expression { params.RUN_WINDOWS_VALIDATION }
-            }
-             steps {
-                script {
-                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.WINDOWS_BROWSER_RELEASE_TAG_TEMPLATE}"]) {
-                        sh(
-                        script: '''#!/bin/bash
-                            MAIN_DIR="../windows-browser/PixelDefinitions/"
-                            cd pixel-schema
-                            echo "Starting validation for windows-browser..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
-                            exit_code=$?
-                            echo "validateRepo.sh exit code: $exit_code"
-                            cd ..
-                            exit $exit_code
-                        ''',
-                        returnStatus: true
-                        )
-                    }
-                    if (result != 0) {
-                        echo "WARNING: validateRepo.sh failed for windows-browser with exit code: ${result}"
-                        unstable("Validation failed for windows-browser")
-                    }
-                }
-            }
-        }
-        stage('Validate pixels for apple-browsers (macOS)'){
-            when {
-                expression { params.RUN_APPLE_VALIDATION }
-            }
-             steps {
-                script {
-                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.APPLE_MACOS_RELEASE_TAG_TEMPLATE}"]) {
-                        sh(
-                        script: '''#!/bin/bash
-                            MAIN_DIR="../apple-browsers/macOS/PixelDefinitions/"
-                            cd pixel-schema
-                            echo "Starting validation for apple-browsers (macOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
-                            exit_code=$?
-                            echo "validateRepo.sh exit code: $exit_code"
-                            cd ..
-                            exit $exit_code
-                        ''',
-                        returnStatus: true
-                        )
-                    }
-                    if (result != 0) {
-                        echo "WARNING: validateRepo.sh failed for apple-browsers (macOS) with exit code: ${result}"
-                        unstable("Validation failed for apple-browsers (macOS)")
-                    }
-                }
-            }
-        }
-        stage('Validate pixels for apple-browsers (iOS)'){
-            when {
-                expression { params.RUN_APPLE_VALIDATION }
-            }
-             steps {
-                script {
-                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.APPLE_IOS_RELEASE_TAG_TEMPLATE}"]) {
-                        sh(
-                        script: '''#!/bin/bash
-                            MAIN_DIR="../apple-browsers/iOS/PixelDefinitions/"
-                            cd pixel-schema
-                            echo "Starting validation for apple-browsers (iOS)..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
-                            exit_code=$?
-                            echo "validateRepo.sh exit code: $exit_code"
-                            cd ..
-                            exit $exit_code
-                        ''',
-                        returnStatus: true
-                        )
-                    }
-                    if (result != 0) {
-                        echo "WARNING: validateRepo.sh failed for apple-browsers (iOS) with exit code: ${result}"
-                        unstable("Validation failed for apple-browsers (iOS)")
-                    }
-                }
-            }
-        }
-        stage('Validate pixels for android'){
-            when {
-                expression { params.RUN_ANDROID_VALIDATION }
-            }
-             steps {
-                script {
-                    def result = withEnv(["RELEASE_TAG_TEMPLATE=${params.ANDROID_RELEASE_TAG_TEMPLATE}"]) {
-                        sh(
-                        script: '''#!/bin/bash
-                            MAIN_DIR="../android/PixelDefinitions/"
-                            cd pixel-schema
-                            echo "Starting validation for android..."
-                            ./scripts/validateRepo.sh $MAIN_DIR $USER_MAP $ASANA_PROJECT "$RELEASE_TAG_TEMPLATE"
-                            exit_code=$?
-                            echo "validateRepo.sh exit code: $exit_code"
-                            cd ..
-                            exit $exit_code
-                        ''',
-                        returnStatus: true
-                        )
-                    }
-                    if (result != 0) {
-                        echo "WARNING: validateRepo.sh failed for android with exit code: ${result}"
-                        unstable("Validation failed for android")
-                    }
-                }
-            }
-        }
-        stage('Delete old attachments from Asana'){
-             steps {
+        stage('Delete old attachments from Asana') {
+            steps {
                 script {
                     def result = sh(
                         script: '''#!/bin/bash
                             cd pixel-schema
                             echo "Deleting old attachments from Asana..."
-                            fnm exec npm run delete-attachments $ASANA_PROJECT
+                            fnm exec npm run delete-attachments "$ASANA_PROJECT"
                         ''',
                         returnStatus: true
                     )
@@ -343,7 +281,6 @@ pipeline {
     post {
         failure {
             script {
-
                 sh '''#!/bin/bash
                     echo "Attempting to create Asana task for failure..."
                     DATE=`date --rfc-3339=seconds | sed -e 's/ /-/g'`

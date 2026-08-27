@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 
+// Resolves the live app version in product.json to the release tag Jenkins should check out.
+import { getArgParserReleaseTag } from '../src/args_utils.mjs';
 import { readProductDef } from '../src/file_utils.mjs';
 import { resolveReleaseTag } from '../src/pixel_utils.mjs';
 
-async function main() {
-    const [mainDir, tagTemplate] = process.argv.slice(2);
-    if (!mainDir) {
-        throw new Error('Usage: resolve_release_tag.mjs <definitions-dir> [release-tag-template]');
-    }
+const argv = getArgParserReleaseTag('Resolve a product release tag from its live app version').parse();
 
+async function main(mainDir, tagTemplate) {
     const productDef = readProductDef(mainDir);
     const release = await resolveReleaseTag(productDef.target, tagTemplate);
     if (release) {
@@ -16,7 +15,7 @@ async function main() {
     }
 }
 
-main().catch((error) => {
+main(argv.dirPath, argv.tagTemplate).catch((error) => {
     console.error(`Error: ${error.message}`);
     process.exit(1);
 });
