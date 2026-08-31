@@ -4,6 +4,7 @@ second-unknown-pixel,[],
 m.my.first.pixel.test,[],
 m.my.first.pixel.test,['expValidA=a'],
 m.my.first.pixel.test,['extraParam=10'],
+m.my.first.pixel.test,['extraParam=headerVersionRegression'],2.0.3
 m.my.first.pixel.test.extra-suffix,[],
 m.my.first.pixel.unexpected-suffix,[],appVersion=2.0.3
 m.my.first.pixel.new.unexpected-suffix2,[],appVersion=2.0.3

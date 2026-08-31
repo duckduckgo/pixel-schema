@@ -420,7 +420,7 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('current inferred app version should pass without becoming a parameter', () => {
+    it('app version from header matching target should pass without becoming a parameter', () => {
         const prefix = 'versionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0');
@@ -429,7 +429,7 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('newer four-part inferred app version should pass without becoming a parameter', () => {
+    it('four-part app version from header newer than target should pass without becoming a parameter', () => {
         const prefix = 'versionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0.1');
@@ -438,7 +438,7 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('old inferred app version should return OLD_APP_VERSION status', () => {
+    it('app version from header below target should return OLD_APP_VERSION status', () => {
         const prefix = 'versionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, '1.5.0');
@@ -447,7 +447,7 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('actual app version takes precedence over an old inferred version', () => {
+    it('pixel app version takes precedence over a lower app version from header', () => {
         const prefix = 'versionedPixel';
         const params = 'appVersion=2.0.0&param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, '1.5.0');
@@ -456,7 +456,7 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('malformed inferred app version follows missing-version behavior', () => {
+    it('malformed app version from header follows missing-version behavior', () => {
         const prefix = 'versionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, 'invalid');
@@ -604,7 +604,7 @@ describe('Require version defaults', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
-    it('should validate with an inferred app version without adding it to params', () => {
+    it('should validate with an app version from header without adding it to params', () => {
         const prefix = 'nonVersionedPixel';
         const params = 'param1=test';
         const pixelStatus = liveValidator.validatePixel(prefix, params, '2.0.0');

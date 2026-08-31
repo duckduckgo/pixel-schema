@@ -4,7 +4,8 @@
             "tester"
         ],
         "must NOT have additional properties. Found extra property 'extraParam'": [
-            "extraParam=10"
+            "extraParam=10",
+            "extraParam=headerVersionRegression"
         ],
         "must NOT have additional properties. Found extra suffix 'extra-suffix'": [
             "m_my_first_pixel_test_extra-suffix"

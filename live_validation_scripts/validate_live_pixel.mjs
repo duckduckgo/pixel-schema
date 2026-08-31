@@ -39,22 +39,24 @@ async function main(mainDir, csvFile) {
                 console.error(e);
             }
 
-            // Treat bare dedicated versions as request-age context, not pixel parameters.
+            // The CSV version column contains either a pixel parameter token or the app version from the request header.
             const versionKey = productDef.target.key ?? null;
-            let inferredVersion = null;
+            let headerVersion = null;
             if (versionKey) {
-                const dedicatedVersion = typeof row.version === 'string' ? row.version.trim() : '';
+                const versionColumnValue = typeof row.version === 'string' ? row.version.trim() : '';
                 const explicitVersionPrefix = `${versionKey}=`;
                 const hasTargetVersionParam = parsedParams.some((param) => param.startsWith(explicitVersionPrefix));
-                if (!hasTargetVersionParam && dedicatedVersion.startsWith(explicitVersionPrefix)) {
-                    parsedParams = parsedParams.concat(dedicatedVersion);
-                } else if (!hasTargetVersionParam && dedicatedVersion && !dedicatedVersion.includes('=')) {
-                    inferredVersion = dedicatedVersion;
+                // Reattach an explicit version token when this row's params do not include it.
+                if (!hasTargetVersionParam && versionColumnValue.startsWith(explicitVersionPrefix)) {
+                    parsedParams = parsedParams.concat(versionColumnValue);
+                } else if (!hasTargetVersionParam && versionColumnValue && !versionColumnValue.includes('=')) {
+                    // A bare header version is request metadata, not a synthetic pixel parameter.
+                    headerVersion = versionColumnValue;
                 }
             }
             const paramsUrlFormat = parsedParams.join('&');
 
-            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, inferredVersion);
+            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion);
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {
