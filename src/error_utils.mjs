@@ -10,7 +10,7 @@
  * @returns {Array<string>} - array of formatted error messages
  */
 function formatAjvErrors(validationErrors, suffixes = null) {
-    return formatAjvErrorDetails(validationErrors, suffixes).map(({ error }) => error);
+    return mapAjvErrors(validationErrors, suffixes, (formattedError) => formattedError);
 }
 
 /**
@@ -22,6 +22,21 @@ function formatAjvErrors(validationErrors, suffixes = null) {
  * @returns {Array<{error: string, identity: string}>} formatted error details
  */
 function formatAjvErrorDetails(validationErrors, suffixes = null, domain = 'ajv') {
+    return mapAjvErrors(validationErrors, suffixes, (formattedError, error) => ({
+        error: formattedError,
+        identity: createValidationErrorIdentity(domain, error.keyword, error.instancePath, error.params),
+    }));
+}
+
+/**
+ * Formats AJV validation errors, projecting each into a caller-defined shape.
+ *
+ * @param {Array<import("ajv").ErrorObject> | null | undefined} validationErrors - array of AJV error objects
+ * @param {*} suffixes - object containing request suffixes
+ * @param {(formattedError: string, error: import("ajv").ErrorObject) => *} project - maps a formatted error to the returned shape
+ * @returns {Array<*>} projected errors
+ */
+function mapAjvErrors(validationErrors, suffixes, project) {
     const errors = [];
     if (!Array.isArray(validationErrors)) {
         return errors;
@@ -49,10 +64,7 @@ function formatAjvErrorDetails(validationErrors, suffixes = null, domain = 'ajv'
             }
         }
 
-        errors.push({
-            error: formattedError.trim(),
-            identity: createValidationErrorIdentity(domain, error.keyword, error.instancePath, error.params),
-        });
+        errors.push(project(formattedError.trim(), error));
     });
 
     return errors;
@@ -60,6 +72,9 @@ function formatAjvErrorDetails(validationErrors, suffixes = null, domain = 'ajv'
 
 /**
  * Creates an identity independent of presentation text and example values.
+ *
+ * `allowedValues` is dropped for enum errors: the set of permitted values may differ between HEAD and
+ * release definitions without changing the category of the error the invalid value produced.
  * @param {string} domain validation domain or custom category.
  * @param {string} keyword validation keyword.
  * @param {string} instancePath location in the validated value.
@@ -67,20 +82,8 @@ function formatAjvErrorDetails(validationErrors, suffixes = null, domain = 'ajv'
  * @returns {string} stable identity.
  */
 function createValidationErrorIdentity(domain, keyword, instancePath, params) {
-    return JSON.stringify([domain, keyword, instancePath, sortObject(normalizeIdentityParams(keyword, params))]);
-}
-
-/**
- * Removes schema expectation payloads that may change without changing the invalid value's error category.
- * @param {string} keyword validation keyword.
- * @param {*} params defining validation values.
- * @returns {*} normalized identity parameters.
- */
-function normalizeIdentityParams(keyword, params) {
-    if (keyword !== 'enum' || !params || typeof params !== 'object') return params;
-
-    const { allowedValues, ...identityParams } = params;
-    return identityParams;
+    const { allowedValues, ...identityParams } = params && typeof params === 'object' ? params : {};
+    return JSON.stringify([domain, keyword, instancePath, sortObject(identityParams)]);
 }
 
 /**

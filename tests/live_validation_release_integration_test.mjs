@@ -38,44 +38,36 @@ function validate(headDir, releaseDir) {
 }
 
 describe('validate_live_pixel release snapshot comparison', () => {
+    let headDir;
+    let releaseDir;
+
+    beforeEach(() => {
+        headDir = createDefinitionsCopy();
+        releaseDir = createDefinitionsCopy();
+    });
+
+    afterEach(() => {
+        fs.rmSync(headDir, { recursive: true, force: true });
+        fs.rmSync(releaseDir, { recursive: true, force: true });
+    });
+
     it('suppresses a HEAD-only error when the release definition permits it', () => {
-        const headDir = createDefinitionsCopy();
-        const releaseDir = createDefinitionsCopy();
         addExtraParam(releaseDir);
 
-        try {
-            expect(validate(headDir, releaseDir)).to.deep.equal({});
-        } finally {
-            fs.rmSync(headDir, { recursive: true, force: true });
-            fs.rmSync(releaseDir, { recursive: true, force: true });
-        }
+        expect(validate(headDir, releaseDir)).to.deep.equal({});
     });
 
     it('suppresses an inverse-skew release-only error', () => {
-        const headDir = createDefinitionsCopy();
-        const releaseDir = createDefinitionsCopy();
         addExtraParam(headDir);
 
-        try {
-            expect(validate(headDir, releaseDir)).to.deep.equal({});
-        } finally {
-            fs.rmSync(headDir, { recursive: true, force: true });
-            fs.rmSync(releaseDir, { recursive: true, force: true });
-        }
+        expect(validate(headDir, releaseDir)).to.deep.equal({});
     });
 
     it('persists an error that occurs in both HEAD and release definitions', () => {
-        const headDir = createDefinitionsCopy();
-        const releaseDir = createDefinitionsCopy();
+        const errors = validate(headDir, releaseDir);
 
-        try {
-            const errors = validate(headDir, releaseDir);
-            expect(errors.m_my_first_pixel["must NOT have additional properties. Found extra property 'extraParam'"]).to.deep.equal([
-                'extraParam=10&appVersion=2.0.3',
-            ]);
-        } finally {
-            fs.rmSync(headDir, { recursive: true, force: true });
-            fs.rmSync(releaseDir, { recursive: true, force: true });
-        }
+        expect(errors.m_my_first_pixel["must NOT have additional properties. Found extra property 'extraParam'"]).to.deep.equal([
+            'extraParam=10&appVersion=2.0.3',
+        ]);
     });
 });

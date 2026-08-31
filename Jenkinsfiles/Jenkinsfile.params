@@ -52,6 +52,17 @@ def remoteConfig(config) {
     return remote
 }
 
+// The checkout and validation stages each derive these paths independently, so they must agree exactly.
+// If they ever drift, the validation stage's fileExists probe silently misses and the product
+// degrades to HEAD-only validation instead of failing.
+def releaseCheckoutDirFor(config) {
+    return "release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}"
+}
+
+def mainDefinitionsDir(config) {
+    return "../${config.repo}/${config.definitionsDir}/"
+}
+
 pipeline {
     agent { label 'ubuntu-latest' }
     triggers { cron('H 0 * * 0') }
@@ -189,12 +200,12 @@ pipeline {
 
                     // Release resolution/checkout is all-or-nothing. A missing current-release tag means the validation inputs are invalid.
                     configs.each { config ->
-                        def releaseCheckoutDir = "release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}"
+                        def releaseCheckoutDir = releaseCheckoutDirFor(config)
                         dir(releaseCheckoutDir) {
                             deleteDir()
                         }
                         def releaseTag = withEnv([
-                            "MAIN_DIR=../${config.repo}/${config.definitionsDir}/",
+                            "MAIN_DIR=${mainDefinitionsDir(config)}",
                             "RELEASE_TAG_TEMPLATE=${config.tagTemplate}",
                         ]) {
                             sh(
@@ -233,12 +244,12 @@ pipeline {
             steps {
                 script {
                     validationConfigs(params).findAll { it.enabled }.each { config ->
-                        def releaseCheckoutDir = "release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}"
+                        def releaseCheckoutDir = releaseCheckoutDirFor(config)
                         def releaseDefinitionsDir = fileExists("${releaseCheckoutDir}/${config.definitionsDir}")
                             ? "../${releaseCheckoutDir}/${config.definitionsDir}/"
                             : ''
                         def result = withEnv([
-                            "MAIN_DIR=../${config.repo}/${config.definitionsDir}/",
+                            "MAIN_DIR=${mainDefinitionsDir(config)}",
                             "RELEASE_MAIN_DIR=${releaseDefinitionsDir}",
                         ]) {
                             sh(

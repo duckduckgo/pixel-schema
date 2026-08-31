@@ -7,7 +7,7 @@ import JSON5 from 'json5';
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
 import { buildLivePixelValidator } from '../src/live_validation_utils.mjs';
-import { compareLiveValidationResults } from '../src/live_validation_comparator.mjs';
+import { compareLiveValidationResults, requiresReleaseComparison } from '../src/live_validation_comparator.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -60,12 +60,15 @@ async function main(mainDir, csvFile, releaseDir) {
             const paramsUrlFormat = parsedParams.join('&');
 
             const headResult = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion);
-            const result = releaseValidator
-                ? compareLiveValidationResults(
-                      headResult,
-                      releaseValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion),
-                  )
-                : headResult;
+            let result = headResult;
+            if (releaseValidator) {
+                result = requiresReleaseComparison(headResult)
+                    ? compareLiveValidationResults(
+                          headResult,
+                          releaseValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion),
+                      )
+                    : null;
+            }
             if (!result) return;
             saveResult(pixelRequestFormat, result);
         })

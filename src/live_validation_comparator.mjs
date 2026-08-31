@@ -1,5 +1,19 @@
 import { PIXEL_VALIDATION_RESULT } from './constants.mjs';
 
+// Statuses whose rows can survive a HEAD/release intersection. Any other HEAD status is dropped
+// outright, so the release definitions never need to be consulted for it.
+const COMPARED_STATUSES = new Set([PIXEL_VALIDATION_RESULT.UNDOCUMENTED, PIXEL_VALIDATION_RESULT.VALIDATION_FAILED]);
+
+/**
+ * Reports whether a HEAD result can survive comparison, and so needs a release result at all.
+ *
+ * @param {object} headResult validation result produced from HEAD definitions.
+ * @returns {boolean} true when the row must be validated against the release definitions.
+ */
+function requiresReleaseComparison(headResult) {
+    return COMPARED_STATUSES.has(headResult.status);
+}
+
 /**
  * Intersects two same-row live-validation results.
  *
@@ -8,20 +22,14 @@ import { PIXEL_VALIDATION_RESULT } from './constants.mjs';
  * @returns {object|null} result to aggregate, or null when the row has no common result.
  */
 function compareLiveValidationResults(headResult, releaseResult) {
-    if (headResult.status === PIXEL_VALIDATION_RESULT.OLD_APP_VERSION || releaseResult.status === PIXEL_VALIDATION_RESULT.OLD_APP_VERSION) {
-        return null;
+    if (!requiresReleaseComparison(headResult)) return null;
+
+    if (headResult.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
+        return releaseResult.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED ? headResult : null;
     }
 
-    if (headResult.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED && releaseResult.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
-        return headResult;
-    }
-
-    if (
-        headResult.status !== PIXEL_VALIDATION_RESULT.VALIDATION_FAILED ||
-        releaseResult.status !== PIXEL_VALIDATION_RESULT.VALIDATION_FAILED
-    ) {
-        return null;
-    }
+    // HEAD failed validation: keep it only where the release definitions failed the same way.
+    if (releaseResult.status !== PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) return null;
 
     const releaseIdentities = new Set(releaseResult.errors.map(({ identity }) => identity));
     const errors = headResult.errors.filter(({ identity }) => releaseIdentities.has(identity));
@@ -33,4 +41,4 @@ function compareLiveValidationResults(headResult, releaseResult) {
     };
 }
 
-export { compareLiveValidationResults };
+export { compareLiveValidationResults, requiresReleaseComparison };

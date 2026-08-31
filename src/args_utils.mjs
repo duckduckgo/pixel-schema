@@ -9,6 +9,19 @@ import { PIXELS_TMP_CSV } from './constants.mjs';
 export const MAIN_DIR_ARG = 'dirPath';
 
 /**
+ * Throws unless the given path exists and is a directory.
+ * @param {string} dirPath - Path to check.
+ * @param {string} label - Human-readable name of the argument, used in the error message.
+ * @returns {string} The unchanged path.
+ */
+function assertDirectoryExists(dirPath, label) {
+    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+        throw new Error(`${label} path ${dirPath} does not exist!`);
+    }
+    return dirPath;
+}
+
+/**
  * Helper function to get the positional argument for the main directory.
  * @returns {Object} Positional argument object that can be used in yargs.positional().
  */
@@ -17,12 +30,7 @@ export function getMainDirPositional() {
         describe: 'path to directory containing pixels/ and wide_events/ in the root',
         type: 'string',
         demandOption: true,
-        coerce: (dirPath) => {
-            if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-                throw new Error(`Directory path ${dirPath} does not exist!`);
-            }
-            return dirPath;
-        },
+        coerce: (dirPath) => assertDirectoryExists(dirPath, 'Directory'),
     };
 }
 
@@ -58,12 +66,7 @@ export function getArgParserWithCsv(description, csvFileDescription) {
                 .positional('releaseDir', {
                     describe: 'path to preprocessed release definitions, when validating against a release snapshot',
                     type: 'string',
-                    coerce: (releaseDir) => {
-                        if (releaseDir && (!fs.existsSync(releaseDir) || !fs.statSync(releaseDir).isDirectory())) {
-                            throw new Error(`Release directory path ${releaseDir} does not exist!`);
-                        }
-                        return releaseDir;
-                    },
+                    coerce: (releaseDir) => (releaseDir ? assertDirectoryExists(releaseDir, 'Release directory') : releaseDir),
                 });
         })
         .demandOption(MAIN_DIR_ARG);
