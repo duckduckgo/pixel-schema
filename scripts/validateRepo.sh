@@ -17,9 +17,7 @@ USER_MAP="$2"
 ASANA_PROJECT="$3"
 RELEASE_MAIN_DIR="${4:-}"
 
-MAIN_DIR="$(realpath "$MAIN_DIR")"
 if [ -n "$RELEASE_MAIN_DIR" ]; then
-    RELEASE_MAIN_DIR="$(realpath "$RELEASE_MAIN_DIR")"
     echo "Preprocess release defs"
     fnm exec npm run preprocess-defs "$RELEASE_MAIN_DIR"
 else

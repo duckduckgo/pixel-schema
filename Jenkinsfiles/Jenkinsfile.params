@@ -189,6 +189,10 @@ pipeline {
 
                     // Release resolution/checkout is all-or-nothing. A missing current-release tag means the validation inputs are invalid.
                     configs.each { config ->
+                        def releaseCheckoutDir = "release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}"
+                        dir(releaseCheckoutDir) {
+                            deleteDir()
+                        }
                         def releaseTag = withEnv([
                             "MAIN_DIR=../${config.repo}/${config.definitionsDir}/",
                             "RELEASE_TAG_TEMPLATE=${config.tagTemplate}",
@@ -208,7 +212,7 @@ pipeline {
                         }
 
                         echo "Checking out ${config.name} release tag ${releaseTag}"
-                        dir("release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}") {
+                        dir(releaseCheckoutDir) {
                             checkout([$class: 'GitSCM', branches: [[name: "refs/tags/${releaseTag}"]],
                                 extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
                                 userRemoteConfigs: [remoteConfig(config)]])

@@ -46,6 +46,8 @@ describe('validateRepo.sh release preparation', () => {
         expect(jenkinsfile.match(/stage\('Validate products'\)/g)).to.have.length(1);
         expect(jenkinsfile).to.include('configs.groupBy { it.repo }.each { repo, repoConfigs ->');
         expect(jenkinsfile).to.include('configs.each { config ->');
+        expect(jenkinsfile).to.include('dir(releaseCheckoutDir) {');
+        expect(jenkinsfile).to.include('deleteDir()');
         expect(jenkinsfile).to.include('validationConfigs(params).findAll { it.enabled }.each { config ->');
         expect(jenkinsfile).to.include('fnm exec node ./scripts/resolve_release_tag.mjs "$MAIN_DIR" "$RELEASE_TAG_TEMPLATE"');
         expect(jenkinsfile).to.match(/branches: \[\[name: "refs\/tags\/\$\{releaseTag\}"\]\]/);
@@ -75,6 +77,7 @@ describe('validateRepo.sh release preparation', () => {
         expect(script).to.not.match(/\bgit\b/);
         expect(script).to.not.include('RELEASE_TAG_TEMPLATE');
         expect(script).to.match(/RELEASE_MAIN_DIR="\$\{4:-\}"/);
+        expect(script).to.not.include('realpath');
     });
 
     it('runs HEAD-only validation when no release directory is provided', () => {
