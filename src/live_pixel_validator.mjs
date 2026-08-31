@@ -264,7 +264,7 @@ export class LivePixelsValidator {
      * Validates pixel against saved schema and returns any errors
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
-    * @param {String|null} headerVersion app version from the request header, when available
+     * @param {String|null} headerVersion app version from the request header, when available
      */
     validatePixel(pixel, params, headerVersion = null) {
         this.#initPixelState();
@@ -292,7 +292,7 @@ export class LivePixelsValidator {
      * @param {string} pixel full pixel name.
      * @param {string} paramsUrlFormat query string without cache buster.
      * @param {object} pixelSchemas compiled schemas for the pixel.
-    * @param {string|null} headerVersion app version from the request header, when available.
+     * @param {string|null} headerVersion app version from the request header, when available.
      * @returns {object} resulting validation state.
      */
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, headerVersion = null) {
@@ -305,10 +305,7 @@ export class LivePixelsValidator {
         });
 
         if (this.#defsVersionKey && this.#defsVersion) {
-            const pixelDefinitionIncludesVersion = !!this.#getParamSchemaForKey(
-                this.#defsVersionKey,
-                pixelSchemas.paramsSchema.schema,
-            );
+            const pixelDefinitionIncludesVersion = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
             const pixelVersion = paramsStruct[this.#defsVersionKey];
             const validHeaderVersion = headerVersion && validateVersion(headerVersion) ? headerVersion : null;
             const versionForFreshness = pixelVersion || validHeaderVersion;
