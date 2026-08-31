@@ -54,6 +54,14 @@ describe('validateRepo.sh release preparation', () => {
         expect(jenkinsfile).to.not.match(/stage\('clone (windows|apple|android|duckduckgo)/);
     });
 
+    it('aborts the checkout stage when a release tag cannot be resolved or checked out', () => {
+        const jenkinsfile = fs.readFileSync('Jenkinsfiles/Jenkinsfile.params', 'utf8');
+
+        expect(jenkinsfile).to.include('Release resolution/checkout is all-or-nothing');
+        expect(jenkinsfile).to.not.include('catchError');
+        expect(jenkinsfile).to.not.include('unstable("Release checkout failed');
+    });
+
     it('uses Jenkins checkout credentials for the private Windows release', () => {
         const jenkinsfile = fs.readFileSync('Jenkinsfiles/Jenkinsfile.params', 'utf8');
 

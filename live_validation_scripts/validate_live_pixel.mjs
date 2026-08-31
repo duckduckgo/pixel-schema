@@ -42,23 +42,29 @@ async function main(mainDir, csvFile, releaseDir) {
                 console.error(e);
             }
 
-            // Append version param (e.g. appVersion=1.2.3) when defined in product.json
+            // The CSV version column contains either a pixel parameter token or the app version from the request header.
             const versionKey = productDef.target.key ?? null;
+            let headerVersion = null;
             if (versionKey) {
-                // ensure version present in a dedicated CSV column and not already in params
-                if (
-                    typeof row.version === 'string' &&
-                    row.version.trim() !== '' &&
-                    parsedParams.every((p) => !p.startsWith(versionKey + '='))
-                ) {
-                    parsedParams = parsedParams.concat(row.version.trim());
+                const versionColumnValue = typeof row.version === 'string' ? row.version.trim() : '';
+                const explicitVersionPrefix = `${versionKey}=`;
+                const hasTargetVersionParam = parsedParams.some((param) => param.startsWith(explicitVersionPrefix));
+                // Reattach an explicit version token when this row's params do not include it.
+                if (!hasTargetVersionParam && versionColumnValue.startsWith(explicitVersionPrefix)) {
+                    parsedParams = parsedParams.concat(versionColumnValue);
+                } else if (!hasTargetVersionParam && versionColumnValue && !versionColumnValue.includes('=')) {
+                    // A bare header version is request metadata, not a synthetic pixel parameter.
+                    headerVersion = versionColumnValue;
                 }
             }
             const paramsUrlFormat = parsedParams.join('&');
 
-            const headResult = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat);
+            const headResult = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion);
             const result = releaseValidator
-                ? compareLiveValidationResults(headResult, releaseValidator.validatePixel(pixelRequestFormat, paramsUrlFormat))
+                ? compareLiveValidationResults(
+                      headResult,
+                      releaseValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion),
+                  )
                 : headResult;
             if (!result) return;
             saveResult(pixelRequestFormat, result);

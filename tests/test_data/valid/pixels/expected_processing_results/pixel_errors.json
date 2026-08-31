@@ -4,7 +4,8 @@
             "tester"
         ],
         "must NOT have additional properties. Found extra property 'extraParam'": [
-            "extraParam=10"
+            "extraParam=10",
+            "extraParam=headerVersionRegression"
         ],
         "must NOT have additional properties. Found extra suffix 'extra-suffix'": [
             "m_my_first_pixel_test_extra-suffix"
@@ -30,7 +31,8 @@
             "appVersion=wrongFormat"
         ],
         "/count must be integer": [
-            "count=wrongFormat&appVersion=2.0.0"
+            "count=wrongFormat&appVersion=2.0.0",
+            "count=wrongFormat"
         ],
         "/colors/1 must be equal to one of the allowed values": [
             "colors=%5B%22red%22,%22unexpected_array_value%22%5D&appVersion=2.0.3"

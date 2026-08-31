@@ -10,8 +10,9 @@ const argv = getArgParserReleaseTag('Resolve a product release tag from its live
 async function main(mainDir, tagTemplate) {
     const productDef = readProductDef(mainDir);
     const release = await resolveReleaseTag(productDef.target, tagTemplate);
+    // Empty output means this product has no app version, so callers validate HEAD only.
     if (release) {
-        process.stdout.write(`${release.version}\n${release.tag}\n`);
+        process.stdout.write(`${release.tag}\n`);
     }
 }
 

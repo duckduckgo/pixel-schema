@@ -187,10 +187,10 @@ pipeline {
                         fnm exec npm ci
                     '''
 
+                    // Release resolution/checkout is all-or-nothing. A missing current-release tag means the validation inputs are invalid.
                     configs.each { config ->
-                        def headDefinitionsDir = "../${config.repo}/${config.definitionsDir}/"
-                        def releaseOutput = withEnv([
-                            "MAIN_DIR=${headDefinitionsDir}",
+                        def releaseTag = withEnv([
+                            "MAIN_DIR=../${config.repo}/${config.definitionsDir}/",
                             "RELEASE_TAG_TEMPLATE=${config.tagTemplate}",
                         ]) {
                             sh(
@@ -202,18 +202,12 @@ pipeline {
                             ).trim()
                         }
 
-                        if (!releaseOutput) {
+                        if (!releaseTag) {
                             echo "No application version target for ${config.name}; validating HEAD only"
                             return
                         }
 
-                        def releaseValues = releaseOutput.readLines()
-                        if (releaseValues.size() != 2) {
-                            error("Unexpected release resolver output for ${config.name}: ${releaseOutput}")
-                        }
-                        def releaseVersion = releaseValues[0]
-                        def releaseTag = releaseValues[1]
-                        echo "Checking out ${config.name} release ${releaseVersion} from tag ${releaseTag}"
+                        echo "Checking out ${config.name} release tag ${releaseTag}"
                         dir("release-${config.name.replaceAll(/[^A-Za-z0-9-]/, '-')}") {
                             checkout([$class: 'GitSCM', branches: [[name: "refs/tags/${releaseTag}"]],
                                 extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'PruneStaleBranch']],
