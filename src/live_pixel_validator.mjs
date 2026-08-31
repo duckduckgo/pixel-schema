@@ -264,8 +264,9 @@ export class LivePixelsValidator {
      * Validates pixel against saved schema and returns any errors
      * @param {String} pixel full pixel name in "_" notation
      * @param {String} params query params as they would appear in a URL, but without the cache buster
+     * @param {String|null} headerVersion app version from the request header, when available
      */
-    validatePixel(pixel, params) {
+    validatePixel(pixel, params, headerVersion = null) {
         this.#initPixelState();
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateNativeExperimentPixel(pixel, params);
@@ -281,7 +282,7 @@ export class LivePixelsValidator {
         // TODO: experiments don't have owners. Fix in https://app.asana.com/1/137249556945/project/1209805270658160/task/1210955210382823?focus=true
         this.#currentPixelState.owners = pixelMatch.owners;
 
-        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch);
+        this.validatePixelParamsAndSuffixes(prefix, pixel, params, pixelMatch, headerVersion);
         return this.#currentPixelState;
     }
 
@@ -291,9 +292,10 @@ export class LivePixelsValidator {
      * @param {string} pixel full pixel name.
      * @param {string} paramsUrlFormat query string without cache buster.
      * @param {object} pixelSchemas compiled schemas for the pixel.
+     * @param {string|null} headerVersion app version from the request header, when available.
      * @returns {object} resulting validation state.
      */
-    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas) {
+    validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, headerVersion = null) {
         const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
@@ -303,16 +305,20 @@ export class LivePixelsValidator {
         });
 
         if (this.#defsVersionKey && this.#defsVersion) {
-            const hasTargetVersionParam = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
-            // 1) Skip pixels that define the app version key but do not include it in the live params.
-            if (hasTargetVersionParam && !paramsStruct[this.#defsVersionKey]) {
+            const pixelDefinitionIncludesVersion = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
+            const pixelVersion = paramsStruct[this.#defsVersionKey];
+            const validHeaderVersion = headerVersion && validateVersion(headerVersion) ? headerVersion : null;
+            const versionForFreshness = pixelVersion || validHeaderVersion;
+            // Actual pixel params take precedence over header values
+            // Skip pixel when the schema specifies a version but neither source provides one.
+            if (pixelDefinitionIncludesVersion && !versionForFreshness) {
                 this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                 return this.#currentPixelState;
             }
 
-            // 1b) Skip outdated pixels based on version
-            if (paramsStruct[this.#defsVersionKey] && validateVersion(paramsStruct[this.#defsVersionKey])) {
-                if (compareVersions(paramsStruct[this.#defsVersionKey], this.#defsVersion) === -1) {
+            // Skip outdated pixels based on the pixel or header version.
+            if (versionForFreshness && validateVersion(versionForFreshness)) {
+                if (compareVersions(versionForFreshness, this.#defsVersion) === -1) {
                     this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
                     return this.#currentPixelState;
                 }
