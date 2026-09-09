@@ -11,6 +11,17 @@ import { matchPixel } from './pixel_utils.mjs';
  * @typedef {import('ajv').ValidateFunction} ValidateFunction
  */
 
+/**
+ * Parses a pixel query string into a key/value map.
+ * Pixels send "+" literally (eg. bucket values like "28+"), so it is escaped up front to stop
+ * URLSearchParams from form-decoding it into a space.
+ * @param {string} paramsUrlFormat query string without the cache buster.
+ * @returns {Record<string, string>} params keyed by param name.
+ */
+function parseParams(paramsUrlFormat) {
+    return Object.fromEntries(new URLSearchParams(paramsUrlFormat.replaceAll('+', '%2B')));
+}
+
 export class LivePixelsValidator {
     #compiledPixels;
     #defsVersion;
@@ -231,7 +242,7 @@ export class LivePixelsValidator {
             this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
         }
 
-        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+        const rawParamsStruct = parseParams(paramsUrlFormat);
         const metric = rawParamsStruct.metric;
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
@@ -296,7 +307,7 @@ export class LivePixelsValidator {
      * @returns {object} resulting validation state.
      */
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, headerVersion = null) {
-        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
+        const rawParamsStruct = parseParams(paramsUrlFormat);
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
             const normalizedKey = this.#getNormalizedVal(key);

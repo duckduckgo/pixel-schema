@@ -713,3 +713,78 @@ describe('Key pattern parameters with explicit types', () => {
         expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
     });
 });
+
+describe('Param values containing a plus', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const prefix = 'bucketPixel';
+    const pixelDefs = {
+        bucketPixel: {
+            parameters: [
+                {
+                    key: 'bucket',
+                    type: 'string',
+                    enum: ['0', '11-28', '28+'],
+                },
+            ],
+        },
+    };
+    const tokenizedDefs = {};
+    tokenizePixelDefs(pixelDefs, tokenizedDefs);
+    const liveValidator = new LivePixelsValidator(tokenizedDefs, productDef, {}, paramsValidator);
+
+    it('accepts an unescaped plus', () => {
+        const pixelStatus = liveValidator.validatePixel(prefix, 'bucket=28+');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('accepts a percent-escaped plus', () => {
+        const pixelStatus = liveValidator.validatePixel(prefix, 'bucket=28%2B');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('still rejects a value outside the enum', () => {
+        const pixelStatus = liveValidator.validatePixel(prefix, 'bucket=29+');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(['/bucket must be equal to one of the allowed values']);
+    });
+});
+
+describe('Experiment param values containing a plus', () => {
+    const paramsValidator = new ParamsValidator({}, {}, {});
+    const experimentsDef = {
+        activeExperiments: {
+            myExperiment: {
+                cohorts: ['control'],
+                metrics: {
+                    'my+metric': { type: 'string', enum: ['1'] },
+                },
+            },
+        },
+    };
+    const liveValidator = new LivePixelsValidator({}, productDef, experimentsDef, paramsValidator);
+
+    it('resolves a metric name containing a plus', () => {
+        const pixel = `experiment${PIXEL_DELIMITER}metrics${PIXEL_DELIMITER}myExperiment${PIXEL_DELIMITER}control`;
+        const pixelStatus = liveValidator.validatePixel(pixel, 'metric=my+metric&value=1&conversionWindowDays=1');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_PASSED);
+        expect(pixelStatus.errors).to.be.empty;
+    });
+
+    it('still reports an unknown metric', () => {
+        const pixel = `experiment${PIXEL_DELIMITER}metrics${PIXEL_DELIMITER}myExperiment${PIXEL_DELIMITER}control`;
+        const pixelStatus = liveValidator.validatePixel(pixel, 'metric=other+metric&value=1');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members(["Unknown experiment metric 'other+metric'"]);
+    });
+
+    it('preserves an unknown param containing a plus so it is still reported', () => {
+        const pixel = `experiment${PIXEL_DELIMITER}enroll${PIXEL_DELIMITER}myExperiment${PIXEL_DELIMITER}control`;
+        const pixelStatus = liveValidator.validatePixel(pixel, 'bogus+param=1');
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
+        expect(pixelStatus.errors.map((e) => e.error)).to.have.members([
+            "must NOT have additional properties. Found extra property 'bogus+param'",
+        ]);
+    });
+});
