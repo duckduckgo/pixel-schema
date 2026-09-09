@@ -14,7 +14,9 @@ import { matchPixel } from './pixel_utils.mjs';
 /**
  * Parses a pixel query string into a key/value map.
  * Pixels send "+" literally (eg. bucket values like "28+"), so it is escaped up front to stop
- * URLSearchParams from form-decoding it into a space.
+ * URLSearchParams from form-decoding it into a space. "+" is the only character that needs
+ * this: it's where form-encoding diverges from percent-encoding, so everything else already
+ * round-trips. "%" in particular must be left as-is, or real escapes stop decoding.
  * @param {string} paramsUrlFormat query string without the cache buster.
  * @returns {Record<string, string>} params keyed by param name.
  */
