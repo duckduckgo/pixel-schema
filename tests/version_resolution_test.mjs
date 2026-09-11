@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import nock from 'nock';
-import { resolveTargetVersion } from '../src/pixel_utils.mjs';
+import { resolveReleaseTag, resolveTargetVersion } from '../src/pixel_utils.mjs';
 
 describe('resolveTargetVersion', () => {
     afterEach(() => {
@@ -234,5 +234,41 @@ describe('resolveTargetVersion', () => {
             const version = await resolveTargetVersion(target);
             expect(version).to.equal(null);
         });
+    });
+});
+
+describe('resolveReleaseTag', () => {
+    it('should apply the version to a release tag template', async () => {
+        const release = await resolveReleaseTag(
+            {
+                key: 'appVersion',
+                version: '1.2.3',
+            },
+            'v{version}',
+        );
+
+        expect(release).to.deep.equal({ version: '1.2.3', tag: 'v1.2.3' });
+    });
+
+    it('should return null without requiring a template for query-window targets', async () => {
+        const release = await resolveReleaseTag({ queryWindowInDays: 7 });
+
+        expect(release).to.equal(null);
+    });
+
+    it('should require a template containing the version placeholder for application targets', async () => {
+        const target = { key: 'appVersion', version: '1.2.3' };
+
+        for (const [template, expectedMessage] of [
+            ['', 'Release tag template is required'],
+            ['release', 'must contain `{version}`'],
+        ]) {
+            try {
+                await resolveReleaseTag(target, template);
+                expect.fail('Expected release tag resolution to fail');
+            } catch (error) {
+                expect(error.message).to.include(expectedMessage);
+            }
+        }
     });
 });
