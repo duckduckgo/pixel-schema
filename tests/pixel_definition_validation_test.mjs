@@ -76,6 +76,30 @@ describe('Pixel with no params and no suffixes', () => {
         expect(errors).to.be.empty;
     });
 
+    it('accepts all documented trigger values', () => {
+        const pixel = {
+            description: 'A simple pixel',
+            owners: ['owner'],
+            triggers: [
+                'page_load',
+                'new_tab',
+                'search_ddg',
+                'startup',
+                'scheduled',
+                'user_interaction',
+                'user_submitted',
+                'impression',
+                'feature_lifecycle',
+                'web_detection',
+                'exception',
+                'other',
+            ],
+        };
+
+        const errors = validator.validatePixelsDefinition({ pixel_with_all_triggers: pixel });
+        expect(errors).to.be.empty;
+    });
+
     it('extra property', () => {
         const pixel = {
             description: 'A simple pixel',

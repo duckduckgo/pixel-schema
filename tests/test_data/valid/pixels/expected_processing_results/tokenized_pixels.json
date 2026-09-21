@@ -125,6 +125,43 @@
                         }
                     }
                 }
+            },
+            "second": {
+                "pixel": {
+                    "__root_prefix__": {
+                        "owners": [
+                            "github_username"
+                        ],
+                        "parameters": [
+                            {
+                                "key": "event",
+                                "description": "Whether the dialog was shown or clicked",
+                                "enum": [
+                                    "shown",
+                                    "clicked"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            "third": {
+                "pixel": {
+                    "__root_prefix__": {
+                        "owners": [
+                            "github_username"
+                        ]
+                    }
+                }
+            },
+            "fourth": {
+                "pixel": {
+                    "__root_prefix__": {
+                        "owners": [
+                            "github_username"
+                        ]
+                    }
+                }
             }
         }
     },

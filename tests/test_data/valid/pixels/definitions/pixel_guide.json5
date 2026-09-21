@@ -105,5 +105,30 @@
         ],
         // [Optional] if temporary pixel - specify expiration date:
         "expires": "2025-12-31"
+    },
+    "m_my_second_pixel": {
+        // A pixel can list multiple triggers when one name covers several events,
+        // e.g. a dialog whose 'shown' and 'clicked' events are distinguished by a parameter.
+        // See docs/trigger-classification.md for how to choose triggers.
+        "description": "Fires when my cool feature's promo dialog is shown (event=shown) or actioned (event=clicked).",
+        "owners": ["github_username"],
+        "triggers": ["impression", "user_interaction"],
+        "parameters": [
+            {
+                "key": "event",
+                "description": "Whether the dialog was shown or clicked",
+                "enum": ["shown", "clicked"]
+            }
+        ]
+    },
+    "m_my_third_pixel": {
+        "description": "Fires when my cool feature's background migration completes.",
+        "owners": ["github_username"],
+        "triggers": ["feature_lifecycle"]
+    },
+    "m_my_fourth_pixel": {
+        "description": "Fires when an injected script detects a captcha on the current page.",
+        "owners": ["github_username"],
+        "triggers": ["web_detection"]
     }
 }
