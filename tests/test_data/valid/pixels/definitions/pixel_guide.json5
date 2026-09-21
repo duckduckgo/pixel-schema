@@ -5,6 +5,7 @@
         // Required fields:
         "description": "Fires when my cool feature is used.",
         "owners": ["github_username"],
+        // One or more triggers - see docs/trigger-classification.md for how to choose
         "triggers": ["exception", "scheduled"],
         // [Optional] - parameterized portions of the pixel name, if applicable
         // The examples below result in: m.my.first.pixel.[new|returning].exceptiontype.{exception}.[phone|tablet]
@@ -107,9 +108,8 @@
         "expires": "2025-12-31"
     },
     "m_my_second_pixel": {
-        // A pixel can list multiple triggers when one name covers several events,
-        // e.g. a dialog whose 'shown' and 'clicked' events are distinguished by a parameter.
-        // See docs/trigger-classification.md for how to choose triggers.
+        // A pixel whose name covers several events (distinguished by a parameter)
+        // lists every applicable trigger.
         "description": "Fires when my cool feature's promo dialog is shown (event=shown) or actioned (event=clicked).",
         "owners": ["github_username"],
         "triggers": ["impression", "user_interaction"],
@@ -120,15 +120,5 @@
                 "enum": ["shown", "clicked"]
             }
         ]
-    },
-    "m_my_third_pixel": {
-        "description": "Fires when my cool feature's background migration completes.",
-        "owners": ["github_username"],
-        "triggers": ["feature_lifecycle"]
-    },
-    "m_my_fourth_pixel": {
-        "description": "Fires when an injected script detects a captcha on the current page.",
-        "owners": ["github_username"],
-        "triggers": ["web_detection"]
     }
 }

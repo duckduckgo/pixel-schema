@@ -1,4 +1,8 @@
 import { expect } from 'chai';
+import fs from 'fs';
+import path from 'path';
+import JSON5 from 'json5';
+import { fileURLToPath } from 'url';
 
 import { PixelDefinitionsValidator, WideEventDefinitionsValidator } from '../src/definitions_validator.mjs';
 import { ParamsValidator } from '../src/params_validator.mjs';
@@ -76,28 +80,27 @@ describe('Pixel with no params and no suffixes', () => {
         expect(errors).to.be.empty;
     });
 
-    it('accepts all documented trigger values', () => {
-        const pixel = {
-            description: 'A simple pixel',
-            owners: ['owner'],
-            triggers: [
-                'page_load',
-                'new_tab',
-                'search_ddg',
-                'startup',
-                'scheduled',
-                'user_interaction',
-                'user_submitted',
-                'impression',
-                'feature_lifecycle',
-                'web_detection',
-                'exception',
-                'other',
-            ],
-        };
+    // Contract pin: fails loudly on any trigger addition or removal, so the docs
+    // (README, docs/trigger-classification.md) get updated alongside the schema.
+    it('triggers enum matches the documented values', () => {
+        const schemaPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'pixel_schema.json5');
+        const pixelSchema = JSON5.parse(fs.readFileSync(schemaPath, 'utf8'));
+        const triggersEnum = pixelSchema.$defs.pixel.properties.triggers.items.enum;
 
-        const errors = validator.validatePixelsDefinition({ pixel_with_all_triggers: pixel });
-        expect(errors).to.be.empty;
+        expect(triggersEnum).to.deep.equal([
+            'page_load',
+            'new_tab',
+            'search_ddg',
+            'startup',
+            'scheduled',
+            'user_interaction',
+            'user_submitted',
+            'impression',
+            'feature_lifecycle',
+            'web_detection',
+            'exception',
+            'other',
+        ]);
     });
 
     it('extra property', () => {

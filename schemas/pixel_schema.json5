@@ -46,18 +46,18 @@
                     "default": ["other"],
                     "items": {
                         "type": "string",
-                        // See docs/trigger-classification.md for how to choose the right trigger(s)
+                        // How to choose: https://github.com/duckduckgo/pixel-schema/blob/main/docs/trigger-classification.md
                         "enum": [
                             "page_load", // pixel fires when a webpage is loaded
                             "new_tab", // pixel fires when a new tab is opened
                             "search_ddg", // pixel fires when user performs a search
                             "startup", // pixel fires on app startup or return to foreground
-                            "scheduled", // pixel fires periodically (a timer or scheduled job literally fires it)
-                            "user_interaction", // pixel fires on a deliberate user action in the UI: tap/click, toggle, menu selection, swipe, gesture, prompt/query submission
-                            "user_submitted", // pixel fires when the user submits their data with consent (e.g. breakage report, feedback)
-                            "impression", // pixel fires when a screen, promo, prompt, dialog, or message is shown to the user without interaction (app/eligibility-driven display)
-                            "feature_lifecycle", // pixel fires when an automatic feature operation runs, completes, or changes state: migrations, sync cycles, job engines, token refreshes, install/update detection, state observers
-                            "web_detection", // pixel fires when injected scripts detect content or behavior on a web page: captcha, adwall, CMP, ad-blocking detection
+                            "scheduled", // pixel fires from a timer or scheduled job
+                            "user_interaction", // pixel fires on a deliberate user action in the UI
+                            "user_submitted", // pixel fires when the user submits their data with consent
+                            "impression", // pixel fires when UI is shown to the user without interaction
+                            "feature_lifecycle", // pixel fires when an automatic feature operation runs or changes state
+                            "web_detection", // pixel fires when injected scripts detect content on a web page
                             "exception", // pixel fires when an exception/crash occurs
                             "other" // last resort - explain in the description why no other trigger fits
                         ]

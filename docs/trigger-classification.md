@@ -9,9 +9,6 @@ The single most important principle:
 > **Classify by the event that causes the pixel to fire — never by its dedupe cadence
 > ("daily"/"unique" suffixes) or its delivery mechanism.**
 
-`triggers` is an array: a pixel that fires for more than one kind of event should list
-every applicable trigger.
-
 ## Trigger values
 
 | Value | Definition |
@@ -27,7 +24,7 @@ every applicable trigger.
 | `page_load` | A webpage (or in-page document, e.g. an inline PDF) is loaded. |
 | `new_tab` | A new tab is opened. |
 | `search_ddg` | The user performs a DuckDuckGo search. |
-| `other` | Last resort. Legitimate residual cases include inbound OS intents/handoffs from other apps. If you use it, the description must say why no other value fits. |
+| `other` | Last resort — the known residual cases are inbound OS intents/handoffs from other apps (e.g. a PDF arriving via the system "Open with" sheet, a credential-exchange handoff), where the causing action happened entirely outside our app. If you use it, the description must say why no other value fits. |
 
 ## Decision procedure
 
@@ -69,97 +66,43 @@ later by a worker, classify by the RECORDED event, never the flusher.
 Use "other" only when nothing above fits, and say why in the description.
 ```
 
-## Tie-breaker rules
+## Worked examples
 
-These resolve the ambiguities that come up in practice. Each rule includes real pixels
-as worked examples.
+Real pixels illustrating the procedure's judgement calls (rule numbers refer to the
+procedure steps above).
 
-### R1 — Multi-event pixels get multiple triggers
+**Multi-event pixels get multiple triggers (step 7).**
+`onboarding_set-default` (Android) fires with `event=shown|clicked|confirmed` →
+`["impression", "user_interaction"]`. The same applies to the whole
+`onboarding_<step>` family on Android, iOS, and Windows.
 
-A pixel whose name is multiplexed over an `event`/`action` parameter is tagged with
-every applicable trigger.
+**Did the app volunteer the surface? (step 2).**
+`m_browsing-menu_displayed` (Android) — menu shown 1:1 on the menu-button tap →
+`user_interaction`. `m_remote_message_shown` (all platforms) — RMF message displayed by
+config/eligibility → `impression`. The same split can occur within one feature:
+`m_mac_privacy-pro_toolbar_button_shown` (upsell state machine decides to show) is
+`impression`, while its sibling `*_popover_shown` pixels (fire on the user's click) are
+`user_interaction`.
 
-* `onboarding_set-default` (Android) fires with `event=shown|clicked|confirmed` →
-  `["impression", "user_interaction"]`. The same applies to the whole
-  `onboarding_<step>` family on Android, iOS, and Windows.
-* `win_new-tab-page_next-steps` (Windows) covers a state-observer `shown` plus
-  user `clicked`/`dismissed` → `["impression", "user_interaction"]`.
+**Timers: classify by what the tick reports (step 4).**
+`m_dbp_engagement_dau` (Android) — recurring worker sampling active-user state →
+`scheduled`. `m_dbp_optout_stage_*` — per-stage engine events inside a (scheduled or
+manual) PIR run → `feature_lifecycle`; only the session-start tick itself is
+`scheduled`. `m_mac_vpn_proxy_orphaned` — a 15-second check task detects an orphaned
+proxy → `exception` (the anomaly, not the timer).
 
-### R2 — Impression vs. user_interaction: did the app volunteer it?
+**Store-and-forward (step 7 note).**
+`m_fire_button_executed_daily` (Android) — manual fire-button clears bump a persisted
+counter; a 2-hour worker transmits it after the process restart → `user_interaction`.
 
-A surface displayed 1:1 because the user asked for it is `user_interaction`, even when
-the pixel fires from `onCreate`/`viewDidLoad`/`Show()` rather than the gesture handler.
-A surface the app volunteered is `impression`.
+**Async completion (step 3).**
+`sync_setup_barcode_scanner_success` (iOS) — QR code recognized during the user's scan →
+`user_interaction`. `m_privacy-pro_app_subscription-purchase_success` (Android) —
+billing observer + retrying backend confirmation, can land after UI teardown →
+`feature_lifecycle`. This is a per-platform judgement: iOS's `m_forget-all-executed`
+also serves auto-clear → `feature_lifecycle`, while Android's `m_fire_button_executed_*`
+counters increment on manual clears only → `user_interaction`.
 
-Litmus test: if the display code has an **eligibility check** (feature flag,
-subscription state, view-count threshold, cooldown), it's an `impression`; if the only
-gate is "the user navigated here", it's `user_interaction`.
-
-* `m_browsing-menu_displayed` (Android): menu shown 1:1 on the menu-button tap →
-  `user_interaction`.
-* `m_remote_message_shown` (all platforms): RMF message displayed by config/eligibility →
-  `impression`.
-* `m_mac_privacy-pro_toolbar_button_shown`: upsell state machine decides to show the
-  button → `impression`; its sibling `*_popover_shown` pixels fire on the user's click →
-  `user_interaction`.
-
-### R3 — Timers and workers: classify by what the tick reports
-
-`scheduled` when a timer/worker literally fires the pixel and the payload is a state
-sample, usage counter, period rollup, or absence-of-event check. When a timer merely
-*detects* a condition, classify by the condition. Per-event pixels emitted while a
-scheduled session executes feature work are `feature_lifecycle` — only the
-session-start tick itself is `scheduled`.
-
-* `m_dbp_engagement_dau` (Android): fired by a recurring worker sampling active-user
-  state → `scheduled`.
-* `m_dbp_optout_stage_*` (Android/iOS/macOS): per-stage engine events inside a
-  (scheduled or manual) PIR run → `feature_lifecycle`.
-* `m_mac_vpn_proxy_orphaned`: a 15-second check task detects an orphaned proxy →
-  `exception` (the anomaly, not the timer).
-* `win_settings_startup-boost-should-launch-in-foreground`: a 1-second poll detects a
-  user toggle → `user_interaction` (the toggle, not the poll).
-
-### R4 — Store-and-forward: classify by the recorded event, never the flusher
-
-When counters are written at event time and transmitted later by a worker, classify by
-the recorded event. Daily/unique suffixes are dedupe, not triggers.
-
-* `m_fire_button_executed_daily` (Android): manual fire-button clears bump a persisted
-  counter; a 2-hour worker transmits it after the process restart → `user_interaction`.
-* `m_reload-three-times-within-20-seconds` (Android): user refresh taps are recorded,
-  the pixel fires later from another code path → `user_interaction`.
-
-### R5 — Async completion: does it survive UI teardown or fire without the user?
-
-Completion pixels for user-initiated flows are `user_interaction` only when the
-completion is synchronous or near-synchronous within the user's action. They are
-`feature_lifecycle` when the completion arrives from an observer that can outlive the
-UI or be driven by a non-user party — or when a non-user path can also fire the pixel.
-
-* `sync_setup_barcode_scanner_success` (iOS): QR code recognized during the user's
-  scan → `user_interaction`.
-* `m_privacy-pro_app_subscription-purchase_success` (Android): billing observer +
-  retrying backend confirmation, can land after UI teardown → `feature_lifecycle`.
-* `sync_setup_ended_successful`: pairing completed by the *remote peer's* poll →
-  `feature_lifecycle`.
-* Fire-button data clearing illustrates that this is a per-platform judgement: iOS's
-  `m_forget-all-executed` also serves auto-clear → `feature_lifecycle`, while Android's
-  `m_fire_button_executed_*` counters increment on manual clears only →
-  `user_interaction`.
-
-### R6 — startup includes foregrounding
-
-Daily state snapshots fired from app-foreground observers (`onResume`,
-`applicationDidBecomeActive`, ATB-refresh plugins) are `startup`.
-
-* `adBlocking_state_daily` (Android): `onResume` observer reporting feature state once
-  per day → `startup`.
-* `m_mac_settings_auto-clear_on`: daily snapshot on app activation → `startup`.
-
-## When is `other` acceptable?
-
-Almost never. The known residual cases are inbound OS intents/handoffs from other apps
-(e.g. a PDF arriving via the system "Open with" sheet, a credential-exchange handoff) —
-events where the causing action happened entirely outside our app. If you reach for
-`other`, state in the pixel's `description` why no other trigger fits.
+**startup includes foregrounding (step 6).**
+`adBlocking_state_daily` (Android) — `onResume` observer reporting feature state once
+per day → `startup`, not `scheduled` (no timer fires it) and not `feature_lifecycle`.
