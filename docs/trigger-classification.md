@@ -42,17 +42,20 @@ Classify by the EVENT THAT CAUSES THE PIXEL TO FIRE — never by dedupe cadence
    • Litmus: display code has an eligibility gate (feature flag, subscription
      state, view-count threshold, cooldown) → impression. Only gate is "user
      navigated here" → user_interaction.
-3. Automatic feature operation runs / completes / changes state (migration,
+3. A timer or scheduled/delayed job literally fires it (rollup, sampler,
+   watchdog, absence-of-event check)? → scheduled
+   • If the timer merely DETECTS something, classify by what was detected:
+     anomaly → exception; a user toggle noticed by a poll → user_interaction.
+   • Per-event pixels emitted while a scheduled session executes feature work
+     (e.g. PIR scan stages) are feature_lifecycle — only the tick that starts
+     the session is scheduled.
+4. Automatic feature operation runs / completes / changes state (migration,
    sync cycle, job engine, token refresh, update detection, state observer)?
    → feature_lifecycle
    • Async completion of a user-initiated flow that can outlive the UI or be
      driven by a non-user party (billing observer, remote sync peer, retrying
      backend call) → feature_lifecycle. Synchronous completion inside the
      user's action → user_interaction.
-4. A timer or scheduled/delayed job literally fires it (rollup, sampler,
-   watchdog, absence-of-event check)? → scheduled
-   • If the timer merely DETECTS something, classify by what was detected:
-     anomaly → exception; a user toggle noticed by a poll → user_interaction.
 5. Injected scripts detected page content (captcha, adwall, CMP, ads)?
    → web_detection
 6. Error/crash → exception. Launch or foreground → startup. Page loaded →
@@ -84,7 +87,7 @@ config/eligibility → `impression`. The same split can occur within one feature
 `impression`, while its sibling `*_popover_shown` pixels (fire on the user's click) are
 `user_interaction`.
 
-**Timers: classify by what the tick reports (step 4).**
+**Timers: classify by what the tick reports (step 3).**
 `m_dbp_engagement_dau` (Android) — recurring worker sampling active-user state →
 `scheduled`. `m_dbp_optout_stage_*` — per-stage engine events inside a (scheduled or
 manual) PIR run → `feature_lifecycle`; only the session-start tick itself is
@@ -95,7 +98,7 @@ proxy → `exception` (the anomaly, not the timer).
 `m_fire_button_executed_daily` (Android) — manual fire-button clears bump a persisted
 counter; a 2-hour worker transmits it after the process restart → `user_interaction`.
 
-**Async completion (step 3).**
+**Async completion (step 4).**
 `sync_setup_barcode_scanner_success` (iOS) — QR code recognized during the user's scan →
 `user_interaction`. `m_privacy-pro_app_subscription-purchase_success` (Android) —
 billing observer + retrying backend confirmation, can land after UI teardown →
