@@ -42,13 +42,8 @@ Classify by the EVENT THAT CAUSES THE PIXEL TO FIRE — never by dedupe cadence
    • Litmus: display code has an eligibility gate (feature flag, subscription
      state, view-count threshold, cooldown) → impression. Only gate is "user
      navigated here" → user_interaction.
-3. A timer or scheduled/delayed job literally fires it (rollup, sampler,
-   watchdog, absence-of-event check)? → scheduled
-   • If the timer merely DETECTS something, classify by what was detected:
-     anomaly → exception; a user toggle noticed by a poll → user_interaction.
-   • Per-event pixels emitted while a scheduled session executes feature work
-     (e.g. PIR scan stages) are feature_lifecycle — only the tick that starts
-     the session is scheduled.
+3. Injected scripts detected page content (captcha, adwall, CMP, ads)?
+   → web_detection
 4. Automatic feature operation runs / completes / changes state (migration,
    sync cycle, job engine, token refresh, update detection, state observer)?
    → feature_lifecycle
@@ -56,8 +51,10 @@ Classify by the EVENT THAT CAUSES THE PIXEL TO FIRE — never by dedupe cadence
      driven by a non-user party (billing observer, remote sync peer, retrying
      backend call) → feature_lifecycle. Synchronous completion inside the
      user's action → user_interaction.
-5. Injected scripts detected page content (captcha, adwall, CMP, ads)?
-   → web_detection
+5. A timer or scheduled/delayed job literally fires it (rollup, sampler,
+   watchdog, absence-of-event check)? → scheduled
+   • If the timer merely DETECTS something, classify by what was detected:
+     anomaly → exception; a user toggle noticed by a poll → user_interaction.
 6. Error/crash → exception. Launch or foreground → startup. Page loaded →
    page_load. New tab → new_tab. DDG search → search_ddg.
 7. One pixel name covering several events (e.g. an event=shown|clicked param)?
@@ -87,7 +84,7 @@ config/eligibility → `impression`. The same split can occur within one feature
 `impression`, while its sibling `*_popover_shown` pixels (fire on the user's click) are
 `user_interaction`.
 
-**Timers: classify by what the tick reports (step 3).**
+**Timers: classify by what the tick reports (step 5).**
 `m_dbp_engagement_dau` (Android) — recurring worker sampling active-user state →
 `scheduled`. `m_dbp_optout_stage_*` — per-stage engine events inside a (scheduled or
 manual) PIR run → `feature_lifecycle`; only the session-start tick itself is
