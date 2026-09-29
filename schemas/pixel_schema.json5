@@ -46,15 +46,20 @@
                     "default": ["other"],
                     "items": {
                         "type": "string",
+                        // How to choose: https://github.com/duckduckgo/pixel-schema/blob/main/docs/trigger-classification.md
                         "enum": [
                             "page_load", // pixel fires when a webpage is loaded
                             "new_tab", // pixel fires when a new tab is opened
                             "search_ddg", // pixel fires when user performs a search
-                            "startup", // pixel fires on app startup
-                            "scheduled", // pixel fires periodically
-                            "user_submitted", // pixel fires when user submits a form
+                            "startup", // pixel fires on app startup or return to foreground
+                            "scheduled", // pixel fires from a timer or scheduled job
+                            "user_interaction", // pixel fires on a deliberate user action in the UI
+                            "user_submitted", // pixel fires when the user submits their data with consent
+                            "impression", // pixel fires when UI is shown to the user without interaction
+                            "feature_lifecycle", // pixel fires when an automatic feature operation runs or changes state
+                            "web_detection", // pixel fires when injected scripts detect content on a web page
                             "exception", // pixel fires when an exception/crash occurs
-                            "other" // catch-all
+                            "other" // last resort - explain in the description why no other trigger fits
                         ]
                     }
                 },

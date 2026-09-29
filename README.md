@@ -14,6 +14,7 @@ Note: The effort to define our pixels is on-going. Not all our product repositor
 - [Documenting a pixel](#documenting-a-pixel)
   - [Experiment pixels](#experiment-pixels)
   - [All other pixels](#all-other-pixels)
+- [Trigger classification guide](./docs/trigger-classification.md)
 - [Validation](#validation)
   - [Pre-requisites](#pre-requisites)
   - [Validating Definitions](#validating-definitions)
@@ -74,15 +75,10 @@ As you read through, you can refer to the [pixel_guide.json](./tests/test_data/v
 Each pixel **must** contain the following properties:
 * `description` - when the pixel fires and its purpose
 * `owners` - Github usernames of who to contact about the pixel
-* `triggers` - one or more of the [possible triggers](./schemas/pixel_schema.json5#27) that apply to the pixel:
-  * `page_load`: pixel fires when a webpage is loaded
-  * `new_tab`: pixel fires when a new tab is opened
-  * `search_ddg`: pixel fires when user performs a search
-  * `startup`: pixel fires on app startup
-  * `scheduled`: pixel fires periodically
-  * `user_submitted`: pixel fires when user submits a form
-  * `exception`: pixel fires when an exception/crash occurs
-  * `other`: catch-all
+* `triggers` - one or more of: `page_load`, `new_tab`, `search_ddg`, `startup`, `scheduled`, `user_interaction`,
+  `user_submitted`, `impression`, `feature_lifecycle`, `web_detection`, `exception`, `other`.
+  See the [trigger classification guide](./docs/trigger-classification.md) for definitions and how to choose;
+  `other` is a last resort — explain in the description why no other trigger fits.
 
 
 #### Pixels with dynamic names

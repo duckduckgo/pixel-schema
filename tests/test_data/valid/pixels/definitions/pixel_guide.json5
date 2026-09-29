@@ -5,6 +5,7 @@
         // Required fields:
         "description": "Fires when my cool feature is used.",
         "owners": ["github_username"],
+        // One or more triggers - see docs/trigger-classification.md for how to choose
         "triggers": ["exception", "scheduled"],
         // [Optional] - parameterized portions of the pixel name, if applicable
         // The examples below result in: m.my.first.pixel.[new|returning].exceptiontype.{exception}.[phone|tablet]
@@ -105,5 +106,19 @@
         ],
         // [Optional] if temporary pixel - specify expiration date:
         "expires": "2025-12-31"
+    },
+    "m_my_second_pixel": {
+        // A pixel whose name covers several events (distinguished by a parameter)
+        // lists every applicable trigger.
+        "description": "Fires when my cool feature's promo dialog is shown (event=shown) or actioned (event=clicked).",
+        "owners": ["github_username"],
+        "triggers": ["impression", "user_interaction"],
+        "parameters": [
+            {
+                "key": "event",
+                "description": "Whether the dialog was shown or clicked",
+                "enum": ["shown", "clicked"]
+            }
+        ]
     }
 }
