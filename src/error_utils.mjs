@@ -10,6 +10,33 @@
  * @returns {Array<string>} - array of formatted error messages
  */
 function formatAjvErrors(validationErrors, suffixes = null) {
+    return mapAjvErrors(validationErrors, suffixes, (formattedError) => formattedError);
+}
+
+/**
+ * Formats AJV validation errors with a transient semantic identity.
+ *
+ * @param {Array<import("ajv").ErrorObject> | null | undefined} validationErrors - array of AJV error objects
+ * @param {*} suffixes - object containing request suffixes
+ * @param {string} domain - validation domain that emitted the error
+ * @returns {Array<{error: string, identity: string}>} formatted error details
+ */
+function formatAjvErrorDetails(validationErrors, suffixes = null, domain = 'ajv') {
+    return mapAjvErrors(validationErrors, suffixes, (formattedError, error) => ({
+        error: formattedError,
+        identity: createValidationErrorIdentity(domain, error.keyword, error.instancePath, error.params),
+    }));
+}
+
+/**
+ * Formats AJV validation errors, projecting each into a caller-defined shape.
+ *
+ * @param {Array<import("ajv").ErrorObject> | null | undefined} validationErrors - array of AJV error objects
+ * @param {*} suffixes - object containing request suffixes
+ * @param {(formattedError: string, error: import("ajv").ErrorObject) => *} project - maps a formatted error to the returned shape
+ * @returns {Array<*>} projected errors
+ */
+function mapAjvErrors(validationErrors, suffixes, project) {
     const errors = [];
     if (!Array.isArray(validationErrors)) {
         return errors;
@@ -37,10 +64,42 @@ function formatAjvErrors(validationErrors, suffixes = null) {
             }
         }
 
-        errors.push(formattedError.trim());
+        errors.push(project(formattedError.trim(), error));
     });
 
     return errors;
+}
+
+/**
+ * Creates an identity independent of presentation text and example values.
+ *
+ * `allowedValues` is dropped for enum errors: the set of permitted values may differ between HEAD and
+ * release definitions without changing the category of the error the invalid value produced.
+ * @param {string} domain validation domain or custom category.
+ * @param {string} keyword validation keyword.
+ * @param {string} instancePath location in the validated value.
+ * @param {*} params defining validation values.
+ * @returns {string} stable identity.
+ */
+function createValidationErrorIdentity(domain, keyword, instancePath, params) {
+    const { allowedValues, ...identityParams } = params && typeof params === 'object' ? params : {};
+    return JSON.stringify([domain, keyword, instancePath, sortObject(identityParams)]);
+}
+
+/**
+ * Recursively sorts object keys for deterministic identity serialization.
+ * @param {*} value value to canonicalize.
+ * @returns {*} canonicalized value.
+ */
+function sortObject(value) {
+    if (Array.isArray(value)) return value.map(sortObject);
+    if (!value || typeof value !== 'object') return value;
+
+    return Object.fromEntries(
+        Object.keys(value)
+            .sort()
+            .map((key) => [key, sortObject(value[key])]),
+    );
 }
 
 /**
@@ -59,4 +118,4 @@ function logErrors(prefix, errors) {
     });
 }
 
-export { formatAjvErrors, logErrors };
+export { createValidationErrorIdentity, formatAjvErrorDetails, formatAjvErrors, logErrors };
