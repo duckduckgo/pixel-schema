@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import { PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
-import { formatAjvErrorDetails } from '../src/error_utils.mjs';
+import { formatAjvErrors } from '../src/error_utils.mjs';
 import { compareLiveValidationResults } from '../src/live_validation_comparator.mjs';
 
 function failedResult(errors) {
@@ -13,12 +13,12 @@ function failedResult(errors) {
     };
 }
 
-function error(identity, example = 'example') {
-    return { identity, error: `message for ${identity}`, example };
+function error(message, example = 'example') {
+    return { error: message, example };
 }
 
 describe('compareLiveValidationResults', () => {
-    it('keeps only HEAD errors with a matching release identity, retaining the HEAD example', () => {
+    it('keeps only HEAD errors with a matching release error, retaining the HEAD example', () => {
         const result = compareLiveValidationResults(
             failedResult([error('A', 'head-a'), error('B', 'head-b')]),
             failedResult([error('B', 'release-b'), error('C', 'release-c')]),
@@ -27,32 +27,27 @@ describe('compareLiveValidationResults', () => {
         expect(result.errors).to.deep.equal([error('B', 'head-b')]);
     });
 
-    it('does not intersect errors with the same human message but different identities', () => {
-        const head = failedResult([{ identity: 'params|type|/a|{}', error: 'must be string', example: 'head' }]);
-        const release = failedResult([{ identity: 'params|type|/b|{}', error: 'must be string', example: 'release' }]);
-
-        expect(compareLiveValidationResults(head, release)).to.equal(null);
-    });
-
     it('intersects enum errors when release allowed values drift', () => {
-        const headError = formatAjvErrorDetails([
+        const [headMessage] = formatAjvErrors([
             {
                 keyword: 'enum',
                 instancePath: '/value',
                 message: 'must be equal to one of the allowed values',
                 params: { allowedValues: ['a', 'b', 'c'] },
             },
-        ])[0];
-        const releaseError = formatAjvErrorDetails([
+        ]);
+        const [releaseMessage] = formatAjvErrors([
             {
                 keyword: 'enum',
                 instancePath: '/value',
                 message: 'must be equal to one of the allowed values',
                 params: { allowedValues: ['a', 'b'] },
             },
-        ])[0];
+        ]);
 
-        expect(compareLiveValidationResults(failedResult([headError]), failedResult([releaseError])).errors).to.deep.equal([headError]);
+        expect(
+            compareLiveValidationResults(failedResult([error(headMessage)]), failedResult([error(releaseMessage)])).errors,
+        ).to.deep.equal([error(headMessage)]);
     });
 
     it('applies status rules before comparing errors', () => {
@@ -73,12 +68,12 @@ describe('compareLiveValidationResults', () => {
             [failedResult([error('A', 'head-2'), error('B', 'head-2')]), failedResult([error('B', 'release-2'), error('C', 'release-2')])],
         ];
         const aggregate = (orderedRows) => {
-            const identities = new Set();
+            const messages = new Set();
             for (const [head, release] of orderedRows) {
                 const result = compareLiveValidationResults(head, release);
-                result?.errors.forEach(({ identity }) => identities.add(identity));
+                result?.errors.forEach(({ error: message }) => messages.add(message));
             }
-            return identities;
+            return messages;
         };
 
         expect(aggregate(rows)).to.deep.equal(new Set(['B']));
