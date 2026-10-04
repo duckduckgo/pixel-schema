@@ -231,7 +231,7 @@ export class LivePixelsValidator {
             this.#saveErrors(pixelPrefix, pixel, formatAjvErrors(this.#commonExperimentSuffixesSchema.errors, pixelNameStruct));
         }
 
-        const rawParamsStruct = parseParams(paramsUrlFormat);
+        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const metric = rawParamsStruct.metric;
         const metricValue = rawParamsStruct.value;
         if (pixelType === 'metrics') {
@@ -296,7 +296,7 @@ export class LivePixelsValidator {
      * @returns {object} resulting validation state.
      */
     validatePixelParamsAndSuffixes(prefix, pixel, paramsUrlFormat, pixelSchemas, headerVersion = null) {
-        const rawParamsStruct = parseParams(paramsUrlFormat);
+        const rawParamsStruct = Object.fromEntries(new URLSearchParams(paramsUrlFormat));
         const paramsStruct = {};
         Object.entries(rawParamsStruct).forEach(([key, val]) => {
             const normalizedKey = this.#getNormalizedVal(key);
