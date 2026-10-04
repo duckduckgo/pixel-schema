@@ -31,8 +31,8 @@ function compareLiveValidationResults(headResult, releaseResult) {
     // HEAD failed validation: keep it only where the release definitions failed the same way.
     if (releaseResult.status !== PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) return null;
 
-    const releaseIdentities = new Set(releaseResult.errors.map(({ identity }) => identity));
-    const errors = headResult.errors.filter(({ identity }) => releaseIdentities.has(identity));
+    const releaseErrors = new Set(releaseResult.errors.map(({ error }) => error));
+    const errors = headResult.errors.filter(({ error }) => releaseErrors.has(error));
     if (errors.length === 0) return null;
 
     return {
