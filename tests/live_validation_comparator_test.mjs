@@ -47,17 +47,24 @@ function buildValidator(definition) {
 }
 
 describe('compareLiveValidationResults', () => {
-    it('keeps only HEAD errors with a matching release error, retaining the HEAD example', () => {
+    it('keeps errors found in both branches and retains branch A report details', () => {
         const result = compareLiveValidationResults(
-            failedResult([error('A', 'head-a'), error('B', 'head-b')]),
-            failedResult([error('B', 'release-b'), error('C', 'release-c')]),
+            failedResult([error('A', 'branch-a-example-a'), error('B', 'branch-a-example-b')]),
+            failedResult([error('B', 'branch-b-example-b'), error('C', 'branch-b-example-c')]),
         );
 
-        expect(result.errors).to.deep.equal([error('B', 'head-b')]);
+        expect(result.errors).to.deep.equal([error('B', 'branch-a-example-b')]);
     });
 
-    it('intersects enum errors when release allowed values drift', () => {
-        const [headMessage] = formatAjvErrors([
+    it('does not match errors that display the same message but describe different failures', () => {
+        const branchAResult = failedResult([{ identity: 'params|type|/a|{}', error: 'must be string', example: 'branch-a' }]);
+        const branchBResult = failedResult([{ identity: 'params|type|/b|{}', error: 'must be string', example: 'branch-b' }]);
+
+        expect(compareLiveValidationResults(branchAResult, branchBResult)).to.equal(null);
+    });
+
+    it('matches invalid enum values when the allowed values differ between branches', () => {
+        const [branchAMessage] = formatAjvErrors([
             {
                 keyword: 'enum',
                 instancePath: '/value',
@@ -65,7 +72,7 @@ describe('compareLiveValidationResults', () => {
                 params: { allowedValues: ['a', 'b', 'c'] },
             },
         ]);
-        const [releaseMessage] = formatAjvErrors([
+        const [branchBMessage] = formatAjvErrors([
             {
                 keyword: 'enum',
                 instancePath: '/value',
@@ -75,11 +82,11 @@ describe('compareLiveValidationResults', () => {
         ]);
 
         expect(
-            compareLiveValidationResults(failedResult([error(headMessage)]), failedResult([error(releaseMessage)])).errors,
-        ).to.deep.equal([error(headMessage)]);
+            compareLiveValidationResults(failedResult([error(branchAMessage)]), failedResult([error(branchBMessage)])).errors,
+        ).to.deep.equal([error(branchAMessage)]);
     });
 
-    it('applies status rules before comparing errors', () => {
+    it('reports only failures that require comparison in both branches', () => {
         const undocumented = { status: PIXEL_VALIDATION_RESULT.UNDOCUMENTED, errors: [] };
         const passed = { status: PIXEL_VALIDATION_RESULT.VALIDATION_PASSED, errors: [] };
         const oldVersion = { status: PIXEL_VALIDATION_RESULT.OLD_APP_VERSION, errors: [] };
@@ -91,15 +98,18 @@ describe('compareLiveValidationResults', () => {
         expect(compareLiveValidationResults(failed, oldVersion)).to.equal(null);
     });
 
-    it('keeps membership stable when examples and row order differ before the example cap', () => {
+    it('matches the same failures regardless of example values or input row order', () => {
         const rows = [
-            [failedResult([error('B', 'head-1')]), failedResult([error('B', 'release-1')])],
-            [failedResult([error('A', 'head-2'), error('B', 'head-2')]), failedResult([error('B', 'release-2'), error('C', 'release-2')])],
+            [failedResult([error('B', 'branch-a-row-1')]), failedResult([error('B', 'branch-b-row-1')])],
+            [
+                failedResult([error('A', 'branch-a-row-2'), error('B', 'branch-a-row-2')]),
+                failedResult([error('B', 'branch-b-row-2'), error('C', 'branch-b-row-2')]),
+            ],
         ];
         const aggregate = (orderedRows) => {
             const messages = new Set();
-            for (const [head, release] of orderedRows) {
-                const result = compareLiveValidationResults(head, release);
+            for (const [branchAResult, branchBResult] of orderedRows) {
+                const result = compareLiveValidationResults(branchAResult, branchBResult);
                 result?.errors.forEach(({ error: message }) => messages.add(message));
             }
             return messages;
@@ -109,74 +119,103 @@ describe('compareLiveValidationResults', () => {
         expect(aggregate(rows.reverse())).to.deep.equal(new Set(['B']));
     });
 
-    it('does not intersect identical text from parameter and suffix validation domains', () => {
-        const head = buildValidator(
+    it('does not match a parameter failure with an identically worded suffix failure', () => {
+        const branchAValidator = buildValidator(
             pixelDefinition(
                 [{ key: '0', description: 'Numeric parameter', type: 'integer' }],
                 [{ description: 'String suffix', type: 'string' }],
             ),
         );
-        const release = buildValidator(
+        const branchBValidator = buildValidator(
             pixelDefinition(
                 [{ key: '0', description: 'String parameter', type: 'string' }],
                 [{ description: 'Numeric suffix', type: 'integer' }],
             ),
         );
 
-        const headResult = head.validatePixel('pixel_abc', '0=abc');
-        const releaseResult = release.validatePixel('pixel_abc', '0=abc');
+        const branchAResult = branchAValidator.validatePixel('pixel_abc', '0=abc');
+        const branchBResult = branchBValidator.validatePixel('pixel_abc', '0=abc');
 
-        expect(headResult.errors[0].error).to.equal('/0 must be integer');
-        expect(releaseResult.errors[0].error).to.equal('/0 must be integer');
-        expect(compareLiveValidationResults(headResult, releaseResult)).to.equal(null);
+        expect(branchAResult.errors[0].error).to.equal('/0 must be integer');
+        expect(branchBResult.errors[0].error).to.equal('/0 must be integer');
+        expect(compareLiveValidationResults(branchAResult, branchBResult)).to.equal(null);
     });
 
-    it('does not intersect const errors when the required constants differ', () => {
-        const head = buildValidator(pixelDefinition([{ key: 'mode', description: 'HEAD mode', const: 'a' }]));
-        const release = buildValidator(pixelDefinition([{ key: 'mode', description: 'Release mode', const: 'b' }]));
+    it('does not match constant-value failures when each branch requires a different value', () => {
+        const branchAValidator = buildValidator(pixelDefinition([{ key: 'mode', description: 'Branch A mode', const: 'a' }]));
+        const branchBValidator = buildValidator(pixelDefinition([{ key: 'mode', description: 'Branch B mode', const: 'b' }]));
 
-        const headResult = head.validatePixel('pixel', 'mode=z');
-        const releaseResult = release.validatePixel('pixel', 'mode=z');
+        const branchAResult = branchAValidator.validatePixel('pixel', 'mode=z');
+        const branchBResult = branchBValidator.validatePixel('pixel', 'mode=z');
 
-        expect(headResult.errors[0].error).to.equal('/mode must be equal to constant');
-        expect(releaseResult.errors[0].error).to.equal('/mode must be equal to constant');
-        expect(compareLiveValidationResults(headResult, releaseResult)).to.equal(null);
+        expect(branchAResult.errors[0].error).to.equal('/mode must be equal to constant');
+        expect(branchBResult.errors[0].error).to.equal('/mode must be equal to constant');
+        expect(compareLiveValidationResults(branchAResult, branchBResult)).to.equal(null);
     });
 
-    it('intersects enum errors when the allowed values differ', () => {
-        const head = buildValidator(pixelDefinition([{ key: 'mode', description: 'HEAD mode', enum: ['a', 'b'] }]));
-        const release = buildValidator(pixelDefinition([{ key: 'mode', description: 'Release mode', enum: ['a', 'c'] }]));
+    it('matches invalid enum values when each branch allows a different set', () => {
+        const branchAValidator = buildValidator(pixelDefinition([{ key: 'mode', description: 'Branch A mode', enum: ['a', 'b'] }]));
+        const branchBValidator = buildValidator(pixelDefinition([{ key: 'mode', description: 'Branch B mode', enum: ['a', 'c'] }]));
 
-        const headResult = head.validatePixel('pixel', 'mode=z');
-        const releaseResult = release.validatePixel('pixel', 'mode=z');
+        const branchAResult = branchAValidator.validatePixel('pixel', 'mode=z');
+        const branchBResult = branchBValidator.validatePixel('pixel', 'mode=z');
 
-        expect(compareLiveValidationResults(headResult, releaseResult)?.errors).to.deep.equal(headResult.errors);
+        expect(compareLiveValidationResults(branchAResult, branchBResult)?.errors).to.deep.equal(branchAResult.errors);
     });
 
-    it('intersects oneOf errors when equivalent branches are reordered', () => {
-        const head = buildValidator(
+    it('matches oneOf failures when equivalent schemas change position in the oneOf array', () => {
+        const branchAValidator = buildValidator(
             pixelDefinition([
                 {
                     key: 'mode',
-                    description: 'HEAD mode',
+                    description: 'Branch A mode',
                     oneOf: [{ const: 'x' }, { pattern: '^x$' }, { pattern: '^y$' }],
                 },
             ]),
         );
-        const release = buildValidator(
+        const branchBValidator = buildValidator(
             pixelDefinition([
                 {
                     key: 'mode',
-                    description: 'Release mode',
+                    description: 'Branch B mode',
                     oneOf: [{ const: 'x' }, { pattern: '^y$' }, { pattern: '^x$' }],
                 },
             ]),
         );
 
-        const headResult = head.validatePixel('pixel', 'mode=x');
-        const releaseResult = release.validatePixel('pixel', 'mode=x');
-        const result = compareLiveValidationResults(headResult, releaseResult);
+        const branchAResult = branchAValidator.validatePixel('pixel', 'mode=x');
+        const branchBResult = branchBValidator.validatePixel('pixel', 'mode=x');
+        const result = compareLiveValidationResults(branchAResult, branchBResult);
 
-        expect(result?.errors.map(({ error: message }) => message)).to.include('/mode must match exactly one schema in oneOf');
+        expect(result, 'equivalent oneOf failures should match when schema positions change').to.not.equal(null);
+        expect(result.errors.map(({ error: message }) => message)).to.include('/mode must match exactly one schema in oneOf');
+    });
+
+    it('does not match oneOf failures when no schema matches in one branch and multiple schemas match in the other', () => {
+        const branchAValidator = buildValidator(
+            pixelDefinition([
+                {
+                    key: 'mode',
+                    description: 'Branch A mode',
+                    oneOf: [{ const: 'a' }, { const: 'b' }],
+                },
+            ]),
+        );
+        const branchBValidator = buildValidator(
+            pixelDefinition([
+                {
+                    key: 'mode',
+                    description: 'Branch B mode',
+                    oneOf: [{ const: 'x' }, { pattern: '^x$' }],
+                },
+            ]),
+        );
+
+        const branchAResult = branchAValidator.validatePixel('pixel', 'mode=x');
+        const branchBResult = branchBValidator.validatePixel('pixel', 'mode=x');
+
+        expect(branchAResult.errors.map(({ error: message }) => message)).to.include('/mode must match exactly one schema in oneOf');
+        expect(branchBResult.errors.map(({ error: message }) => message)).to.include('/mode must match exactly one schema in oneOf');
+        expect(compareLiveValidationResults(branchAResult, branchBResult)).to.equal(null);
     });
 });
