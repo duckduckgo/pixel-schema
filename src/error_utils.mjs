@@ -82,8 +82,34 @@ function mapAjvErrors(validationErrors, suffixes, project) {
  * @returns {string} stable identity.
  */
 function createValidationErrorIdentity(domain, keyword, instancePath, params) {
-    const { allowedValues, ...identityParams } = params && typeof params === 'object' ? params : {};
-    return JSON.stringify([domain, keyword, instancePath, sortObject(identityParams)]);
+    return JSON.stringify([domain, keyword, instancePath, sortObject(normalizeIdentityParams(keyword, params))]);
+}
+
+/**
+ * Removes schema metadata that can drift without changing the underlying failure.
+ * @param {string} keyword validation keyword.
+ * @param {*} params defining validation values.
+ * @returns {*} normalized identity parameters.
+ */
+function normalizeIdentityParams(keyword, params) {
+    if (!params || typeof params !== 'object') return {};
+
+    // Different enum sets still represent the same invalid-value failure.
+    if (keyword === 'enum') {
+        const { allowedValues, ...identityParams } = params;
+        return identityParams;
+    }
+
+    // oneOf indexes are positional, but null and an array distinguish no matches from multiple matches.
+    if (keyword === 'oneOf') {
+        const { passingSchemas, ...identityParams } = params;
+        return {
+            ...identityParams,
+            matchResult: passingSchemas === null ? 'none' : 'multiple',
+        };
+    }
+
+    return params;
 }
 
 /**
