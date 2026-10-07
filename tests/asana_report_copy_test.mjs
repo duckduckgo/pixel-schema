@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { getPixelFailureMessage } from '../src/asana_report_copy.mjs';
+import { applyNotifyOverride, getPixelFailureMessage } from '../src/asana_report_copy.mjs';
 
 describe('Asana report copy', () => {
     it('includes the target app version and release warning', () => {
@@ -32,5 +32,31 @@ describe('Asana report copy', () => {
 
         expect(message).to.include('<strong>Target app version:</strong> 1.2.3&lt;script&gt;');
         expect(message).not.to.include('1.2.3<script>');
+    });
+});
+
+describe('Asana report notifications', () => {
+    const notify = {
+        assigneeGID: 'assignee',
+        followerGIDs: ['follower'],
+        tagPixelOwners: false,
+    };
+
+    it('removes all human notifications when disabled', () => {
+        expect(applyNotifyOverride(notify, 'false')).to.deep.equal({ tagPixelOwners: false });
+    });
+
+    it('keeps configured assignees and followers when enabled', () => {
+        expect(applyNotifyOverride(notify, 'true')).to.deep.equal({ ...notify, tagPixelOwners: true });
+    });
+
+    it('does not mutate configured notifications', () => {
+        applyNotifyOverride(notify, 'true');
+
+        expect(notify).to.deep.equal({
+            assigneeGID: 'assignee',
+            followerGIDs: ['follower'],
+            tagPixelOwners: false,
+        });
     });
 });
