@@ -1350,6 +1350,29 @@ describe('Wide Event required fields follow metaschema', () => {
         expect(generated.properties.feature.required).to.deep.equal(['name', 'status', 'data']);
         expect(generated.properties.context.required).to.deep.equal(['name']);
     });
+
+    it('does not require platform when global type is web', () => {
+        const { platform: _platform, ...webGlobal } = baseEvent.global;
+        const webBaseEvent = {
+            ...baseEvent,
+            global: { ...webGlobal, type: { type: 'string', description: 'Type', enum: ['web'] } },
+        };
+        const event = { w_optional_base_fields: { ...eventBase } };
+        const { errors, generatedSchemas } = makeValidator().validateWideEventDefinition(event, webBaseEvent);
+        expect(errors).to.be.empty;
+
+        const generated = generatedSchemas.w_optional_base_fields;
+        expect(generated.properties.global.properties).to.not.have.property('platform');
+        expect(generated.properties.global.required).to.deep.equal(['type', 'sample_rate']);
+    });
+
+    it('requires platform when global type is not web', () => {
+        const { platform: _platform, ...appGlobal } = baseEvent.global;
+        const appBaseEvent = { ...baseEvent, global: appGlobal };
+        const event = { w_optional_base_fields: { ...eventBase } };
+        const { errors } = makeValidator().validateWideEventDefinition(event, appBaseEvent);
+        expect(errors.join('\n')).to.include('platform');
+    });
 });
 
 describe('Wide Event app/service section handling', () => {
