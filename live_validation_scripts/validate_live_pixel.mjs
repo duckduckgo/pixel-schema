@@ -7,6 +7,7 @@ import JSON5 from 'json5';
 import { getArgParserWithCsv } from '../src/args_utils.mjs';
 import * as fileUtils from '../src/file_utils.mjs';
 import { buildLivePixelValidator } from '../src/live_validation_utils.mjs';
+import { compareLiveValidationResults, requiresReleaseComparison } from '../src/live_validation_comparator.mjs';
 import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
@@ -15,10 +16,12 @@ const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 
 const undocumentedPixels = new Set();
 const pixelErrors = {};
 
-async function main(mainDir, csvFile) {
+async function main(mainDir, csvFile, releaseDir) {
     console.log(`Validating live pixels in ${csvFile} against definitions from ${mainDir}`);
 
     const { validator: liveValidator, pixelsConfigDir, productDef } = await buildLivePixelValidator(mainDir);
+    const releaseValidator = releaseDir ? (await buildLivePixelValidator(releaseDir)).validator : null;
+    if (releaseValidator) console.log(`Comparing validation errors against release definitions from ${releaseDir}`);
     let processedPixels = 0;
     fs.createReadStream(csvFile)
         .pipe(csv())
@@ -56,7 +59,17 @@ async function main(mainDir, csvFile) {
             }
             const paramsUrlFormat = parsedParams.join('&');
 
-            const result = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion);
+            const headResult = liveValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion);
+            let result = headResult;
+            if (releaseValidator) {
+                result = requiresReleaseComparison(headResult)
+                    ? compareLiveValidationResults(
+                          headResult,
+                          releaseValidator.validatePixel(pixelRequestFormat, paramsUrlFormat, headerVersion),
+                      )
+                    : null;
+            }
+            if (!result) return;
             saveResult(pixelRequestFormat, result);
         })
         .on('end', async () => {
@@ -103,7 +116,7 @@ function setReplacer(_, value) {
     return value;
 }
 
-main(argv.dirPath, argv.csvFile).catch((err) => {
+main(argv.dirPath, argv.csvFile, argv.releaseDir).catch((err) => {
     console.error('Error:', err.message);
     console.error(err.stack);
     process.exit(1);

@@ -4,7 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { getArgParser, getArgParserWithCsv, getArgParserAsanaReports, getArgParserDeleteAttachments } from '../src/args_utils.mjs';
+import {
+    getArgParser,
+    getArgParserWithCsv,
+    getArgParserReleaseTag,
+    getArgParserAsanaReports,
+    getArgParserDeleteAttachments,
+} from '../src/args_utils.mjs';
 import { PIXELS_TMP_CSV } from '../src/constants.mjs';
 
 const ORIGINAL_EXISTS_SYNC = fs.existsSync;
@@ -114,12 +120,36 @@ describe('getArgParserWithCsv', () => {
         expect(argv.csvFile).to.equal(VALID_CSV);
     });
 
+    it('accepts an optional release definitions directory', async () => {
+        const parser = configureParser(getArgParserWithCsv('Validate directory', 'CSV file'));
+        const argv = await parse(parser, VALID_DIR, VALID_CSV, VALID_DIR);
+
+        expect(argv.releaseDir).to.equal(VALID_DIR);
+    });
+
     it('throws when the directory path is invalid', async () => {
         const missingDir = '/missing/dir';
         stubFs({ exists: false, isDir: false });
         const parser = configureParser(getArgParserWithCsv('Validate directory', 'CSV file'));
 
         await expectParseError(parser, [missingDir], `Directory path ${missingDir} does not exist!`);
+    });
+});
+
+describe('getArgParserReleaseTag', () => {
+    it('parses the definitions directory and tag template', async () => {
+        const parser = configureParser(getArgParserReleaseTag('Resolve release tag'));
+        const argv = await parse(parser, VALID_DIR, 'v{version}');
+
+        expect(argv.dirPath).to.equal(VALID_DIR);
+        expect(argv.tagTemplate).to.equal('v{version}');
+    });
+
+    it('allows an omitted template for query-window products', async () => {
+        const parser = configureParser(getArgParserReleaseTag('Resolve release tag'));
+        const argv = await parse(parser, VALID_DIR);
+
+        expect(argv.tagTemplate).to.equal(undefined);
     });
 });
 
