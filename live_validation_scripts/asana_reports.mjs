@@ -7,7 +7,7 @@ import yaml from 'js-yaml';
 
 import * as fileUtils from '../src/file_utils.mjs';
 import { getArgParserAsanaReports } from '../src/args_utils.mjs';
-import { getPixelFailureMessage } from '../src/asana_report_copy.mjs';
+import { applyNotifyOverride, getPixelFailureMessage } from '../src/asana_report_copy.mjs';
 import { DDG_ASANA_WORKSPACEID, DAYS_TO_DELETE_ATTACHMENTS, ASANA_TASK_PREFIX, ASANA_ATTACHMENT_PREFIX } from '../src/constants.mjs';
 import { resolveTargetVersion } from '../src/pixel_utils.mjs';
 
@@ -252,11 +252,12 @@ async function main() {
         console.log('No target app version configured');
     }
 
-    // Allow NOTIFY_PIXEL_OWNERS env var to override the tagPixelOwners setting from asana_notify.json
+    // False disables assignments, followers, and per-owner tagging for test runs.
     if (process.env.NOTIFY_PIXEL_OWNERS !== undefined) {
-        const envNotifyOwners = process.env.NOTIFY_PIXEL_OWNERS.toLowerCase() === 'true';
-        toNotify.tagPixelOwners = envNotifyOwners;
-        console.log(`Environment variable override: tagPixelOwners = ${envNotifyOwners}`);
+        const notifyOverride = applyNotifyOverride(toNotify, process.env.NOTIFY_PIXEL_OWNERS);
+        Object.keys(toNotify).forEach((key) => delete toNotify[key]);
+        Object.assign(toNotify, notifyOverride);
+        console.log(`Environment variable override: notifyPixelOwners = ${process.env.NOTIFY_PIXEL_OWNERS.toLowerCase() === 'true'}`);
     }
 
     // Load the pixelsWithErrors object produced by validate_live_pixel.mjs

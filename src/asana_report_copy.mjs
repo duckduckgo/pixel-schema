@@ -54,3 +54,11 @@ ${VERSION_WARNING}`;
 
     return message;
 }
+
+export function applyNotifyOverride(notify, envValue) {
+    if (envValue === undefined) return notify;
+    if (envValue.toLowerCase() === 'true') {
+        return { ...notify, tagPixelOwners: true };
+    }
+    return { tagPixelOwners: false };
+}

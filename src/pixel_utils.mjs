@@ -212,6 +212,30 @@ export async function resolveTargetVersion(target) {
 }
 
 /**
+ * Resolve the release tag for a product target from its live application version.
+ *
+ * @param {import('./types.mjs').ProductTarget} target - The target configuration from product.json.
+ * @param {string} tagTemplate - A stable release tag template containing `{version}`.
+ * @returns {Promise<{version: string, tag: string}|null>} The release version and tag, or null for query-window targets.
+ */
+export async function resolveReleaseTag(target, tagTemplate) {
+    const version = await resolveTargetVersion(target);
+    if (version === null) return null;
+
+    if (!tagTemplate) {
+        throw new Error('Release tag template is required for application version targets');
+    }
+    if (!tagTemplate.includes('{version}')) {
+        throw new Error('Release tag template must contain `{version}`');
+    }
+
+    return {
+        version,
+        tag: tagTemplate.replaceAll('{version}', version),
+    };
+}
+
+/**
  * Validates that a pixel prefix only contains letters, numbers, hyphens, and dots.
  * Empty pixel prefix is valid.
  * @param {string} pixelPrefix The pixel prefix to validate.
