@@ -87,7 +87,18 @@
                 "additionalProperties": { "const": false },
                 "properties": {
                     "type": "object",
-                    "required": ["platform", "type", "sample_rate"],
+                    "required": ["type", "sample_rate"],
+                    // platform is optional only when every global.type value is web
+                    "if": {
+                        "required": ["type"],
+                        "properties": {
+                            "type": {
+                                "type": "object",
+                                "properties": { "enum": { "type": "array", "items": { "const": "web" } } }
+                            }
+                        }
+                    },
+                    "else": { "required": ["platform"] },
                     "properties": {
                         "platform": { "$ref": "#/$defs/platformDefinition" },
                         "type": { "$ref": "#/$defs/typeDefinition" },

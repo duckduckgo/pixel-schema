@@ -314,6 +314,9 @@ export class WideEventDefinitionsValidator extends BaseDefinitionsValidator {
         // global section from base_event
         const globalProps = JSON.parse(JSON.stringify(baseEvent.global));
         const globalRequired = getSectionRequiredKeysFromMetaSchema('global');
+        const globalTypes = globalProps.type?.enum ?? [];
+        const isWebOnly = globalTypes.length > 0 && globalTypes.every((t) => t === 'web');
+        if (!isWebOnly) globalRequired.unshift('platform');
         properties.global = this.#wrapSectionAsJsonSchema(globalProps, globalRequired);
 
         // feature section — deep clone base, then overlay event-specific values
