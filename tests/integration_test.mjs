@@ -1,7 +1,8 @@
-import { exec } from 'child_process';
+import { exec, spawnSync } from 'child_process';
 import { expect } from 'chai';
 import fs from 'fs';
 import JSON5 from 'json5';
+import os from 'os';
 import path from 'path';
 
 import * as fileUtils from '../src/file_utils.mjs';
@@ -98,7 +99,7 @@ describe('Validate live pixels', () => {
             const expectedPixels = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'tokenized_pixels.json')).toString());
             expect(tokenizedPixels).to.deep.equal(expectedPixels);
 
-            exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/pixels/test_live_pixels.csv`, (error, _, stderr) => {
+            exec(`npm run validate-live-pixels ${validDefsPath} ${validDefsPath}/pixels/test_live_pixels.csv`, (error, stdout, stderr) => {
                 expect(error).to.equal(null);
 
                 // Check output files
@@ -108,13 +109,8 @@ describe('Validate live pixels', () => {
                 const expectedErrors = JSON5.parse(fs.readFileSync(path.join(liveValidationResultsPath, 'pixel_errors.json')).toString());
                 expect(pixelErrors).to.deep.equal(expectedErrors);
 
-                const undocumentedPixels = JSON5.parse(
-                    fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels'))).toString(),
-                );
-                const expectedUndocumented = JSON5.parse(
-                    fs.readFileSync(path.join(liveValidationResultsPath, 'undocumented_pixels.json')).toString(),
-                );
-                expect(undocumentedPixels).to.deep.equal(expectedUndocumented);
+                expect(stdout).to.not.include('Undocumented pixels:');
+                expect(fs.existsSync(fileUtils.getUndocumentedPixelsPath(path.join(validDefsPath, 'pixels')))).to.equal(false);
 
                 done();
             });
@@ -136,15 +132,41 @@ describe('Validate live pixels', () => {
                     );
                     expect(pixelErrors).to.be.empty;
 
-                    const undocumentedPixels = JSON5.parse(
-                        fs.readFileSync(fileUtils.getUndocumentedPixelsPath(path.join(validCaseInsensitiveDefsPath, 'pixels'))).toString(),
+                    expect(fs.existsSync(fileUtils.getUndocumentedPixelsPath(path.join(validCaseInsensitiveDefsPath, 'pixels')))).to.equal(
+                        false,
                     );
-                    expect(undocumentedPixels).to.be.empty;
 
                     done();
                 },
             );
         });
+    }).timeout(timeout);
+
+    it('only logs current undocumented pixels when requested and clears the output on a default run', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pixel-schema-live-'));
+        try {
+            fs.cpSync(validDefsPath, tempDir, { recursive: true });
+            const csvPath = path.join(tempDir, 'pixels.csv');
+            fs.writeFileSync(csvPath, 'pixel,params,version\nremoved.pixel,[],appVersion=0.0.1\ncurrent.unknown,[],appVersion=2.0.3\n');
+
+            const preprocessed = spawnSync('node', ['./live_validation_scripts/preprocess_defs.mjs', tempDir], { encoding: 'utf8' });
+            expect(preprocessed.status, preprocessed.stderr).to.equal(0);
+
+            const args = ['./live_validation_scripts/validate_live_pixel.mjs', tempDir, csvPath];
+            const enabled = spawnSync('node', [...args, '--log-undocumented'], { encoding: 'utf8' });
+            expect(enabled.status, enabled.stderr).to.equal(0);
+            expect(enabled.stdout).to.include('Undocumented pixels: 1');
+
+            const undocumentedPath = fileUtils.getUndocumentedPixelsPath(path.join(tempDir, 'pixels'));
+            expect(JSON.parse(fs.readFileSync(undocumentedPath, 'utf8'))).to.deep.equal(['current_unknown']);
+
+            const disabled = spawnSync('node', args, { encoding: 'utf8' });
+            expect(disabled.status, disabled.stderr).to.equal(0);
+            expect(disabled.stdout).to.not.include('Undocumented pixels:');
+            expect(fs.existsSync(undocumentedPath)).to.equal(false);
+        } finally {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
     }).timeout(timeout);
 });
 
@@ -161,10 +183,10 @@ describe('Validate pixel debug logs', () => {
                 `\tmust NOT have additional properties. Found extra property 'extraParam'`,
                 "⚠️  Old app version, validation skipped: 'm_my_first_pixel?count=42&date=2025-03-12'",
                 "⚠️  Old app version, validation skipped: 'm_my_first_pixel?count=42&date=2025-03-12&appVersion=0.0.1'",
-                "⚠️  Undocumented: 'unknown-pixel'",
             ];
             const errors = stderr.trim().split('\n');
             expect(errors).to.include.members(expectedErrors);
+            expect(stderr).to.not.include('Undocumented:');
 
             // Check regular output
             const expectedLogs = ["✅ Valid: 'm_my_first_pixel?count=42&date=2025-03-12&appVersion=2.0.3'"];
@@ -186,10 +208,10 @@ describe('Validate pixel debug logs', () => {
                 "⚠️  Old app version, validation skipped: 'm_my_first_pixel'",
                 `❌ Invalid: 'experiment_enroll_defaultBrowser_control?extraParam=20' - see below for details`,
                 `\tmust NOT have additional properties. Found extra property 'extraParam'`,
-                "⚠️  Undocumented: 'experiment_enroll_x'",
             ];
             const errors = stderr.trim().split('\n');
             expect(errors).to.include.members(expectedErrors);
+            expect(stderr).to.not.include('Undocumented:');
 
             // Check regular output
             const logs = stdout.trim().split('\n');
@@ -197,5 +219,18 @@ describe('Validate pixel debug logs', () => {
 
             done();
         });
+    }).timeout(timeout);
+
+    it('logs undocumented debug pixels when requested', (done) => {
+        const debugLogPath = path.join(validDefsPath, 'pixels', 'pixel_debug_log.txt');
+        const pixelPrefix = 'Pixel url request: https://improving.duckduckgo.com/t/';
+        exec(
+            `npm run validate-ddg-pixel-logs -- ${validDefsPath} ${debugLogPath} "${pixelPrefix}" --log-undocumented`,
+            (error, stdout, stderr) => {
+                expect(error).to.equal(null);
+                expect(stderr).to.include("⚠️  Undocumented: 'unknown-pixel'");
+                done();
+            },
+        );
     }).timeout(timeout);
 });

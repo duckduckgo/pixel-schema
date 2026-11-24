@@ -81,6 +81,16 @@ export class LivePixelsValidator {
         return this.#forceLowerCase ? val.toLowerCase() : val;
     }
 
+    #isOutdatedVersion(pixelVersion, headerVersion, versionRequired = false) {
+        if (!this.#defsVersionKey || !this.#defsVersion) return false;
+
+        const validHeaderVersion = headerVersion && validateVersion(headerVersion) ? headerVersion : null;
+        const version = pixelVersion || validHeaderVersion;
+        if (!version) return versionRequired;
+
+        return validateVersion(version) && compareVersions(version, this.#defsVersion) === -1;
+    }
+
     /**
      * @param {String} paramValue
      * @param {import('ajv').SchemaObject | undefined} paramSchema - AJV schema fragment
@@ -281,6 +291,16 @@ export class LivePixelsValidator {
      */
     validatePixel(pixel, params, headerVersion = null) {
         this.#initPixelState();
+        if (this.#defsVersionKey && this.#defsVersion) {
+            const normalizedParams = Object.fromEntries(
+                Object.entries(parseParams(params)).map(([key, value]) => [this.#getNormalizedVal(key), value]),
+            );
+            if (this.#isOutdatedVersion(normalizedParams[this.#defsVersionKey], headerVersion)) {
+                this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
+                return this.#currentPixelState;
+            }
+        }
+
         if (pixel.startsWith(`experiment${PIXEL_DELIMITER}`)) {
             return this.validateNativeExperimentPixel(pixel, params);
         }
@@ -317,25 +337,12 @@ export class LivePixelsValidator {
             paramsStruct[normalizedKey] = this.#getDecodedAndNormalizedVal(val, paramSchema);
         });
 
-        if (this.#defsVersionKey && this.#defsVersion) {
-            const pixelDefinitionIncludesVersion = !!this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema);
-            const pixelVersion = paramsStruct[this.#defsVersionKey];
-            const validHeaderVersion = headerVersion && validateVersion(headerVersion) ? headerVersion : null;
-            const versionForFreshness = pixelVersion || validHeaderVersion;
-            // Actual pixel params take precedence over header values
-            // Skip pixel when the schema specifies a version but neither source provides one.
-            if (pixelDefinitionIncludesVersion && !versionForFreshness) {
-                this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
-                return this.#currentPixelState;
-            }
-
-            // Skip outdated pixels based on the pixel or header version.
-            if (versionForFreshness && validateVersion(versionForFreshness)) {
-                if (compareVersions(versionForFreshness, this.#defsVersion) === -1) {
-                    this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
-                    return this.#currentPixelState;
-                }
-            }
+        const versionRequired = !!(
+            this.#defsVersionKey && this.#getParamSchemaForKey(this.#defsVersionKey, pixelSchemas.paramsSchema.schema)
+        );
+        if (this.#isOutdatedVersion(paramsStruct[this.#defsVersionKey], headerVersion, versionRequired)) {
+            this.#currentPixelState.status = PIXEL_VALIDATION_RESULT.OLD_APP_VERSION;
+            return this.#currentPixelState;
         }
 
         // 2) Validate regular params

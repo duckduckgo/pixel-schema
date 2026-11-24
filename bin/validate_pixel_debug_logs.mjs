@@ -27,6 +27,11 @@ const argv = yargs(hideBin(process.argv))
             });
     })
     .demandOption([MAIN_DIR_ARG, 'debugLogPath', 'pixelPrefix'])
+    .option('log-undocumented', {
+        describe: 'Log undocumented pixels',
+        type: 'boolean',
+        default: false,
+    })
     .parse();
 
 async function main() {
@@ -54,7 +59,9 @@ async function main() {
             if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_PASSED) {
                 console.log(`✅ Valid: ${outputPixel}`);
             } else if (result.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
-                console.warn(`⚠️  Undocumented: '${pixel}'`);
+                if (argv['log-undocumented']) {
+                    console.warn(`⚠️  Undocumented: '${pixel}'`);
+                }
             } else if (result.status === PIXEL_VALIDATION_RESULT.OLD_APP_VERSION) {
                 console.warn(`⚠️  Old app version, validation skipped: ${outputPixel}`);
             } else if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) {

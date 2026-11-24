@@ -21,6 +21,11 @@ pipeline {
                                 description: 'Pixel prefix to match against with LIKE operator',
                                 name: 'PIXEL_PREFIX'
                             ),
+                            booleanParam(
+                                defaultValue: false,
+                                description: 'Log undocumented pixels',
+                                name: 'LOG_UNDOCUMENTED'
+                            ),
                             string(
                                 defaultValue: 'main',
                                 description: 'Pixel Schema Branch',
@@ -100,7 +105,8 @@ pipeline {
 
                     def result = withEnv([
                         "MAIN_DIR=../client-repo/${pixelsDir}/",
-                        "PIXEL_PREFIX=${params.PIXEL_PREFIX}"
+                        "PIXEL_PREFIX=${params.PIXEL_PREFIX}",
+                        "LOG_UNDOCUMENTED=${params.LOG_UNDOCUMENTED}"
                     ]) {
                         sh(
                             script: '''#!/bin/bash
@@ -108,14 +114,20 @@ pipeline {
                                 echo "Starting validation in $MAIN_DIR with pixel prefix $PIXEL_PREFIX ..."
                                 fnm exec npm run preprocess-defs $MAIN_DIR
                                 fnm exec npm run fetch-clickhouse-data $MAIN_DIR $PIXEL_PREFIX
-                                fnm exec npm run validate-live-pixels $MAIN_DIR
+                                extra_args=()
+                                if [[ "$LOG_UNDOCUMENTED" == "true" ]]; then
+                                    extra_args+=(--log-undocumented)
+                                fi
+                                fnm exec npm run validate-live-pixels -- "$MAIN_DIR" "${extra_args[@]}"
                                 exit_code=$?
                                 echo "validateRepo.sh exit code: $exit_code"
-                                echo -e "\n*** VALIDATION RESULTS: undocumented pixels ***"
-                                if [[ -d $MAIN_DIR/wide_events ]]; then
-                                    cat $MAIN_DIR/pixels/pixel_processing_results/undocumented_pixels.json
-                                else
-                                    cat $MAIN_DIR/pixel_processing_results/undocumented_pixels.json
+                                if [[ "$LOG_UNDOCUMENTED" == "true" ]]; then
+                                    echo -e "\n*** VALIDATION RESULTS: undocumented pixels ***"
+                                    if [[ -d $MAIN_DIR/wide_events ]]; then
+                                        cat $MAIN_DIR/pixels/pixel_processing_results/undocumented_pixels.json
+                                    else
+                                        cat $MAIN_DIR/pixel_processing_results/undocumented_pixels.json
+                                    fi
                                 fi
                                 echo -e "\n*** VALIDATION RESULTS: pixel errors ***"
                                 if [[ -d $MAIN_DIR/wide_events ]]; then

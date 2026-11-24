@@ -393,6 +393,22 @@ describe('App version outdated', () => {
         expect(pixelStatus.errors).to.be.empty;
     });
 
+    for (const [description, params, headerVersion, expectedStatus] of [
+        ['old pixel version', 'appVersion=1.5.0', null, PIXEL_VALIDATION_RESULT.OLD_APP_VERSION],
+        ['old header version', '', '1.5.0', PIXEL_VALIDATION_RESULT.OLD_APP_VERSION],
+        ['current pixel version', 'appVersion=2.0.0', null, PIXEL_VALIDATION_RESULT.UNDOCUMENTED],
+        ['missing version', '', null, PIXEL_VALIDATION_RESULT.UNDOCUMENTED],
+        ['invalid pixel version', 'appVersion=invalid', null, PIXEL_VALIDATION_RESULT.UNDOCUMENTED],
+        ['pixel version overriding old header', 'appVersion=2.0.0', '1.5.0', PIXEL_VALIDATION_RESULT.UNDOCUMENTED],
+    ]) {
+        it(`unknown pixel with ${description} should return the appropriate status`, () => {
+            const pixelStatus = liveValidator.validatePixel('removedPixel', params, headerVersion);
+
+            expect(pixelStatus.status).to.equal(expectedStatus);
+            expect(pixelStatus.errors).to.be.empty;
+        });
+    }
+
     it('missing app version should return OLD_APP_VERSION status by default', () => {
         const prefix = 'versionedPixel';
         const params = 'param1=test';
@@ -474,6 +490,18 @@ describe('App version outdated', () => {
         expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.VALIDATION_FAILED);
         expect(pixelStatus.errors.map((e) => e.error)).to.have.members(expectedErrors);
         expect(pixelStatus.errors.map((e) => e.example)).to.have.members([params]);
+    });
+
+    it('checks schema-decoded versions for freshness', () => {
+        const encodedDefs = {};
+        tokenizePixelDefs({ encodedPixel: { parameters: [{ key: 'appVersion', type: 'string', encoding: 'base64' }] } }, encodedDefs);
+        const encodedValidator = new LivePixelsValidator(encodedDefs, productDefWithVersion, {}, paramsValidator);
+        const encodedVersion = Buffer.from('1.5.0').toString('base64');
+
+        const pixelStatus = encodedValidator.validatePixel('encodedPixel', `appVersion=${encodedVersion}`);
+
+        expect(pixelStatus.status).to.equal(PIXEL_VALIDATION_RESULT.OLD_APP_VERSION);
+        expect(pixelStatus.errors).to.be.empty;
     });
 });
 
