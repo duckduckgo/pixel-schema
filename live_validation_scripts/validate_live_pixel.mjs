@@ -11,7 +11,13 @@ import { PIXEL_DELIMITER, PIXEL_VALIDATION_RESULT } from '../src/constants.mjs';
 
 const NUM_EXAMPLE_ERRORS = 5;
 
-const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate').parse();
+const argv = getArgParserWithCsv('Validates pixels from the provided CSV file', 'path to CSV file containing pixels to validate')
+    .option('log-undocumented', {
+        describe: 'Log undocumented pixel counts and save their names',
+        type: 'boolean',
+        default: false,
+    })
+    .parse();
 const undocumentedPixels = new Set();
 const pixelErrors = {};
 
@@ -61,10 +67,15 @@ async function main(mainDir, csvFile) {
         })
         .on('end', async () => {
             console.log(`\nDone.\nTotal pixels processed: ${processedPixels.toLocaleString('en-US')}`);
-            console.log(`Undocumented pixels: ${undocumentedPixels.size.toLocaleString('en-US')}`);
             console.log(`Pixels with validation errors: ${Object.keys(pixelErrors).length.toLocaleString('en-US')}`);
 
-            fs.writeFileSync(fileUtils.getUndocumentedPixelsPath(pixelsConfigDir), JSON.stringify(Array.from(undocumentedPixels), null, 4));
+            const undocumentedPixelsPath = fileUtils.getUndocumentedPixelsPath(pixelsConfigDir);
+            if (argv['log-undocumented']) {
+                console.log(`Undocumented pixels: ${undocumentedPixels.size.toLocaleString('en-US')}`);
+                fs.writeFileSync(undocumentedPixelsPath, JSON.stringify(Array.from(undocumentedPixels), null, 4));
+            } else {
+                fs.rmSync(undocumentedPixelsPath, { force: true });
+            }
             fs.writeFileSync(fileUtils.getPixelErrorsPath(pixelsConfigDir), JSON.stringify(pixelErrors, setReplacer, 4));
             console.log(`Validation results saved to ${fileUtils.getResultsDir(pixelsConfigDir)}`);
         });
@@ -72,7 +83,9 @@ async function main(mainDir, csvFile) {
 
 function saveResult(pixelRequestFormat, result) {
     if (result.status === PIXEL_VALIDATION_RESULT.UNDOCUMENTED) {
-        undocumentedPixels.add(pixelRequestFormat);
+        if (argv['log-undocumented']) {
+            undocumentedPixels.add(pixelRequestFormat);
+        }
     } else if (result.status === PIXEL_VALIDATION_RESULT.VALIDATION_FAILED) {
         const prefix = result.prefixForErrors;
         if (!prefix || !result.errors || !result.errors.length) {

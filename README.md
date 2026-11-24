@@ -156,6 +156,9 @@ Note:
     * Formatting: `npx prettier ${path to file relative to PackageFolder/ directory} --check`
 
 ### Live Pixel Validation
+Pixels with versions below the configured target are skipped before looking up their definitions, so they aren't classified as undocumented.
+Undocumented pixels aren't logged by default. Pass `--log-undocumented` to either validation tool to include them.
+
 #### Validating Pixels from Client Logs
 This is the quickest method to validate any new definitions you are working on. Steps:
 * Generate a debug log that prints out which pixels were sent in a URL params format (e.g. `m_uri_loaded_android_phone?appVersion=5.264.1&test=1`).
@@ -173,7 +176,7 @@ This is the quickest method to validate any new definitions you are working on. 
     * Full example for Android: `npm run validate-pixel-debug-logs . output.log 'Pixel url request: https://improving.duckduckgo.com/t/'`
 
 #### Validating Pixels in Clickhouse
-**Jenkins Job**: 
+**Jenkins Job**:
 To avoid having to put your pixel defintions on a dev node and setup there, simply use the
 [Dev Pixel Validation](https://jenkins.duckduckgo.com/job/Privacy/job/Dev%20Pixel%20Validation/) Jenkins job:
 * Select Build with Parameters
@@ -197,6 +200,12 @@ To avoid having to put your pixel defintions on a dev node and setup there, simp
 5. Review errors in `<Path to your client repo's PixelDefintions/pixels/pixel_processing_results/>`
 
 As needed, you can re-run step 4 and step 5 after updating your definitions.
+
+To also log the undocumented pixel count and save their names to `undocumented_pixels.json`, run:
+```
+$ npm run validate-live-pixels -- <Path to your client repo's PixelDefintions> --log-undocumented
+```
+The dev Jenkins job exposes the same option as `LOG_UNDOCUMENTED`. Without the option, validation removes any previous undocumented-pixel output file.
 
 ## License
 DuckDuckGo Pixels Schema is distributed under the [Apache 2.0 License](LICENSE).
