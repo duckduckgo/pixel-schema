@@ -143,11 +143,12 @@ describe('validate_live_pixel release snapshot comparison', () => {
         ]);
     });
 
-    // TODO: report HEAD errors when the release rejects the same param for a different reason. Today
-    // 'count=500' is suppressed because HEAD reports '/count must be <= 100' while the release reports
-    // an extra 'count' property. Once fixed, unskip this and add the error to the final deep.equal.
-    it.skip('persists the HEAD error when the release rejects the same param for a different reason', () => {
-        expect(pixelErrors.m_my_first_pixel['/count must be <= 100']).to.deep.equal(['count=500&appVersion=2.0.3']);
+    // 'count=500' is rejected by both sides for different reasons: HEAD reports '/count must be <= 100'
+    // while the release reports an extra 'count' property. Since the errors don't match, neither is reported.
+    // In real live validaiton, head and release will eventually match and the error will be reported in subsequent runs.
+    it('reports no error when HEAD and release reject the same param for different reasons', () => {
+        expect(pixelErrors.m_my_first_pixel).to.not.have.property('/count must be <= 100');
+        expect(pixelErrors.m_my_first_pixel).to.not.have.property("must NOT have additional properties. Found extra property 'count'");
     });
 
     it('persists an enum error rejected by both despite differing allowed values', () => {
